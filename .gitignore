@@ -22,12 +22,6 @@ $RECYCLE.BIN/
 
 .svn
 
-# grblHAL core and plugin folders
-
-grbl
-EEPROM
-sdcard
-
 # Build folder
 
 build
