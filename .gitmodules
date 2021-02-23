@@ -1,3 +1,6 @@
 [submodule "grbl"]
 	path = grbl
 	url = https://github.com/grblHAL/core
+[submodule "eeprom"]
+	path = eeprom
+	url = https://github.com/grblHAL/Plugin_EEPROM
