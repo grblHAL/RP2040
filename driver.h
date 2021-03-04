@@ -152,13 +152,17 @@
 #include "trinamic/trinamic.h"
 #endif
 
+#if MPG_MODE_ENABLE
+#define SERIAL2_MOD
+#endif
+
 // End configuration
 
-#if KEYPAD_ENABLE && !defined(KEYPAD_PORT)
+#if KEYPAD_ENABLE && !defined(KEYPAD_STROBE_PIN)
 #error Keypad plugin not supported!
 #endif
 
-#if SDCARD_ENABLE && !defined(SD_CS_PORT)
+#if SDCARD_ENABLE && !defined(SD_CS_PIN)
 #error SD card plugin not supported!
 #endif
 

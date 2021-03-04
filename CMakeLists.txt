@@ -6,7 +6,6 @@ project(grblHAL)
 
 pico_sdk_init()
 
-
 add_executable(grblHAL
  main.c
  driver.c
@@ -15,6 +14,7 @@ add_executable(grblHAL
  PCA9654E.c
  eeprom/eeprom_24AAxxx.c
  eeprom/eeprom_24LC16B.c
+ keypad/keypad.c
  grbl/grbllib.c
  grbl/coolant_control.c
  grbl/nvs_buffer.c
@@ -40,6 +40,7 @@ add_executable(grblHAL
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 target_sources(grblHAL PRIVATE driver.c)
+target_compile_definitions(grblHAL PUBLIC XRP2040)
 
 # Pull in our pico_stdlib which pulls in commonly used features
 target_link_libraries(grblHAL PRIVATE pico_stdlib hardware_uart hardware_pio hardware_i2c hardware_gpio hardware_pwm hardware_clocks)

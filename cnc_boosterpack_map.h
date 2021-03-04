@@ -50,8 +50,8 @@
 
 // Define homing/hard limit switch input pins.
 #define LIMIT_PORT       GPIO_IN
-#define X_LIMIT_PIN      8
-#define Y_LIMIT_PIN      9
+#define X_LIMIT_PIN      19
+#define Y_LIMIT_PIN      20
 #define Z_LIMIT_PIN      10
 #define X_LIMIT_BIT      (1<<X_LIMIT_PIN)
 #define Y_LIMIT_BIT      (1<<Y_LIMIT_PIN)
@@ -103,6 +103,10 @@
 #define SD_CS_PIN   17
 #define SD_CS_BIT   (1<<SD_CS_PIN)
 #define SPI_PORT    1 // SPI0, SCK_PIN = 18, MISO_PIN = 16, MOSI_PIN = 19
+#endif
+
+#if MPG_MODE_ENABLE
+#define MODE_SWITCH_PIN 18
 #endif
 
 //I2C: 26,27
