@@ -10,6 +10,7 @@ add_executable(grblHAL
  main.c
  driver.c
  serial.c
+ flash.c
  i2c.c
  PCA9654E.c
  eeprom/eeprom_24AAxxx.c
@@ -35,15 +36,26 @@ add_executable(grblHAL
  grbl/system.c
  grbl/tool_change.c
  grbl/my_plugin.c
+ usb_serial.c
+ stdio_usb_descriptors.c
 )
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 target_sources(grblHAL PRIVATE driver.c)
 target_compile_definitions(grblHAL PUBLIC XRP2040)
-
-# Pull in our pico_stdlib which pulls in commonly used features
-target_link_libraries(grblHAL PRIVATE pico_stdlib hardware_uart hardware_pio hardware_i2c hardware_gpio hardware_pwm hardware_clocks)
+target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(grblHAL PRIVATE
+ tinyusb_device_unmarked
+ pico_stdlib
+ hardware_uart
+ hardware_pio 
+ hardware_i2c 
+ hardware_gpio
+ hardware_pwm
+ hardware_clocks
+ hardware_flash
+)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(grblHAL)

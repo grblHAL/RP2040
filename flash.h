@@ -1,6 +1,6 @@
 /*
 
-  main.c - driver code for RP2040 ARM processors
+  flash.h - driver code for RP2040 ARM processor
 
   Part of grblHAL
 
@@ -21,9 +21,10 @@
 
 */
 
-#include "grbl/grbllib.h"
+#ifndef _flash_h_
+#define _flash_h_
 
-int main (void)
-{
-    grbl_enter();
-}
+bool memcpy_from_flash (uint8_t *dest);
+bool memcpy_to_flash (uint8_t *source);
+
+#endif

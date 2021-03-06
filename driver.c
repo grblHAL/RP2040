@@ -99,7 +99,6 @@ typedef union {
 } pio_steps_t;
 
 static pio_steps_t pio_steps = { .delay = 20, .length = 100 };
-uint32_t pirq = 0;
 static uint pulse, timer;
 static uint16_t pulse_length, pulse_delay;
 static bool pwmEnabled = false, IOInitDone = false;
@@ -107,6 +106,8 @@ static axes_signals_t next_step_outbits;
 static spindle_pwm_t spindle_pwm;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
 static debounce_t debounce;
+static volatile uint32_t elapsed_ticks = 0;
+static volatile bool ms_event = false;
 static probe_state_t probe; /* = {
     .connected = On
 }; */
@@ -612,32 +613,32 @@ static coolant_state_t coolantGetState (void)
 // Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
 static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-//    __disable_irq();
+    __disable_irq();
     *ptr |= bits;
-//    __enable_irq();
+    __enable_irq();
 }
 
 static uint_fast16_t bitsClearAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-//    __disable_irq();
+    __disable_irq();
     uint_fast16_t prev = *ptr;
     *ptr &= ~bits;
-//   __enable_irq();
+   __enable_irq();
     return prev;
 }
 
 static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t value)
 {
-//    __disable_irq();
+    __disable_irq();
     uint_fast16_t prev = *ptr;
     *ptr = value;
-//    __enable_irq();
+    __enable_irq();
     return prev;
 }
 
 static uint32_t getElapsedTicks (void)
 {
-   return 0; //uwTick;
+   return elapsed_ticks;
 }
 
 #if MPG_MODE_ENABLE
@@ -985,6 +986,16 @@ static bool driver_setup (settings_t *settings)
     return IOInitDone;
 }
 
+#if USB_SERIAL_CDC
+static void execute_realtime (uint_fast16_t state)
+{
+    if(ms_event) {
+        ms_event = false;
+        usb_execute_realtime(state);
+    }
+}
+#endif
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done
 
@@ -994,14 +1005,12 @@ bool driver_init (void)
 
 //    irq_set_exclusive_handler(-1, systick_handler);
 
-
-
-//mpu_hw->rvr = 999;
-//mpu_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
-// M0PLUS_SYST_CSR_CLKSOURCE_BITS - set to use processor clock
+    systick_hw->rvr = 999;
+    systick_hw->cvr = 0;
+    systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
 #if USB_SERIAL_CDC
-    usbInit();
+    usb_serialInit();
 #else
     serialInit(115200);
 #endif
@@ -1062,13 +1071,14 @@ bool driver_init (void)
     hal.set_value_atomic = valueSetAtomic;
 
 #if USB_SERIAL_CDC
-    hal.stream.read = usbGetC;
-    hal.stream.write = usbWriteS;
-    hal.stream.write_all = usbWriteS;
-    hal.stream.get_rx_buffer_available = usbRxFree;
-    hal.stream.reset_read_buffer = usbRxFlush;
-    hal.stream.cancel_read_buffer = usbRxCancel;
-    hal.stream.suspend_read = usbSuspendInput;
+    hal.stream.read = usb_serialGetC;
+    hal.stream.write = usb_serialWriteS;
+    hal.stream.write_all = usb_serialWriteS;
+    hal.stream.get_rx_buffer_available = usb_serialRxFree;
+    hal.stream.reset_read_buffer = usb_serialRxFlush;
+    hal.stream.cancel_read_buffer = usb_serialRxCancel;
+    hal.stream.suspend_read = usb_serialSuspendInput;
+    grbl.on_execute_realtime = execute_realtime;
 #else
     hal.stream.read = serialGetC;
     hal.stream.write = serialWriteS;
@@ -1165,9 +1175,6 @@ bool driver_init (void)
 // Main stepper driver
 void STEPPER_TIMER_IRQHandler (void)
 {
-    //irq_clear(PIO1_IRQ_0);
-
-    pirq = pio1->irq;
     stepper_timer_irq_clear(pio1);
 
     hal.stepper.interrupt_callback();
@@ -1258,10 +1265,8 @@ static void gpio_int_handler (uint gpio, uint32_t events)
 // Interrupt handler for 1 ms interval timer
 void isr_systick (void)
 {
-    static uint32_t cnt = 0;
-
-    cnt++;
-    /*
+    ms_event = true;
+    elapsed_ticks++;
 
 #if SDCARD_ENABLE
     static uint32_t fatfs_ticks = 10;
@@ -1270,13 +1275,4 @@ void isr_systick (void)
         fatfs_ticks = 10;
     }
 #endif
-    uwTick += uwTickFreq;
-
-    if(delay.ms && !(--delay.ms)) {
-        if(delay.callback) {
-            delay.callback();
-            delay.callback = NULL;
-        }
-    }
-    */
 }

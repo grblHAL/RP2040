@@ -1,10 +1,11 @@
 /*
 
-  main.c - driver code for RP2040 ARM processors
+  usb_serial.h - driver code for RP2040
 
   Part of grblHAL
 
   Copyright (c) 2021 Terje Io
+
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,9 +22,20 @@
 
 */
 
-#include "grbl/grbllib.h"
+extern void usb_execute_realtime (uint_fast16_t state);
 
-int main (void)
-{
-    grbl_enter();
-}
+#define usb_serial_poll() usb_execute_realtime(0)
+
+bool usb_serialInit(void);
+int16_t usb_serialGetC(void);
+bool usb_serialPutC(const char c);
+void usb_serialWriteS(const char *s);
+void usb_serialWriteLn(const char *s);
+void usb_serialWrite(const char *s, uint16_t length);
+bool usb_serialSuspendInput (bool suspend);
+
+uint16_t usb_serialTxCount(void);
+uint16_t usb_serialRxCount(void);
+uint16_t usb_serialRxFree(void);
+void usb_serialRxFlush(void);
+void usb_serialRxCancel(void);
