@@ -24,13 +24,13 @@
 #include <math.h>
 #include <string.h>
 
-#include "pico/stdlib.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
+#include "hardware/spi.h"
 #include "hardware/structs/systick.h"
 #include "hardware/structs/iobank0.h"
 
@@ -948,15 +948,7 @@ static bool driver_setup (settings_t *settings)
 #endif
 
 #if SDCARD_ENABLE
-
-    GPIO_Init.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_Init.Pin = SD_CS_BIT;
-    HAL_GPIO_Init(SD_CS_PORT, &GPIO_Init);
-
-    BITBAND_PERI(SD_CS_PORT->ODR, SD_CS_PIN) = 1;
-
     sdcard_init();
-
 #endif
 
 #if PPI_ENABLE
@@ -1025,6 +1017,7 @@ bool driver_init (void)
 
     hal.info = "RP2040";
     hal.driver_version = "21xxxx";
+    hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif

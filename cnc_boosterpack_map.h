@@ -100,9 +100,11 @@
 #endif
 
 #if SDCARD_ENABLE
-#define SD_CS_PIN   17
-#define SD_CS_BIT   (1<<SD_CS_PIN)
-#define SPI_PORT    1 // SPI0, SCK_PIN = 18, MISO_PIN = 16, MOSI_PIN = 19
+#define SPI_PORT spi0
+#define SD_MISO_PIN    16
+#define SD_CS_PIN      17
+#define SD_SCK_PIN     18
+#define SD_MOSI_PIN    19
 #endif
 
 #if MPG_MODE_ENABLE

@@ -4,3 +4,6 @@
 [submodule "eeprom"]
 	path = eeprom
 	url = https://github.com/grblHAL/Plugin_EEPROM
+[submodule "sdcard"]
+	path = sdcard
+	url = https://github.com/grblHAL/Plugin_SD_card
