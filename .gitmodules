@@ -7,3 +7,6 @@
 [submodule "sdcard"]
 	path = sdcard
 	url = https://github.com/grblHAL/Plugin_SD_card
+[submodule "keypad"]
+	path = keypad
+	url = https://github.com/grblHAL/Plugin_I2C_keypad
