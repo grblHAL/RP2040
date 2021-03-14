@@ -41,7 +41,7 @@
 
 static uint16_t tx_fifo_size;
 static stream_tx_buffer_t txbuffer = {0};
-static stream_rx_buffer_t rxbuffer = {0}, rxbackup;
+static stream_rx_buffer_t rxbuffer = {0};
 
 static void uart_interrupt_handler (void);
 
@@ -182,20 +182,9 @@ void serialWrite(const char *s, uint16_t length)
         serialPutC(*ptr++);
 }
 
-// "dummy" version of serialGetC
-static int16_t serialGetNull (void)
-{
-    return -1;
-}
-
 bool serialSuspendInput (bool suspend)
 {
-    if(suspend)
-        hal.stream.read = serialGetNull;
-    else if(rxbuffer.backup)
-        memcpy(&rxbuffer, &rxbackup, sizeof(stream_rx_buffer_t));
-
-    return rxbuffer.tail != rxbuffer.head;
+    return stream_rx_suspend(&rxbuffer, suspend);
 }
 
 uint16_t serialTxCount(void) {
@@ -225,9 +214,7 @@ static void uart_interrupt_handler (void)
                 rxbuffer.head = bptr;                       // and update pointer
 #else
                 if(data == CMD_TOOL_ACK && !rxbuffer.backup) {
-                    memcpy(&rxbackup, &rxbuffer, sizeof(stream_rx_buffer_t));
-                    rxbuffer.backup = true;
-                    rxbuffer.tail = rxbuffer.head;
+                    stream_rx_backup(&rxbuffer);
                     hal.stream.read = serialGetC; // restore normal input
                 } else if(!hal.stream.enqueue_realtime_command((char)data)) {
                     rxbuffer.data[rxbuffer.head] = (char)data;  // Add data to buffer
