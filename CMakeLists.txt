@@ -17,6 +17,7 @@ add_executable(grblHAL
  flash.c
  i2c.c
  PCA9654E.c
+ pico_cnc.c
  eeprom/eeprom_24AAxxx.c
  eeprom/eeprom_24LC16B.c
  keypad/keypad.c

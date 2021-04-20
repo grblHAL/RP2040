@@ -170,6 +170,10 @@
 
 bool driver_init (void);
 
+#if OUT_SHIFT_REGISTER
+void board_init (output_sr_t *reg);
+#endif
+
 /**
   \brief   Enable IRQ Interrupts
   \details Enables IRQ interrupts by clearing the I-bit in the CPSR.

@@ -280,11 +280,11 @@ typedef struct {
 } debounce_pool_t;
 
 #if SD_SHIFT_REGISTER
-static step_dir_sr_t sr;
+static step_dir_sr_t sd_sr;
 #endif
 
 #if OUT_SHIFT_REGISTER
-static ouput_sr_t out_sr;
+static output_sr_t out_sr;
 #endif
 
 static alarm_pool_t *debounceAlarmPool;
@@ -381,7 +381,7 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
 {
 #if SD_SHIFT_REGISTER
 
-    step_dir_sr4_write(pio0, 0, sr.value | (step_outbits.value & AXES_BITMASK));
+    step_dir_sr4_write(pio0, 0, sd_sr.value | (step_outbits.value & AXES_BITMASK));
 #else
     pio_steps.set = step_outbits.mask ^ settings.steppers.step_invert.mask;
     step_pulse_generate(pio0, 0, pio_steps.value);
@@ -394,12 +394,12 @@ inline static __attribute__((always_inline)) void stepperSetDirOutputs (axes_sig
 {
 #if SD_SHIFT_REGISTER
 
-    sr.set.x_dir = sr.reset.x_dir = dir_outbits.x;
-    sr.set.y_dir = sr.reset.y_dir = dir_outbits.y;
-    sr.set.z_dir = sr.reset.z_dir = dir_outbits.z;
-    sr.set.a_dir = sr.reset.a_dir = dir_outbits.a;
+    sd_sr.set.x_dir = sd_sr.reset.x_dir = dir_outbits.x;
+    sd_sr.set.y_dir = sd_sr.reset.y_dir = dir_outbits.y;
+    sd_sr.set.z_dir = sd_sr.reset.z_dir = dir_outbits.z;
+    sd_sr.set.a_dir = sd_sr.reset.a_dir = dir_outbits.a;
  //   if(!sr.is_step)
-        step_dir_sr4_write(pio0, 0, sr.value);
+        step_dir_sr4_write(pio0, 0, sd_sr.value);
 #elif DIRECTION_OUTMODE == GPIO_MAP
     gpio_put_masked(DIRECTION_MASK, dir_outmap[dir_outbits.mask]);
 #else
@@ -858,10 +858,10 @@ void settings_changed (settings_t *settings)
 #if SD_SHIFT_REGISTER
         sr_delay_set(pio0, 1, pio_steps.delay);
         sr_hold_set(pio0, 2, pio_steps.length);
-        sr.reset.x_step = settings->steppers.step_invert.x;
-        sr.reset.y_step = settings->steppers.step_invert.y;
-        sr.reset.z_step = settings->steppers.step_invert.z;
-        sr.reset.a_step = settings->steppers.step_invert.a;
+        sd_sr.reset.x_step = settings->steppers.step_invert.x;
+        sd_sr.reset.y_step = settings->steppers.step_invert.y;
+        sd_sr.reset.z_step = settings->steppers.step_invert.z;
+        sd_sr.reset.a_step = settings->steppers.step_invert.a;
 #endif
 
         // Set the GPIO interrupt handler, the pin doesn't matter for now
@@ -1168,7 +1168,9 @@ bool driver_init (void)
 #endif
 
 #ifdef HAS_BOARD_INIT
-    board_init();
+  #if OUT_SHIFT_REGISTER
+    board_init (&out_sr);
+  #endif
 #endif
 
 #if TRINAMIC_ENABLE
