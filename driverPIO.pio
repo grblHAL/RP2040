@@ -223,7 +223,6 @@ static inline void sr_hold_set(PIO pio, uint32_t sm, uint32_t period) {
 .program out_sr16
 .side_set 2
     pull block          side 0x2 [1]
-; output direction signals
     set y, 15           side 0x0
 loop1:
     out pins, 1         side 0x0
@@ -242,7 +241,7 @@ static inline void out_sr16_program_init(PIO pio, uint32_t sm, uint32_t offset, 
     pio_gpio_init(pio, dataPin);
     pio_gpio_init(pio, bckPin);
     pio_gpio_init(pio, bckPin + 1);
-
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
 }

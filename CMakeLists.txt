@@ -22,6 +22,7 @@ add_executable(grblHAL
  eeprom/eeprom_24LC16B.c
  keypad/keypad.c
  sdcard/sdcard.c
+ sdcard/ymodem.c
 )
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)

@@ -526,7 +526,7 @@ inline static void spindle_off (void)
 inline static void spindle_on (void)
 {
 #if OUT_SHIFT_REGISTER
-    out_sr.spindle_dir = !settings.spindle.invert.on;
+    out_sr.spindle_ena = !settings.spindle.invert.on;
     out_sr16_write(pio1, 1, out_sr.value);
 #elif SPINDLE_OUTMODE == GPIO_IOEXPAND
     ioex_out(SPINDLE_ENABLE_PIN) = !settings.spindle.invert.on;
@@ -985,7 +985,7 @@ static bool driver_setup (settings_t *settings)
 
 #if OUT_SHIFT_REGISTER
     pio_offset = pio_add_program(pio1, &out_sr16_program);
-    out_sr16_program_init(pio1, 1, pio_offset, SD_SR_DATA_PIN, SD_SR_SCK_PIN);
+    out_sr16_program_init(pio1, 1, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
 #elif SPINDLE_OUTMODE != GPIO_IOEXPAND
     gpio_init_mask(SPINDLE_MASK);
     gpio_set_dir_out_masked(SPINDLE_MASK);
@@ -1117,6 +1117,7 @@ bool driver_init (void)
     hal.stream.read = usb_serialGetC;
     hal.stream.write = usb_serialWriteS;
     hal.stream.write_all = usb_serialWriteS;
+    hal.stream.write_char = usb_serialPutC;
     hal.stream.get_rx_buffer_available = usb_serialRxFree;
     hal.stream.reset_read_buffer = usb_serialRxFlush;
     hal.stream.cancel_read_buffer = usb_serialRxCancel;
@@ -1126,6 +1127,7 @@ bool driver_init (void)
     hal.stream.read = serialGetC;
     hal.stream.write = serialWriteS;
     hal.stream.write_all = serialWriteS;
+    hal.stream.write_char = serialPutC;
     hal.stream.get_rx_buffer_available = serialRxFree;
     hal.stream.reset_read_buffer = serialRxFlush;
     hal.stream.cancel_read_buffer = serialRxCancel;
@@ -1152,7 +1154,7 @@ bool driver_init (void)
     hal.driver_cap.variable_spindle = On;
 #endif
     hal.driver_cap.spindle_pwm_invert = On;
-#ifdef COOLANT_MIST_PIN
+#if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
     hal.driver_cap.mist_control = On;
 #endif
     hal.driver_cap.software_debounce = On;
