@@ -39,9 +39,9 @@
 #include "my_machine.h"
 #endif
 
-
-// Read GPIO out register value
-#define gpio_get_out_state(x) !!!!((1ul << x) & sio_hw->gpio_out)
+#define DIGITAL_IN(bit) (!!(sio_hw->gpio_out & bit))
+#define DIGITAL_OUT(bit, on) { if(on) sio_hw->gpio_set = bit; else sio_hw->gpio_clr = bit; }
+#define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
 
 // Configuration
 // Set value to 1 to enable, 0 to disable
@@ -95,9 +95,27 @@
 #define GPIO_SHIFT11 11
 #define GPIO_SHIFT12 12
 #define GPIO_SHIFT13 13
-#define GPIO_MAP     14
-#define GPIO_DIRECT   15
-#define GPIO_IOEXPAND 16
+#define GPIO_SHIFT14 14
+#define GPIO_SHIFT15 15
+#define GPIO_SHIFT16 16
+#define GPIO_SHIFT17 17
+#define GPIO_SHIFT18 18
+#define GPIO_SHIFT19 19
+#define GPIO_SHIFT20 20
+#define GPIO_SHIFT21 21
+#define GPIO_SHIFT22 22
+#define GPIO_SHIFT23 23
+#define GPIO_SHIFT24 24
+#define GPIO_SHIFT25 25
+#define GPIO_SHIFT26 26
+#define GPIO_SHIFT27 27
+#define GPIO_SHIFT28 28
+#define GPIO_MAP     31
+#define GPIO_DIRECT   33
+#define GPIO_IOEXPAND 34
+#define GPIO_INPUT 35
+#define GPIO_OUTPUT 36
+#define GPIO_PIO   37
 
 // Define timer allocations.
 
@@ -167,6 +185,47 @@
 #if SDCARD_ENABLE && !defined(SD_CS_PIN)
 #error SD card plugin not supported!
 #endif
+
+#ifndef STEP_PINMODE
+#define STEP_PINMODE PINMODE_OUTPUT
+#endif
+
+#ifndef DIRECTION_PINMODE
+#define DIRECTION_PINMODE PINMODE_OUTPUT
+#endif
+
+#ifndef STEPPERS_DISABLE_PINMODE
+#define STEPPERS_DISABLE_PINMODE PINMODE_OUTPUT
+#endif
+
+typedef struct {
+    pin_function_t id;
+    pin_group_t group;
+    uint8_t pin;
+    uint32_t bit;
+    uint8_t port;
+    bool invert;
+//    pin_irq_mode_t irq_mode;
+    volatile bool active;
+    volatile bool debounce;
+} input_signal_t;
+
+typedef struct {
+    pin_function_t id;
+    pin_group_t group;
+    uint8_t pin;
+    uint32_t bit;
+    uint8_t port;
+    pin_mode_t mode;
+} output_signal_t;
+
+typedef struct {
+    uint8_t n_pins;
+    union {
+        input_signal_t *inputs;
+        output_signal_t *outputs;
+    } pins;
+} pin_group_pins_t;
 
 bool driver_init (void);
 

@@ -88,50 +88,51 @@ typedef union {
 #define OUT_SR_DATA_PIN     26
 #define OUT_SR_SCK_PIN      17 // includes next pin (13)
 
-#define AUX_N_OUT 8
-#define AUX_OUT_MASK 0xFF
+#define AUX_N_OUT           8
+#define AUX_OUT_MASK        0xFF
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN     6
-#define Y_LIMIT_PIN     5
-#define Z_LIMIT_PIN     4
-#define X_LIMIT_BIT     (1<<X_LIMIT_PIN)
-#define Y_LIMIT_BIT     (1<<Y_LIMIT_PIN)
-#define Z_LIMIT_BIT     (1<<Z_LIMIT_PIN)
+#define X_LIMIT_PIN         6
+#define Y_LIMIT_PIN         5
+#define Z_LIMIT_PIN         4
+#define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
+#define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
+#define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
 #if N_AXIS > 3
-#define A_LIMIT_PIN     3
-#define A_LIMIT_BIT     (1<<A_LIMIT_PIN)
-#define LIMIT_MASK      (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT|A_LIMIT_BIT) // All limit bits
+#define A_LIMIT_PIN         3
+#define A_LIMIT_BIT         (1<<A_LIMIT_PIN)
+#define LIMIT_MASK          (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT|A_LIMIT_BIT) // All limit bits
 #else
-#define LIMIT_MASK      (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT) // All limit bits
+#define LIMIT_MASK          (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT) // All limit bits
 #endif
-#define LIMIT_INMODE    GPIO_MAP
+#define LIMIT_INMODE        GPIO_MAP
 
 // Define spindle PWM output pin.
-#define SPINDLE_PWM_PIN             27
-#define SPINDLE_PWM_BIT             (1<<SPINDLE_PWM_PIN)
+#define SPINDLE_PWM_PORT    GPIO_OUTPUT
+#define SPINDLE_PWM_PIN     27
+#define SPINDLE_PWM_BIT     (1<<SPINDLE_PWM_PIN)
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define CONTROL_RESET_PIN           22
-#define CONTROL_RESET_BIT           (1<<CONTROL_RESET_PIN)
-#define CONTROL_FEED_HOLD_PIN       7
-#define CONTROL_FEED_HOLD_BIT       (1<<CONTROL_FEED_HOLD_PIN)
-#define CONTROL_CYCLE_START_PIN     8
-#define CONTROL_CYCLE_START_BIT     (1<<CONTROL_CYCLE_START_PIN)
+#define RESET_PIN           22
+#define RESET_BIT           (1<<RESET_PIN)
+#define FEED_HOLD_PIN       7
+#define FEED_HOLD_BIT       (1<<FEED_HOLD_PIN)
+#define CYCLE_START_PIN     8
+#define CYCLE_START_BIT     (1<<CYCLE_START_PIN)
 #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-#define CONTROL_SAFETY_DOOR_PIN     9
-#define CONTROL_SAFETY_DOOR_BIT     (1<<CONTROL_SAFETY_DOOR_PIN)
-#define CONTROL_MASK                (CONTROL_RESET_BIT|CONTROL_FEED_HOLD_BIT|CONTROL_CYCLE_START_BIT|CONTROL_SAFETY_DOOR_BIT)
+#define SAFETY_DOOR_PIN     9
+#define SAFETY_DOOR_BIT     (1<<SAFETY_DOOR_PIN)
+#define CONTROL_MASK        (RESET_BIT|FEED_HOLD_BIT|CYCLE_START_BIT|SAFETY_DOOR_BIT)
 #else
-#define CONTROL_MASK                (CONTROL_RESET_BIT|CONTROL_FEED_HOLD_BIT|CONTROL_CYCLE_START_BIT)
+#define CONTROL_MASK        (RESET_BIT|FEED_HOLD_BIT|CYCLE_START_BIT)
 #endif
-#define CONTROL_INMODE              GPIO_MAP
+#define CONTROL_INMODE      GPIO_MAP
 
 // Define probe switch input pin.
-#define PROBE_PIN                   28
-#define PROBE_BIT                   (1<<PROBE_PIN)
+#define PROBE_PIN           28
+#define PROBE_BIT           (1<<PROBE_PIN)
 
 #if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN           19
-#define KEYPAD_STROBE_BIT           (1<<KEYPAD_STROBE_PIN)
+#define KEYPAD_STROBE_PIN   19
+#define KEYPAD_STROBE_BIT   (1<<KEYPAD_STROBE_PIN)
 #endif
