@@ -58,6 +58,10 @@
 #include "usb_serial.h"
 #endif
 
+#if BLUETOOTH_ENABLE
+#include "bluetooth/bluetooth.h"
+#endif
+
 #if EEPROM_ENABLE
 #include "eeprom/eeprom.h"
 #endif
@@ -96,6 +100,10 @@ static pio_steps_t pio_steps = { .delay = 20, .length = 100 };
 static uint pulse, timer;
 static uint16_t pulse_length, pulse_delay;
 static bool pwmEnabled = false, IOInitDone = false;
+static const io_stream_t *serial_stream;
+#if MPG_MODE_ENABLE
+static const io_stream_t *mpg_stream;
+#endif
 static axes_signals_t next_step_outbits;
 static spindle_pwm_t spindle_pwm;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
@@ -254,7 +262,7 @@ static output_signal_t outputpin[] = {
 #define KEYPAD_STROBE_BIT 0
 #endif
 
-#ifndef SPINDLE_SYNC_ENABLE
+#if !SPINDLE_SYNC_ENABLE
 #define SPINDLE_INDEX_BIT 0
 #endif
 
@@ -530,7 +538,7 @@ inline static void spindle_on (void)
 #else
     DIGITAL_OUT(SPINDLE_ENABLE_BIT, On);
 #endif
-#ifdef SPINDLE_SYNC_ENABLE
+#if SPINDLE_SYNC_ENABLE
     spindleDataReset();
 #endif
 }
@@ -770,18 +778,19 @@ static void modeSelect (bool mpg_mode)
         return;
     }
 
-    serialSelect(mpg_mode);
-
     if(mpg_mode) {
-        hal.stream.read = serial2GetC;
-        hal.stream.get_rx_buffer_available = serial2RxFree;
-        hal.stream.cancel_read_buffer = serial2RxCancel;
-        hal.stream.reset_read_buffer = serial2RxFlush;
+        if(hal.stream.disable)
+            hal.stream.disable(true);
+        mpg_stream->disable(false);
+        hal.stream.read = mpg_stream->read;
+        hal.stream.get_rx_buffer_free = mpg_stream->get_rx_buffer_free;
+        hal.stream.cancel_read_buffer = mpg_stream->cancel_read_buffer;
+        hal.stream.reset_read_buffer = mpg_stream->reset_read_buffer;
     } else {
-        hal.stream.read = serialGetC;
-        hal.stream.get_rx_buffer_available = serialRxFree;
-        hal.stream.cancel_read_buffer = serialRxCancel;
-        hal.stream.reset_read_buffer = serialRxFlush;
+        mpg_stream->disable(true);
+        memcpy(&hal.stream, serial_stream, offsetof(io_stream_t, enqueue_realtime_command));
+        if(hal.stream.disable)
+            hal.stream.disable(false);
     }
 
     hal.stream.reset_read_buffer();
@@ -1180,12 +1189,6 @@ bool driver_init (void)
     systick_hw->cvr = 0;
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
-#if USB_SERIAL_CDC
-    usb_serialInit();
-#else
-    serialInit(115200);
-#endif
-
 #ifdef SERIAL2_MOD
     serial2Init(115200);
 #endif
@@ -1244,25 +1247,13 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
 
 #if USB_SERIAL_CDC
-    hal.stream.read = usb_serialGetC;
-    hal.stream.write = usb_serialWriteS;
-    hal.stream.write_all = usb_serialWriteS;
-    hal.stream.write_char = usb_serialPutC;
-    hal.stream.get_rx_buffer_available = usb_serialRxFree;
-    hal.stream.reset_read_buffer = usb_serialRxFlush;
-    hal.stream.cancel_read_buffer = usb_serialRxCancel;
-    hal.stream.suspend_read = usb_serialSuspendInput;
+    serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
 #else
-    hal.stream.read = serialGetC;
-    hal.stream.write = serialWriteS;
-    hal.stream.write_all = serialWriteS;
-    hal.stream.write_char = serialPutC;
-    hal.stream.get_rx_buffer_available = serialRxFree;
-    hal.stream.reset_read_buffer = serialRxFlush;
-    hal.stream.cancel_read_buffer = serialRxCancel;
-    hal.stream.suspend_read = serialSuspendInput;
+    serial_stream = serialInit(115200);
 #endif
+
+    memcpy(&hal.stream, serial_stream, offsetof(io_stream_t, enqueue_realtime_command));
 
 #if EEPROM_ENABLE
     i2c_eeprom_init();
@@ -1319,8 +1310,10 @@ bool driver_init (void)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
         }
+#ifdef SAFETY_DOOR_PIN
         if(input->id == Input_SafetyDoor)
             safety_door = input;
+#endif
     }
 
 #ifdef HAS_BOARD_INIT
@@ -1341,23 +1334,16 @@ bool driver_init (void)
     ioexpand_init();
 #endif
 
-#if MODBUS_ENABLE
-
-    modbus_stream.write = serial2Write;
-    modbus_stream.read = serial2GetC;
-    modbus_stream.flush_rx_buffer = serial2RxFlush;
-    modbus_stream.flush_tx_buffer = serial2TxFlush;
-    modbus_stream.get_rx_buffer_count = serial2RxCount;
-    modbus_stream.get_tx_buffer_count = serial2TxCount;
-    modbus_stream.set_baud_rate = serial2SetBaudRate;
-
-    bool modbus = modbus_init(&modbus_stream);
-
 #if SPINDLE_HUANYANG > 0
-    if(modbus)
-        huanyang_init(&modbus_stream);
+    huanyang_init(modbus_init(serial2Init(115200)));
 #endif
 
+#if BLUETOOTH_ENABLE
+#if USB_SERIAL_CDC
+    bluetooth_init(serialInit(115200));
+#else
+    bluetooth_init(serial2Init(115200));
+#endif
 #endif
 
     my_plugin_init();

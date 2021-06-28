@@ -21,7 +21,7 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-//#define BOARD_PICO_CNC
+#define BOARD_PICO_CNC
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
 
@@ -29,6 +29,7 @@
 // Uncomment to enable.
 
 //#define USB_SERIAL_CDC       1 // Serial communication via native USB.
+//#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module. Requires Bluetooth plugin.
 //#define SDCARD_ENABLE        1 // Run gcode programs from SD card, requires sdcard plugin.
 //#define KEYPAD_ENABLE        1 // I2C keypad for jogging etc., requires keypad plugin.
 //#define ODOMETER_ENABLE      1 // Odometer plugin.

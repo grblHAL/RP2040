@@ -22,20 +22,14 @@
 
 */
 
+#pragma once
+
+#include "grbl/hal.h"
+
 extern void usb_execute_realtime (uint_fast16_t state);
 
 #define usb_serial_poll() usb_execute_realtime(0)
 
-bool usb_serialInit(void);
-int16_t usb_serialGetC(void);
-bool usb_serialPutC(const char c);
-void usb_serialWriteS(const char *s);
-void usb_serialWriteLn(const char *s);
-void usb_serialWrite(const char *s, uint16_t length);
-bool usb_serialSuspendInput (bool suspend);
+const io_stream_t *usb_serialInit(void);
 
-uint16_t usb_serialTxCount(void);
-uint16_t usb_serialRxCount(void);
-uint16_t usb_serialRxFree(void);
-void usb_serialRxFlush(void);
-void usb_serialRxCancel(void);
+/*EOF*/

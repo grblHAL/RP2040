@@ -23,6 +23,7 @@ add_executable(grblHAL
  keypad/keypad.c
  sdcard/sdcard.c
  sdcard/ymodem.c
+ bluetooth/hc_05.c
 )
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)

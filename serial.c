@@ -63,40 +63,10 @@ static void uart2_interrupt_handler (void);
 
 #endif
 
-void serialInit (uint32_t baud_rate)
-{
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-    
-    uart_init(UART_PORT, 2400);
-
-    uart_set_hw_flow(UART_PORT, false, false);
-    uart_set_format(UART_PORT, 8, 1, UART_PARITY_NONE);
-    uart_set_baudrate(UART_PORT, 115200);
-    uart_set_fifo_enabled(UART_PORT, true);
-
-    irq_set_exclusive_handler(UART_IRQ, uart_interrupt_handler);
-    irq_set_enabled(UART_IRQ, true);
-    
-    hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);             
-}
-
-bool serialSetBaudRate (uint32_t baud_rate)
-{
-    static bool init_ok = false;
-
-    if(!init_ok) {
-        serialInit(baud_rate);
-        init_ok = true;
-    }
-
-    return true;
-}
-
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t serialGetC (void)
+static int16_t serialGetC (void)
 {
     int16_t data;
     uint_fast16_t bptr = rxbuffer.tail;
@@ -110,37 +80,37 @@ int16_t serialGetC (void)
     return data;
 }
 
-void serialTxFlush (void)
+static void serialTxFlush (void)
 {
     txbuffer.tail = txbuffer.head;
 }
 
-uint16_t serialRxCount (void)
+static uint16_t serialRxCount (void)
 {
     uint_fast16_t head = rxbuffer.head, tail = rxbuffer.tail;
 
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-uint16_t serialRxFree (void)
+static uint16_t serialRxFree (void)
 {
     return RX_BUFFER_SIZE - 1 - serialRxCount();
 }
 
-void serialRxFlush (void)
+static void serialRxFlush (void)
 {
     rxbuffer.tail = rxbuffer.head;
     rxbuffer.overflow = false;
 }
 
-void serialRxCancel (void)
+static void serialRxCancel (void)
 {
     serialRxFlush();
     rxbuffer.data[rxbuffer.head] = ASCII_CAN;
     rxbuffer.head = BUFNEXT(rxbuffer.head, rxbuffer);
 }
 
-bool serialPutC (const char c)
+static bool serialPutC (const char c)
 {
     uint_fast16_t next_head;
 
@@ -166,7 +136,7 @@ bool serialPutC (const char c)
     return true;
 }
 
-void serialWriteS (const char *data)
+static void serialWriteS (const char *data)
 {
     char c, *ptr = (char *)data;
 
@@ -174,7 +144,7 @@ void serialWriteS (const char *data)
         serialPutC(c);
 }
 
-void serialWrite(const char *s, uint16_t length)
+static void serialWrite (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
@@ -182,16 +152,67 @@ void serialWrite(const char *s, uint16_t length)
         serialPutC(*ptr++);
 }
 
-bool serialSuspendInput (bool suspend)
+static bool serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&rxbuffer, suspend);
 }
 
-uint16_t serialTxCount(void) {
+static uint16_t serialTxCount (void) {
 
     uint_fast16_t head = txbuffer.head, tail = txbuffer.tail;
 
     return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART->fr & UART_UARTFR_BUSY_BITS) ? 0 : 1);
+}
+
+
+static bool serialSetBaudRate (uint32_t baud_rate)
+{
+    uart_set_baudrate(UART_PORT, baud_rate);
+
+    return true;
+}
+
+static bool serialDisable (bool disable)
+{
+    if(disable)
+        hw_clear_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);       
+    else
+        hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
+}
+
+const io_stream_t *serialInit (uint32_t baud_rate)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = true,
+        .read = serialGetC,
+        .write = serialWriteS,
+        .write_all = serialWriteS,
+        .write_char = serialPutC,
+        .get_rx_buffer_free = serialRxFree,
+        .reset_read_buffer = serialRxFlush,
+        .cancel_read_buffer = serialRxCancel,
+        .suspend_read = serialSuspendInput,
+        .disable = serialDisable,
+        .set_baud_rate = serialSetBaudRate
+    };
+
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    
+    uart_init(UART_PORT, 2400);
+
+    uart_set_hw_flow(UART_PORT, false, false);
+    uart_set_format(UART_PORT, 8, 1, UART_PARITY_NONE);
+    uart_set_baudrate(UART_PORT, baud_rate);
+    uart_set_fifo_enabled(UART_PORT, true);
+
+    irq_set_exclusive_handler(UART_IRQ, uart_interrupt_handler);
+    irq_set_enabled(UART_IRQ, true);
+    
+    hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
+
+    return &stream;           
 }
 
 static void uart_interrupt_handler (void)
@@ -245,51 +266,10 @@ static void uart_interrupt_handler (void)
 
 #ifdef SERIAL2_MOD
 
-void serial2Init (uint32_t baud_rate)
-{
-    gpio_set_function(UART2_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART2_RX_PIN, GPIO_FUNC_UART);
-    
-    uart_init(UART2_PORT, 2400);
-
-    uart_set_hw_flow(UART2_PORT, false, false);
-    uart_set_format(UART2_PORT, 8, 1, UART_PARITY_NONE);
-    uart_set_baudrate(UART2_PORT, 115200);
-    uart_set_fifo_enabled(UART2_PORT, true);
-
-    irq_set_exclusive_handler(UART2_IRQ, uart2_interrupt_handler);
-    irq_set_enabled(UART2_IRQ, true);
-    
-    hw_set_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);             
-}
-
-bool serial2SetBaudRate (uint32_t baud_rate)
-{
-    static bool init_ok = false;
-
-    if(!init_ok) {
-        serial2Init(baud_rate);
-        init_ok = true;
-    }
-
-    return true;
-}
-
-void serialSelect (bool mpg)
-{
-   if(mpg) {
-        hw_clear_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
-        hw_set_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
-    } else {
-        hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
-        hw_clear_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
-    }
-}
-
 //
 // serial2GetC - returns -1 if no data available
 //
-int16_t serial2GetC (void)
+static int16_t serial2GetC (void)
 {
     int16_t data;
     uint_fast16_t bptr = rxbuffer2.tail;
@@ -303,37 +283,37 @@ int16_t serial2GetC (void)
     return data;
 }
 
-void serial2TxFlush (void)
+static void serial2TxFlush (void)
 {
     txbuffer2.tail = txbuffer2.head;
 }
 
-uint16_t serial2RxCount (void)
+static uint16_t serial2RxCount (void)
 {
     uint_fast16_t head = rxbuffer2.head, tail = rxbuffer2.tail;
 
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-uint16_t serial2RxFree (void)
+static uint16_t serial2RxFree (void)
 {
     return RX_BUFFER_SIZE - 1 - serialRxCount();
 }
 
-void serial2RxFlush (void)
+static void serial2RxFlush (void)
 {
     rxbuffer2.tail = rxbuffer2.head;
     rxbuffer2.overflow = false;
 }
 
-void serial2RxCancel (void)
+static void serial2RxCancel (void)
 {
     serial2RxFlush();
     rxbuffer2.data[rxbuffer2.head] = ASCII_CAN;
     rxbuffer2.head = BUFNEXT(rxbuffer2.head, rxbuffer2);
 }
 
-bool serial2PutC (const char c)
+static bool serial2PutC (const char c)
 {
     uint_fast16_t next_head;
 
@@ -359,7 +339,7 @@ bool serial2PutC (const char c)
     return true;
 }
 
-void serial2WriteS (const char *data)
+static void serial2WriteS (const char *data)
 {
     char c, *ptr = (char *)data;
 
@@ -367,7 +347,7 @@ void serial2WriteS (const char *data)
         serial2PutC(c);
 }
 
-void serial2Write(const char *s, uint16_t length)
+static void serial2Write (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
@@ -375,11 +355,70 @@ void serial2Write(const char *s, uint16_t length)
         serial2PutC(*ptr++);
 }
 
-uint16_t serial2TxCount(void) {
+static uint16_t serial2TxCount (void) {
 
     uint_fast16_t head = txbuffer2.head, tail = txbuffer2.tail;
 
     return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART2->fr & UART_UARTFR_BUSY_BITS) ? 0 : 1);
+}
+
+static bool serial2SetBaudRate (uint32_t baud_rate)
+{
+    static bool init_ok = false;
+
+    if(!init_ok) {
+        serial2Init(baud_rate);
+        init_ok = true;
+    }
+
+    return true;
+}
+
+static bool serial2Disable (bool disable)
+{
+   if(disable)
+        hw_clear_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);       
+    else
+        hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
+}
+
+const io_stream_t *serial2Init (uint32_t baud_rate)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = true,
+        .read = serial2GetC,
+        .write = serial2WriteS,
+        .write_all = serial2WriteS,
+        .write_char = serial2PutC,
+        .write_n = serial2Write,
+        .get_rx_buffer_free = serial2RxFree,
+        .get_rx_buffer_count = serial2RxCount,
+        .get_tx_buffer_count = serial2TxCount,
+        .reset_read_buffer = serial2RxFlush,
+        .cancel_read_buffer = serial2RxCancel,
+        .reset_write_buffer = serial2TxFlush,
+        .disable = serial2Disable,
+    //    .suspend_read =  = serial2SuspendInput
+        .set_baud_rate = serial2SetBaudRate
+    };
+
+    gpio_set_function(UART2_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART2_RX_PIN, GPIO_FUNC_UART);
+    
+    uart_init(UART2_PORT, 2400);
+
+    uart_set_hw_flow(UART2_PORT, false, false);
+    uart_set_format(UART2_PORT, 8, 1, UART_PARITY_NONE);
+    uart_set_baudrate(UART2_PORT, 115200);
+    uart_set_fifo_enabled(UART2_PORT, true);
+
+    irq_set_exclusive_handler(UART2_IRQ, uart2_interrupt_handler);
+    irq_set_enabled(UART2_IRQ, true);
+    
+    hw_set_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
+
+    return &stream;
 }
 
 static void uart2_interrupt_handler (void)

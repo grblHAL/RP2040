@@ -114,6 +114,7 @@
 
 #if MPG_MODE_ENABLE
 #define MODE_SWITCH_PIN             18
+#define MODE_SWITCH_BIT             (1<<MODE_SWITCH_PIN)
 #endif
 
 //I2C: 26,27

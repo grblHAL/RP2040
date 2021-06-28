@@ -31,53 +31,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "grbl/hal.h"
-#include "grbl/grbl.h"
-#include "grbl/nuts_bolts.h"
-
 #ifndef OVERRIDE_MY_MACHINE
 #include "my_machine.h"
 #endif
 
+#include "grbl/driver_opts.h"
+
 #define DIGITAL_IN(bit) (!!(sio_hw->gpio_out & bit))
 #define DIGITAL_OUT(bit, on) { if(on) sio_hw->gpio_set = bit; else sio_hw->gpio_clr = bit; }
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
-
-// Configuration
-// Set value to 1 to enable, 0 to disable
-
-#ifndef USB_SERIAL_CDC
-#define USB_SERIAL_CDC      0 // for UART comms
-#endif
-#ifndef SDCARD_ENABLE
-#define SDCARD_ENABLE       0
-#endif
-#ifndef KEYPAD_ENABLE
-#define KEYPAD_ENABLE       0
-#endif
-#ifndef ODOMETER_ENABLE
-#define ODOMETER_ENABLE     0
-#endif
-#ifndef PPI_ENABLE
-#define PPI_ENABLE       	  0
-#endif
-#ifndef EEPROM_ENABLE
-#define EEPROM_ENABLE       0
-#endif
-#ifndef EEPROM_IS_FRAM
-#define EEPROM_IS_FRAM      0
-#endif
-#ifndef TRINAMIC_ENABLE
-#define TRINAMIC_ENABLE     0
-#endif
-#ifndef TRINAMIC_I2C
-#define TRINAMIC_I2C        0
-#endif
-#ifndef TRINAMIC_DEV
-#define TRINAMIC_DEV        0
-#endif
-
-#define CNC_BOOSTERPACK     0
 
 // Define GPIO mode options
 
