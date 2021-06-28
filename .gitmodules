@@ -10,3 +10,6 @@
 [submodule "keypad"]
 	path = keypad
 	url = https://github.com/grblHAL/Plugin_I2C_keypad
+[submodule "bluetooth"]
+	path = bluetooth
+	url = https://github.com/grblHAL/Plugins_Bluetooth
