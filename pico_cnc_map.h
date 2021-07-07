@@ -35,22 +35,22 @@
 typedef union {
     uint32_t value;
     struct {
-        uint32_t x_ena       :1,
-                 y_ena       :1,
-                 z_ena       :1,
-                 a_ena       :1,
-                 spindle_dir :1,
-                 spindle_ena :1,
-                 mist_ena    :1,
-                 flood_ena   :1,
-                 aux0_out    :1,
-                 aux1_out    :1,
-                 aux2_out    :1,
-                 aux3_out    :1,
-                 aux4_out    :1,
-                 aux5_out    :1,
+        uint32_t aux7_out    :1,
                  aux6_out    :1,
-                 aux7_out    :1,
+                 aux5_out    :1,
+                 aux4_out    :1,
+                 aux3_out    :1,
+                 aux2_out    :1,
+                 aux1_out    :1,
+                 aux0_out    :1,
+                 flood_ena   :1,
+                 mist_ena    :1,
+                 spindle_ena :1,
+                 spindle_dir :1,
+                 a_ena       :1,
+                 z_ena       :1,
+                 y_ena       :1,
+                 x_ena       :1,
                  unused      :16;
     };
 } output_sr_t;
@@ -58,14 +58,14 @@ typedef union {
 typedef union {
     uint8_t value;
     struct {
-        uint8_t x_step :1,
-                y_step :1,
-                z_step :1,
-                a_step :1,
-                x_dir  :1,
-                y_dir  :1,
+        uint8_t a_dir  :1,
                 z_dir  :1,
-                a_dir  :1;
+                y_dir  :1,
+                x_dir  :1,
+                a_step :1,
+                z_step :1,
+                y_step :1,
+                x_step :1;
     };
 } step_dir_t;
 
@@ -79,14 +79,14 @@ typedef union {
 } step_dir_sr_t;
 
 // Define step pulse output pins.
-#define SD_SHIFT_REGISTER  8
-#define SD_SR_DATA_PIN     14
-#define SD_SR_SCK_PIN      15 // includes next pin (16)
+#define SD_SHIFT_REGISTER   8
+#define SD_SR_DATA_PIN      14
+#define SD_SR_SCK_PIN       15 // includes next pin (16)
 
 // Define output signals pins.
 #define OUT_SHIFT_REGISTER  16
-#define OUT_SR_DATA_PIN     26
-#define OUT_SR_SCK_PIN      17 // includes next pin (13)
+#define OUT_SR_DATA_PIN     17
+#define OUT_SR_SCK_PIN      18 // includes next pin (13)
 
 #define AUX_N_OUT           8
 #define AUX_OUT_MASK        0xFF
@@ -131,6 +131,35 @@ typedef union {
 // Define probe switch input pin.
 #define PROBE_PIN           28
 #define PROBE_BIT           (1<<PROBE_PIN)
+
+#if !SDCARD_ENABLE || !defined(SAFETY_DOOR_PIN)
+#define HAS_IOPORTS
+#if !SDCARD_ENABLE 
+#define AUX_INPUT0_PIN      10
+#define AUX_INPUT1_PIN      11
+#define AUX_INPUT2_PIN      12
+#define AUX_INPUT3_PIN      13
+#ifndef SAFETY_DOOR_PIN
+#define AUX_INPUT4_PIN      9   
+#endif
+#else
+#define AUX_INPUT0_PIN      9   
+#endif
+#endif
+
+#if I2C_ENABLE
+#define I2C_PORT            0
+#define I2C_SDA             20
+#define I2C_SCL             21
+#endif
+
+#if SDCARD_ENABLE
+#define SPI_PORT            spi1
+#define SD_SCK_PIN          10
+#define SD_MOSI_PIN         11
+#define SD_MISO_PIN         12
+#define SD_CS_PIN           13
+#endif
 
 #if KEYPAD_ENABLE
 #define KEYPAD_STROBE_PIN   19

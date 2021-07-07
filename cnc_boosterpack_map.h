@@ -44,9 +44,9 @@
 #define DIRECTION_OUTMODE           GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
-#define STEPPERS_DISABLEX_PIN       6
-#define STEPPERS_DISABLEZ_PIN       0
-#define STEPPERS_DISABLE_OUTMODE    GPIO_IOEXPAND
+#define STEPPERS_ENABLEX_PIN        6
+#define STEPPERS_ENABLEZ_PIN        0
+#define STEPPERS_ENABLE_OUTMODE     GPIO_IOEXPAND
 
 // Define homing/hard limit switch input pins.
 #define LIMIT_PORT                  GPIO_IN

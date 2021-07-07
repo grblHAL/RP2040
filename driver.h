@@ -37,48 +37,57 @@
 
 #include "grbl/driver_opts.h"
 
-#define DIGITAL_IN(bit) (!!(sio_hw->gpio_out & bit))
+#define DIGITAL_IN(bit) (!!(sio_hw->gpio_in & bit))
 #define DIGITAL_OUT(bit, on) { if(on) sio_hw->gpio_set = bit; else sio_hw->gpio_clr = bit; }
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
 
 // Define GPIO mode options
 
-#define GPIO_SHIFT0   0
-#define GPIO_SHIFT1   1
-#define GPIO_SHIFT2   2
-#define GPIO_SHIFT3   3
-#define GPIO_SHIFT4   4
-#define GPIO_SHIFT5   5
-#define GPIO_SHIFT6   6
-#define GPIO_SHIFT7   7
-#define GPIO_SHIFT8   8
-#define GPIO_SHIFT9   9
-#define GPIO_SHIFT10 10
-#define GPIO_SHIFT11 11
-#define GPIO_SHIFT12 12
-#define GPIO_SHIFT13 13
-#define GPIO_SHIFT14 14
-#define GPIO_SHIFT15 15
-#define GPIO_SHIFT16 16
-#define GPIO_SHIFT17 17
-#define GPIO_SHIFT18 18
-#define GPIO_SHIFT19 19
-#define GPIO_SHIFT20 20
-#define GPIO_SHIFT21 21
-#define GPIO_SHIFT22 22
-#define GPIO_SHIFT23 23
-#define GPIO_SHIFT24 24
-#define GPIO_SHIFT25 25
-#define GPIO_SHIFT26 26
-#define GPIO_SHIFT27 27
-#define GPIO_SHIFT28 28
-#define GPIO_MAP     31
+#define GPIO_SHIFT0    0
+#define GPIO_SHIFT1    1
+#define GPIO_SHIFT2    2
+#define GPIO_SHIFT3    3
+#define GPIO_SHIFT4    4
+#define GPIO_SHIFT5    5
+#define GPIO_SHIFT6    6
+#define GPIO_SHIFT7    7
+#define GPIO_SHIFT8    8
+#define GPIO_SHIFT9    9
+#define GPIO_SHIFT10  10
+#define GPIO_SHIFT11  11
+#define GPIO_SHIFT12  12
+#define GPIO_SHIFT13  13
+#define GPIO_SHIFT14  14
+#define GPIO_SHIFT15  15
+#define GPIO_SHIFT16  16
+#define GPIO_SHIFT17  17
+#define GPIO_SHIFT18  18
+#define GPIO_SHIFT19  19
+#define GPIO_SHIFT20  20
+#define GPIO_SHIFT21  21
+#define GPIO_SHIFT22  22
+#define GPIO_SHIFT23  23
+#define GPIO_SHIFT24  24
+#define GPIO_SHIFT25  25
+#define GPIO_SHIFT26  26
+#define GPIO_SHIFT27  27
+#define GPIO_SHIFT28  28
+#define GPIO_MAP      31
 #define GPIO_DIRECT   33
 #define GPIO_IOEXPAND 34
-#define GPIO_INPUT 35
-#define GPIO_OUTPUT 36
-#define GPIO_PIO   37
+#define GPIO_INPUT    35
+#define GPIO_OUTPUT   36
+#define GPIO_PIO      37
+#define GPIO_SR8      38
+#define GPIO_SR16     39
 
+#if EEPROM_ENABLE || KEYPAD_ENABLE || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
+#define I2C_ENABLE 1
+#else
+#define I2C_ENABLE 0
+
+  //I2C_PORT 1 // SCL_PIN = 27, SDA_PIN = 26
+#endif
 // Define timer allocations.
 
 /*
@@ -123,8 +132,10 @@
 #define FLASH_ENABLE 0
 #endif
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
-  #define I2C_PORT 1 // SCL_PIN = 27, SDA_PIN = 26
+#if I2C_ENABLE && !defined(I2C_PORT)
+#define I2C_PORT    1
+#define I2C_SDA     26
+#define I2C_SCL     27
 #endif
 
 #if TRINAMIC_ENABLE 
@@ -167,9 +178,12 @@ typedef struct {
     uint32_t bit;
     uint8_t port;
     bool invert;
-//    pin_irq_mode_t irq_mode;
+    pin_irq_mode_t irq_mode;
     volatile bool active;
     volatile bool debounce;
+    pin_mode_t cap;
+    ioport_interrupt_callback_ptr interrupt_callback;
+    const char *description;
 } input_signal_t;
 
 typedef struct {
@@ -179,6 +193,7 @@ typedef struct {
     uint32_t bit;
     uint8_t port;
     pin_mode_t mode;
+    const char *description;
 } output_signal_t;
 
 typedef struct {
@@ -192,8 +207,12 @@ typedef struct {
 bool driver_init (void);
 
 #if OUT_SHIFT_REGISTER
-void board_init (output_sr_t *reg);
+void board_init (pin_group_pins_t *aux_inputs, output_sr_t *reg);
 #endif
+
+void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
+void ioports_event (input_signal_t *input);
+void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
 /**
   \brief   Enable IRQ Interrupts

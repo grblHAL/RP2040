@@ -32,18 +32,21 @@
 #include "keypad/keypad.h"
 #endif
 
-#define QI2C_PORT i2c1
+//#define QI2C_PORT i2c0
 #define MAX_PAGE_SIZE 64
 
-#ifdef I2C_PORT
+#define I2CN_PORT(port) I2Cn(port)
+#define I2Cn(port) i2c ## port
 
-#define I2CPORT I2Cport(I2C_PORT)
+#if I2C_ENABLE
+
+#define QI2C_PORT I2CN_PORT(I2C_PORT)
 
 void I2C_Init (void)
 {
 
-    gpio_set_function(27, GPIO_FUNC_I2C);
-    gpio_set_function(26, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
 
     i2c_init(QI2C_PORT, 100000UL);
 }

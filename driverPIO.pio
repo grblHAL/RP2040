@@ -231,13 +231,16 @@ loop1:
 % c-sdk {
 #include "hardware/gpio.h"
 static inline void out_sr16_program_init(PIO pio, uint32_t sm, uint32_t offset, uint32_t dataPin, uint32_t bckPin) {
+ 
+    uint32_t mask = (3u << bckPin) | (1u << dataPin);
     pio_sm_config c = out_sr16_program_get_default_config(offset);
+ 
     sm_config_set_out_pins(&c, dataPin, 1);
     sm_config_set_sideset_pins(&c, bckPin);
     sm_config_set_clkdiv(&c, 4);
 
-    pio_sm_set_pins_with_mask(pio, sm, (3u << bckPin) | (1u << dataPin), (3u << bckPin) | (1u << dataPin));
-    pio_sm_set_pindirs_with_mask(pio, sm, (3u << bckPin) | (1u << dataPin), (3u << bckPin) | (1u << dataPin));
+    pio_sm_set_pins_with_mask(pio, sm, mask, mask);
+    pio_sm_set_pindirs_with_mask(pio, sm, mask, mask);
     pio_gpio_init(pio, dataPin);
     pio_gpio_init(pio, bckPin);
     pio_gpio_init(pio, bckPin + 1);
