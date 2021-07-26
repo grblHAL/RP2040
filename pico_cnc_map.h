@@ -25,8 +25,8 @@
 #error Trinamic plugin not supported!
 #endif
 
-#if N_AXIS > 4
-#error Max number of axes is 4!
+#if N_ABC_MOTORS > 1
+#error "Axis configuration is not supported!"
 #endif
 
 #define BOARD_NAME "PicoCNC"
@@ -47,7 +47,7 @@ typedef union {
                  mist_ena    :1,
                  spindle_ena :1,
                  spindle_dir :1,
-                 a_ena       :1,
+                 m3_ena      :1,
                  z_ena       :1,
                  y_ena       :1,
                  x_ena       :1,
@@ -58,14 +58,14 @@ typedef union {
 typedef union {
     uint8_t value;
     struct {
-        uint8_t a_dir  :1,
-                z_dir  :1,
-                y_dir  :1,
-                x_dir  :1,
-                a_step :1,
-                z_step :1,
-                y_step :1,
-                x_step :1;
+        uint8_t m3_dir  :1,
+                z_dir   :1,
+                y_dir   :1,
+                x_dir   :1,
+                m3_step :1,
+                z_step  :1,
+                y_step  :1,
+                x_step  :1;
     };
 } step_dir_t;
 
@@ -86,10 +86,22 @@ typedef union {
 // Define output signals pins.
 #define OUT_SHIFT_REGISTER  16
 #define OUT_SR_DATA_PIN     17
-#define OUT_SR_SCK_PIN      18 // includes next pin (13)
+#define OUT_SR_SCK_PIN      18 // includes next pin (19)
 
 #define AUX_N_OUT           8
 #define AUX_OUT_MASK        0xFF
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN         0
+#define M3_STEP_PORT        GPIO_SR8
+#define M3_DIRECTION_PIN    0
+#define M3_DIRECTION_PORT   GPIO_SR8
+#define M3_LIMIT_PIN        3
+#define M3_ENABLE_PIN       0
+#define M3_ENABLE_PORT      GPIO_SR16
+#endif
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN         6
@@ -98,13 +110,13 @@ typedef union {
 #define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
 #define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
 #define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
-#if N_AXIS > 3
+/*#if N_AXIS > 3
 #define A_LIMIT_PIN         3
 #define A_LIMIT_BIT         (1<<A_LIMIT_PIN)
 #define LIMIT_MASK          (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT|A_LIMIT_BIT) // All limit bits
 #else
 #define LIMIT_MASK          (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT) // All limit bits
-#endif
+#endif*/
 #define LIMIT_INMODE        GPIO_MAP
 
 // Define spindle PWM output pin.
@@ -132,13 +144,21 @@ typedef union {
 #define PROBE_PIN           28
 #define PROBE_BIT           (1<<PROBE_PIN)
 
+#define AUX_IO0_PIN      10
+#define AUX_IO1_PIN      11
+#define AUX_IO2_PIN      12
+#define AUX_IO3_PIN      13
+
+
 #if !SDCARD_ENABLE || !defined(SAFETY_DOOR_PIN)
 #define HAS_IOPORTS
 #if !SDCARD_ENABLE 
-#define AUX_INPUT0_PIN      10
-#define AUX_INPUT1_PIN      11
-#define AUX_INPUT2_PIN      12
-#define AUX_INPUT3_PIN      13
+#define AUX_INPUT0_PIN      AUX_IO0_PIN
+#define AUX_INPUT1_PIN      AUX_IO1_PIN
+#define AUX_INPUT2_PIN      AUX_IO2_PIN
+#if !MPG_MODE_ENABLE
+#define AUX_INPUT3_PIN      AUX_IO3_PIN
+#endif
 #ifndef SAFETY_DOOR_PIN
 #define AUX_INPUT4_PIN      9   
 #endif
@@ -155,13 +175,18 @@ typedef union {
 
 #if SDCARD_ENABLE
 #define SPI_PORT            spi1
-#define SD_SCK_PIN          10
-#define SD_MOSI_PIN         11
-#define SD_MISO_PIN         12
-#define SD_CS_PIN           13
+#define SD_SCK_PIN          AUX_IO0_PIN
+#define SD_MOSI_PIN         AUX_IO1_PIN
+#define SD_MISO_PIN         AUX_IO2_PIN
+#define SD_CS_PIN           AUX_IO3_PIN
+#endif
+
+#if MPG_MODE_ENABLE
+#define MODE_SWITCH_PIN     AUX_IO3_PIN
+#define MODE_SWITCH_BIT     (1<<MODE_SWITCH_PIN)
 #endif
 
 #if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN   19
+#define KEYPAD_STROBE_PIN   26
 #define KEYPAD_STROBE_BIT   (1<<KEYPAD_STROBE_PIN)
 #endif

@@ -39,15 +39,15 @@
 
 #include "usb_serial.h"
 #include "driver.h"
+#include "grbl/protocol.h"
 
 //#if USB_SERIAL_CDC == 2
 
 #define BLOCK_RX_BUFFER_SIZE 20
 
 static stream_block_tx_buffer_t txbuf = {0};
-static char rxbuf[BLOCK_RX_BUFFER_SIZE];
-static stream_rx_buffer_t usb_rxbuffer, usb_rxbackup;
-
+static stream_rx_buffer_t rxbuf;
+static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 // PICO_CONFIG: PICO_STDIO_USB_STDOUT_TIMEOUT_US, Number of microseconds to be blocked trying to write USB output before assuming the host has disappeared and discarding data, default=500000, group=pico_stdio_usb
 #ifndef PICO_STDIO_USB_STDOUT_TIMEOUT_US
@@ -68,7 +68,8 @@ static stream_rx_buffer_t usb_rxbuffer, usb_rxbackup;
 static_assert(PICO_STDIO_USB_LOW_PRIORITY_IRQ > RTC_IRQ, ""); // note RTC_IRQ is currently the last one
 static mutex_t stdio_usb_mutex;
 
-static void low_priority_worker_irq() {
+static void low_priority_worker_irq (void)
+{
     // if the mutex is already owned, then we are in user code
     // in this file which will do a tud_task itself, so we'll just do nothing
     // until the next tick; we won't starve
@@ -78,14 +79,18 @@ static void low_priority_worker_irq() {
     }
 }
 
-static int64_t timer_task(__unused alarm_id_t id, __unused void *user_data) {
+static int64_t timer_task (__unused alarm_id_t id, __unused void *user_data)
+{
     irq_set_pending(PICO_STDIO_USB_LOW_PRIORITY_IRQ);
+
     return PICO_STDIO_USB_TASK_INTERVAL_US;
 }
 
-static void stdio_usb_out_chars(const char *buf, int length) {
+static void stdio_usb_out_chars (const char *buf, int length)
+{
     static uint64_t last_avail_time;
     uint32_t owner;
+ 
     if (!mutex_try_enter(&stdio_usb_mutex, &owner)) {
         if (owner == get_core_num()) return; // would deadlock otherwise
         mutex_enter_blocking(&stdio_usb_mutex);
@@ -117,10 +122,12 @@ static void stdio_usb_out_chars(const char *buf, int length) {
     mutex_exit(&stdio_usb_mutex);
 }
 
-int stdio_usb_in_chars(char *buf, int length) {
+int stdio_usb_in_chars (char *buf, int length)
+{
     uint32_t owner;
     if (!mutex_try_enter(&stdio_usb_mutex, &owner)) {
-        if (owner == get_core_num()) return PICO_ERROR_NO_DATA; // would deadlock otherwise
+        if (owner == get_core_num())
+            return PICO_ERROR_NO_DATA; // would deadlock otherwise
         mutex_enter_blocking(&stdio_usb_mutex);
     }
     int rc = PICO_ERROR_NO_DATA;
@@ -129,6 +136,7 @@ int stdio_usb_in_chars(char *buf, int length) {
         rc =  count ? count : PICO_ERROR_NO_DATA;
     }
     mutex_exit(&stdio_usb_mutex);
+
     return rc;
 }
 
@@ -137,7 +145,8 @@ int stdio_usb_in_chars(char *buf, int length) {
 //
 static uint16_t usb_serialRxCount (void)
 {
-    uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
+    uint_fast16_t tail = rxbuf.tail, head = rxbuf.head;
+
     return (uint16_t)BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
@@ -146,7 +155,8 @@ static uint16_t usb_serialRxCount (void)
 //
 static uint16_t usb_serialRxFree (void)
 {
-    uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
+    uint_fast16_t tail = rxbuf.tail, head = rxbuf.head;
+ 
     return (uint16_t)((RX_BUFFER_SIZE - 1) - BUFCOUNT(head, tail, RX_BUFFER_SIZE));
 }
 
@@ -156,7 +166,7 @@ static uint16_t usb_serialRxFree (void)
 static void usb_serialRxFlush (void)
 {
   //  usb_serial_flush_input();
-    usb_rxbuffer.tail = usb_rxbuffer.head;
+    rxbuf.tail = rxbuf.head;
 }
 
 //
@@ -164,9 +174,9 @@ static void usb_serialRxFlush (void)
 //
 static void usb_serialRxCancel (void)
 {
-    usb_rxbuffer.data[usb_rxbuffer.head] = CMD_RESET;
-    usb_rxbuffer.tail = usb_rxbuffer.head;
-    usb_rxbuffer.head = (usb_rxbuffer.tail + 1) & (RX_BUFFER_SIZE - 1);
+    rxbuf.data[rxbuf.head] = CMD_RESET;
+    rxbuf.tail = rxbuf.head;
+    rxbuf.head = BUFNEXT(rxbuf.head, rxbuf);
 }
 
 //
@@ -251,20 +261,31 @@ static void usb_serialWrite (const char *s, uint16_t length)
 //
 static int16_t usb_serialGetC (void)
 {
-    uint16_t bptr = usb_rxbuffer.tail;
+    uint_fast16_t tail = rxbuf.tail;
 
-    if(bptr == usb_rxbuffer.head)
-        return -1; // no data available else EOF
+    if(tail == rxbuf.head)
+        return -1; // no data available
 
-    char data = usb_rxbuffer.data[bptr++];              // Get next character, increment tmp pointer
-    usb_rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
+    char data = rxbuf.data[tail];       // Get next character, increment tmp pointer
+    rxbuf.tail = BUFNEXT(tail, rxbuf); // and update pointer
 
     return (int16_t)data;
 }
 
 static bool usb_serialSuspendInput (bool suspend)
 {
-    return stream_rx_suspend(&usb_rxbuffer, suspend);
+    return stream_rx_suspend(&rxbuf, suspend);
+}
+
+
+static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command;
+
+    if(handler)
+        enqueue_realtime_command = handler;
+
+    return prev;
 }
 
 const io_stream_t *usb_serialInit (void)
@@ -278,7 +299,8 @@ const io_stream_t *usb_serialInit (void)
         .get_rx_buffer_free = usb_serialRxFree,
         .reset_read_buffer = usb_serialRxFlush,
         .cancel_read_buffer = usb_serialRxCancel,
-        .suspend_read = usb_serialSuspendInput
+        .suspend_read = usb_serialSuspendInput,
+        .set_enqueue_rt_handler = usb_serialSetRtHandler
     };
 
     // initialize TinyUSB
@@ -298,7 +320,7 @@ const io_stream_t *usb_serialInit (void)
 }
 
 //
-// This function get called from the systick interrupt handler,
+// This function get called from the foreground process,
 // used here to get characters off the USB serial input stream and buffer
 // them for processing by grbl. Real time command characters are stripped out
 // and submitted for realtime processing.
@@ -307,27 +329,24 @@ void usb_execute_realtime (uint_fast16_t state)
 {
     char c, *dp;
     int avail, free;
+    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
 
     if((avail = tud_cdc_available())) {
 
-        dp = rxbuf;
+        dp = tmpbuf;
         free = usb_serialRxFree();
         free = free > BLOCK_RX_BUFFER_SIZE ? BLOCK_RX_BUFFER_SIZE : free;
-
-        avail = stdio_usb_in_chars(rxbuf, avail > free ? free : avail);
+        avail = stdio_usb_in_chars(tmpbuf, avail > free ? free : avail);
 
         while(avail--) {
             c = *dp++;
-            if(c == CMD_TOOL_ACK && !usb_rxbuffer.backup) {
-                stream_rx_backup(&usb_rxbuffer);
-                hal.stream.read = usb_serialGetC; // restore normal input
-            } else if(!hal.stream.enqueue_realtime_command(c)) {
-                uint32_t bptr = (usb_rxbuffer.head + 1) & (RX_BUFFER_SIZE - 1); // Get next head pointer
-                if(bptr == usb_rxbuffer.tail)                                   // If buffer full
-                    usb_rxbuffer.overflow = On;                                 // flag overflow,
+            if(!enqueue_realtime_command(c)) {
+                uint_fast16_t next_head = BUFNEXT(rxbuf.head, rxbuf);   // Get next head pointer
+                if(next_head == rxbuf.tail)                             // If buffer full
+                    rxbuf.overflow = On;                                // flag overflow,
                 else {
-                    usb_rxbuffer.data[usb_rxbuffer.head] = c;                   // else add character data to buffer
-                    usb_rxbuffer.head = bptr;                                   // and update pointer
+                    rxbuf.data[rxbuf.head] = c;                         // else add character data to buffer
+                    rxbuf.head = next_head;                             // and update pointer
                 }
             }
         }

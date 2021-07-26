@@ -81,6 +81,8 @@
 #define GPIO_SR8      38
 #define GPIO_SR16     39
 
+#define STEPPERS_ENABLE_PINMODE 0
+
 #if EEPROM_ENABLE || KEYPAD_ENABLE || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
 #define I2C_ENABLE 1
 #else
@@ -145,7 +147,7 @@
 #include "trinamic/trinamic.h"
 #endif
 
-#if MPG_MODE_ENABLE
+#if MPG_MODE_ENABLE && !USB_SERIAL_CDC
 #define SERIAL2_MOD
 #endif
 

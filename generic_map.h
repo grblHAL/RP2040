@@ -24,6 +24,10 @@
 #error Trinamic plugin not supported!
 #endif
 
+#if N_ABC_MOTORS > 1
+#error "Axis configuration is not supported!"
+#endif
+
 // Define step pulse output pins.
 #define STEP_PINS_BASE 2 // N_AXIS number of consecutive pins are used by PIO
 
@@ -35,13 +39,6 @@
 #define X_DIRECTION_BIT         (1<<X_DIRECTION_PIN)
 #define Y_DIRECTION_BIT         (1<<Y_DIRECTION_PIN)
 #define Z_DIRECTION_BIT         (1<<Z_DIRECTION_PIN)
-#ifdef A_AXIS
-#define A_DIRECTION_PIN         7
-#define A_DIRECTION_BIT         (1<<A_DIRECTION_PIN)
-#define DIRECTION_MASK          (X_DIRECTION_BIT|Y_DIRECTION_BIT|Z_DIRECTION_BIT|A_DIRECTION_BIT) // All direction bits
-#else
-#define DIRECTION_MASK          (X_DIRECTION_BIT|Y_DIRECTION_BIT|Z_DIRECTION_BIT) // All direction bits
-#endif
 #define DIRECTION_OUTMODE       GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
@@ -50,6 +47,7 @@
 #define STEPPERS_ENABLE_BIT     (1<<STEPPERS_ENABLE_PIN)
 #define STEPPERS_ENABLE_MASK    STEPPERS_ENABLE_BIT
 
+
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN             9
 #define Y_LIMIT_PIN             10
@@ -57,14 +55,15 @@
 #define X_LIMIT_BIT             (1<<X_LIMIT_PIN)
 #define Y_LIMIT_BIT             (1<<Y_LIMIT_PIN)
 #define Z_LIMIT_BIT             (1<<Z_LIMIT_PIN)
-#if N_AXIS > 3
-#define A_LIMIT_PIN             12
-#define A_LIMIT_BIT             (1<<A_LIMIT_PIN)
-#define LIMIT_MASK              (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT|A_LIMIT_BIT) // All limit bits
-#else
-#define LIMIT_MASK              (X_LIMIT_BIT|Y_LIMIT_BIT|Z_LIMIT_BIT) // All limit bits
-#endif
 #define LIMIT_INMODE            GPIO_MAP
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN             3
+#define M3_DIRECTION_PIN        (Z_DIRECTION_PIN + 1)
+#define M3_LIMIT_PIN            (Z_LIMIT_PIN + 1)
+#endif
 
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PORT     GPIO_OUTPUT

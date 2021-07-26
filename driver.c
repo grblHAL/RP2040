@@ -43,6 +43,7 @@
 #include "grbl/crossbar.h"
 #include "grbl/limits.h"
 #include "grbl/state_machine.h"
+#include "grbl/motor_pins.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -144,7 +145,7 @@ static input_signal_t inputpin[] = {
     { .id = Input_Probe,          .port = GPIO_INPUT, .pin = PROBE_PIN,           .group = PinGroup_Probe },
     { .id = Input_LimitX,         .port = GPIO_INPUT, .pin = X_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef X2_LIMIT_PIN
-    { .id = Input_LimitX_Max,     .port = GPIO_INPUT, .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
+    { .id = Input_LimitX_2,       .port = GPIO_INPUT, .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
 #endif
     { .id = Input_LimitY,         .port = GPIO_INPUT, .pin = Y_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef Y2_LIMIT_PIN
@@ -363,9 +364,20 @@ static void stepperEnable (axes_signals_t enable)
     ioexpand_out(io_expander);
   #elif OUT_SHIFT_REGISTER
     out_sr.x_ena = enable.x;
+   #ifdef X2_ENABLE_PIN
+    out_sr.m3_ena = enable.x;
+   #endif
     out_sr.y_ena = enable.y;
+   #ifdef Y2_ENABLE_PIN
+    out_sr.m3_ena = enable.y;
+   #endif
     out_sr.z_ena = enable.z;
-    out_sr.a_ena = enable.a;
+   #ifdef Z2_ENABLE_PIN
+    out_sr.m3_ena = enable.z;
+   #endif
+   #ifdef A_ENABLE_PIN
+    out_sr.m3_ena = enable.a;
+   #endif
     out_sr16_write(pio1, 1, out_sr.value);
   #else
     gpio_put(STEPPERS_ENABLE_PIN, enable.x);
@@ -392,6 +404,80 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
     stepper_timer_set_period(pio1, 0, timer, cycles_per_tick);
 }
 
+#ifdef SQUARING_ENABLED
+
+static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
+
+// Set stepper pulse output pins
+// NOTE: step_outbits are: bit0 -> X, bit1 -> Y, bit2 -> Z...
+inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_signals_t step_outbits_1)
+{
+    axes_signals_t step_outbits_2;
+
+#if SD_SHIFT_REGISTER
+    step_outbits_2.mask = (step_outbits_1.mask & motors_2.mask) ^ settings.steppers.step_invert.mask;
+    step_outbits_1.mask = (step_outbits_1.mask & motors_1.mask) ^ settings.steppers.step_invert.mask;
+
+    sd_sr.set.x_step = step_outbits_1.x;
+  #ifdef X2_STEP_PIN
+    sd_sr.set.m3_step = step_outbits_2.x;
+  #endif
+    sd_sr.set.y_step = step_outbits_1.y;
+  #ifdef Y2_STEP_PIN
+    sd_sr.set.m3_step = step_outbits_2.y;
+  #endif
+    sd_sr.set.z_step = step_outbits_1.z;
+  #ifdef Z2_STEP_PIN
+    sd_sr.set.m3_step = step_outbits_2.z;
+  #endif
+  #ifdef A_STEP_PIN
+    sd_sr.set.m3_step = step_outbits_1.a;
+  #endif
+    step_dir_sr4_write(pio0, 0, sd_sr.value);
+#else
+    pio_steps.set = step_outbits_1.mask ^ settings.steppers.step_invert.mask;
+  #ifdef X2_STEP_PIN
+    if(step_outbits_2.x ^ settings.steppers.step_invert.x)
+        pio_steps.set |= X2_STEP_BIT;
+  #endif
+  #ifdef Y2_STEP_PIN
+    if(step_outbits_2.y ^ settings.steppers.step_invert.y)
+        pio_steps.set |= Y2_STEP_BIT;
+  #endif
+  #ifdef Z2_STEP_PIN
+    if(step_outbits_2.z ^ settings.steppers.step_invert.z)
+        pio_steps.set |= Z2_STEP_BIT;
+  #endif
+    step_pulse_generate(pio0, 0, pio_steps.value);
+#endif
+}
+
+static axes_signals_t getAutoSquaredAxes (void)
+{
+    axes_signals_t ganged = {0};
+
+#if X_AUTO_SQUARE
+    ganged.x = On;
+#endif
+#if Y_AUTO_SQUARE
+    ganged.y = On;
+#endif
+#if Z_AUTO_SQUARE
+    ganged.z = On;
+#endif
+
+    return ganged;
+}
+
+// Enable/disable motors for auto squaring of ganged axes
+static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
+{
+    motors_1.mask = (mode == SquaringMode_A || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
+    motors_2.mask = (mode == SquaringMode_B || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
+}
+
+#else
+
 // Set stepper pulse output pins
 // NOTE: step_outbits are: bit0 -> X, bit1 -> Y, bit2 -> Z...
 inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_signals_t step_outbits)
@@ -399,15 +485,40 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
 #if SD_SHIFT_REGISTER
     step_outbits.mask ^= settings.steppers.step_invert.mask;
     sd_sr.set.x_step = step_outbits.x;
+  #ifdef X2_STEP_PIN
+    sd_sr.set.m3_step = step_outbits.x;
+  #endif
     sd_sr.set.y_step = step_outbits.y;
+  #ifdef Y2_STEP_PIN
+    sd_sr.set.m3_step = step_outbits.y;
+  #endif
     sd_sr.set.z_step = step_outbits.z;
-    sd_sr.set.a_step = step_outbits.a;
+  #ifdef Z2_STEP_PINs
+    sd_sr.set.m3_step = step_outbits.z;
+  #endif
+  #ifdef A_STEP_PIN
+    sd_sr.set.m3_step = step_outbits.a;
+  #endif
     step_dir_sr4_write(pio0, 0, sd_sr.value);
 #else
     pio_steps.set = step_outbits.mask ^ settings.steppers.step_invert.mask;
+  #ifdef X2_STEP_PIN
+    if(step_outbits.x ^ settings.steppers.step_invert.x)
+        pio_steps.set |= X2_STEP_BIT;
+  #endif
+  #ifdef Y2_STEP_PIN
+    if(step_outbits.y ^ settings.steppers.step_invert.y)
+        pio_steps.set |= Y2_STEP_BIT;
+  #endif
+  #ifdef Z2_STEP_PIN
+    if(step_outbits.z ^ settings.steppers.step_invert.z)
+        pio_steps.set |= Z2_STEP_BIT;
+  #endif
     step_pulse_generate(pio0, 0, pio_steps.value);
 #endif
 }
+
+#endif
 
 // Set stepper direction output pins
 // NOTE: see note for stepperSetStepOutputs()
@@ -417,14 +528,44 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
 #if SD_SHIFT_REGISTER
     dir_outbits.mask ^= settings.steppers.dir_invert.mask;
     sd_sr.set.x_dir = sd_sr.reset.x_dir = dir_outbits.x;
+  #ifdef X2_DIRECTION_PIN
+    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.x;
+  #endif
     sd_sr.set.y_dir = sd_sr.reset.y_dir = dir_outbits.y;
+  #ifdef Y2_DIRECTION_PIN
+    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.y;
+  #endif
     sd_sr.set.z_dir = sd_sr.reset.z_dir = dir_outbits.z;
-    sd_sr.set.a_dir = sd_sr.reset.a_dir = dir_outbits.a;
+  #ifdef Z2_DIRECTION_PIN
+    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.z;
+  #endif
+  #ifdef A_DIRECTION_PIN
+    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.a;
+  #endif
     step_dir_sr4_write(pio0, 0, sd_sr.value);
 #elif DIRECTION_OUTMODE == GPIO_MAP
     gpio_put_masked(DIRECTION_MASK, dir_outmap[dir_outbits.mask]);
+  #ifdef X2_DIRECTION_PIN
+    DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits.x ^ settings.steppers.dir_invert.x);
+  #endif
+  #ifdef Y2_DIRECTION_PIN
+    DIGITAL_OUT(Y2_DIRECTION_BIT, dir_outbits.y ^ settings.steppers.dir_invert.y);
+  #endif
+  #ifdef Z2_DIRECTION_PIN
+    DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits.z ^ settings.steppers.dir_invert.z);
+  #endif
 #else
-    gpio_put_masked(DIRECTION_MASK, (dir_outbits.mask ^ settings.steppers.dir_invert.mask) << DIRECTION_OUTMODE);
+    dir_outbits.mask ^= settings.steppers.dir_invert.mask;
+    gpio_put_masked(DIRECTION_MASK, dir_outbits.mask << DIRECTION_OUTMODE);
+  #ifdef X2_DIRECTION_PIN
+    DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits.x);
+  #endif
+  #ifdef Y2_DIRECTION_PIN
+    DIGITAL_OUT(Y2_DIRECTION_BIT, dir_outbits.y);
+  #endif
+  #ifdef Z2_DIRECTION_PIN
+    DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits.z);
+  #endif
 #endif
 }
 
@@ -465,8 +606,17 @@ inline static limit_signals_t limitsGetState()
 
 #if LIMIT_INMODE == GPIO_MAP
     signals.min.x = DIGITAL_IN(X_LIMIT_BIT);
+  #ifdef X2_LIMIT_PIN
+    signals.min2.x = DIGITAL_IN(X2_LIMIT_BIT);
+  #endif
     signals.min.y = DIGITAL_IN(Y_LIMIT_BIT);
+  #ifdef Y2_LIMIT_PIN
+    signals.min2.y = DIGITAL_IN(Y2_LIMIT_BIT);
+  #endif
     signals.min.z = DIGITAL_IN(Z_LIMIT_BIT);
+  #ifdef Z2_LIMIT_PIN
+    signals.min2.z = DIGITAL_IN(Z2_LIMIT_BIT);
+  #endif
   #ifdef A_LIMIT_PIN
     signals.min.a = DIGITAL_IN(A_LIMIT_BIT);
   #endif
@@ -791,12 +941,27 @@ static uint32_t getElapsedTicks (void)
 
 #if MPG_MODE_ENABLE
 
+static void mpgWriteS (const char *data)
+{
+    serial_stream->write(data);
+    mpg_stream->write(data);
+}
+
+static bool enq_mpg (char c)
+{
+    keypad_enqueue_keycode(c);
+
+    return true;
+}
+
 static void modeSelect (bool mpg_mode)
 {
     gpio_set_irq_enabled(MODE_SWITCH_PIN, !mpg_mode ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, false);
     gpio_set_irq_enabled(MODE_SWITCH_PIN, mpg_mode ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, true);
 
     stream_enable_mpg(mpg_stream, mpg_mode);
+    if(!mpg_mode)
+        mpg_stream->set_enqueue_rt_handler(enq_mpg);
 }
 
 static void modeChange (void)
@@ -810,6 +975,8 @@ static void modeEnable (void)
 
     if(sys.mpg_mode != on)
         modeSelect(true);
+    else
+        mpg_stream->set_enqueue_rt_handler(enq_mpg);
 
     gpio_set_irq_enabled(MODE_SWITCH_PIN, !on ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, false);
     gpio_set_irq_enabled(MODE_SWITCH_PIN, on ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, true);
@@ -831,6 +998,8 @@ static void debounce_alarm_pool_save_gpio (alarm_id_t id, uint pin, uint level)
 
 void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode)
 {
+
+
     switch(irq_mode) {
 
         case IRQ_Mode_Rising:
@@ -871,19 +1040,45 @@ void settings_changed (settings_t *settings)
         // Init of the spindle PWM
         driver_spindle_pwm_init();
 
-        // PIO step parameters init
-        pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds)) - 1;
-        pio_steps.delay = settings->steppers.pulse_delay_microseconds == 0.0f
-                           ? 0 : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds)) - 1;
-        pio_steps.reset = settings->steppers.step_invert.mask;
 
 #if SD_SHIFT_REGISTER
         sr_delay_set(pio0, 1, pio_steps.delay);
         sr_hold_set(pio0, 2, pio_steps.length);
         sd_sr.reset.x_step = settings->steppers.step_invert.x;
+  #ifdef X2_DIRECTION_PIN
+        sd_sr.reset.m3_step = settings->steppers.step_invert.x;
+  #endif
         sd_sr.reset.y_step = settings->steppers.step_invert.y;
+  #ifdef Y2_DIRECTION_PIN
+        sd_sr.reset.m3_step = settings->steppers.step_invert.y;
+  #endif
         sd_sr.reset.z_step = settings->steppers.step_invert.z;
-        sd_sr.reset.a_step = settings->steppers.step_invert.a;
+  #ifdef Z2_DIRECTION_PIN
+        sd_sr.reset.m3_step = settings->steppers.step_invert.z;
+  #endif
+  #ifdef A_DIRECTION_PIN
+        sd_sr.reset.m3_step = settings->steppers.step_invert.a;
+  #endif
+
+#else // PIO step parameters init
+
+        pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds)) - 1;
+        pio_steps.delay = settings->steppers.pulse_delay_microseconds == 0.0f
+                           ? 0 : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds)) - 1;
+        pio_steps.reset = settings->steppers.step_invert.mask;
+  #ifdef X2_STEP_PIN
+        if(settings->steppers.step_invert.x)
+            pio_steps.reset |= X2_STEP_BIT;
+  #endif
+  #ifdef Y2_STEP_PIN
+        if(settings->steppers.step_invert.y)
+            pio_steps.reset |= Y2_STEP_BIT;
+  #endif
+  #ifdef Z2_STEP_PIN
+        if(settings->steppers.step_invert.z)
+            pio_steps.reset |= Z2_STEP_BIT;
+  #endif
+
 #endif
 
         /***********************
@@ -899,7 +1094,6 @@ void settings_changed (settings_t *settings)
         bool pullup;
         uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
         input_signal_t *input;
-        pin_irq_mode_t irq_mode;
 
         control_signals_t control_fei;
         control_fei.mask = settings->control_disable_pullup.mask ^ settings->control_invert.mask;
@@ -914,7 +1108,7 @@ void settings_changed (settings_t *settings)
             input->debounce = false;
             input->invert = false;
  
-            irq_mode = IRQ_Mode_None;
+            input->irq_mode = IRQ_Mode_None;
             pullup = input->group == PinGroup_AuxInput;
 
             gpio_init(input->pin);
@@ -992,12 +1186,12 @@ void settings_changed (settings_t *settings)
                     break;
 
                 case Input_ModeSelect:
-                    irq_mode = IRQ_Mode_Change;
+              //      input->irq_mode = IRQ_Mode_Change;
                     break;
 
                 case Input_KeypadStrobe:
                     pullup = true;
-                    irq_mode = IRQ_Mode_Change;
+                    input->irq_mode = IRQ_Mode_Change;
                     break;
 
                 default:
@@ -1027,6 +1221,7 @@ void settings_changed (settings_t *settings)
                 gpio_set_irq_enabled(safety_door->pin, !safety_door->invert ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
             }
 #endif
+                gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
         } while(i);
 
         /***************************
@@ -1218,7 +1413,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "RP2040";
-    hal.driver_version = "210707";
+    hal.driver_version = "210726";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1234,6 +1429,10 @@ bool driver_init (void)
     hal.stepper.enable = stepperEnable;
     hal.stepper.cycles_per_tick = stepperCyclesPerTick;
     hal.stepper.pulse_start = stepperPulseStart;
+#ifdef SQUARING_ENABLED
+    hal.stepper.get_auto_squared = getAutoSquaredAxes;
+    hal.stepper.disable_motors = StepperDisableMotors;
+#endif
 
     hal.limits.enable = limitsEnable;
     hal.limits.get_state = limitsGetState;
@@ -1269,11 +1468,15 @@ bool driver_init (void)
 #if USB_SERIAL_CDC
     serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
+    memcpy(&hal.stream, serial_stream, sizeof(io_stream_t));
+#if MPG_MODE_ENABLE
+    mpg_stream = serialInit(115200);
+    hal.stream.write = hal.stream.write_all = mpgWriteS;
+#endif
 #else
     serial_stream = serialInit(115200);
+    memcpy(&hal.stream, serial_stream, sizeof(io_stream_t));
 #endif
-
-    memcpy(&hal.stream, serial_stream, offsetof(io_stream_t, enqueue_realtime_command));
 
 #if EEPROM_ENABLE
     i2c_eeprom_init();
@@ -1517,6 +1720,8 @@ void gpio_int_handler(uint gpio, uint32_t events)
 #endif
 #if KEYPAD_ENABLE
         case PinGroup_Keypad:
+//            gpio_set_irq_enabled(input->pin, events, false);
+//            gpio_set_irq_enabled(input->pin, events == GPIO_IRQ_EDGE_RISE ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
             keypad_keyclick_handler(DIGITAL_IN(input->bit) == 0);
             break;
 #endif

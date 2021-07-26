@@ -23,6 +23,10 @@
 #error Trinamic plugin not supported!
 #endif
 
+#if N_ABC_MOTORS
+#error "Axis configuration is not supported!"
+#endif
+
 #define BOARD_NAME "CNC BoosterPack"
 
 #define IOEXPAND_ENABLE 1
