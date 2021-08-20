@@ -44,6 +44,7 @@
 #include "grbl/limits.h"
 #include "grbl/state_machine.h"
 #include "grbl/motor_pins.h"
+#include "grbl/pin_bits_masks.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -998,8 +999,6 @@ static void debounce_alarm_pool_save_gpio (alarm_id_t id, uint pin, uint level)
 
 void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode)
 {
-
-
     switch(irq_mode) {
 
         case IRQ_Mode_Rising:
@@ -1368,7 +1367,11 @@ static bool driver_setup (settings_t *settings)
     gpio_init(MODE_SWITCH_PIN);
 #endif
 
+#if N_AXIS > 3
+    IOInitDone = settings->version == 20;
+#else
     IOInitDone = settings->version == 19;
+ #endif
 
     hal.settings_changed(settings);
     hal.spindle.set_state((spindle_state_t){0}, 0.0f);
@@ -1413,7 +1416,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "RP2040";
-    hal.driver_version = "210726";
+    hal.driver_version = "210817";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

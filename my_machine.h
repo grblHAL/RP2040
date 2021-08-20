@@ -21,8 +21,8 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-#define BOARD_PICO_CNC
-//#define BOARD_CNC_BOOSTERPACK
+//#define BOARD_PICO_CNC
+#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
 
 // Configuration
