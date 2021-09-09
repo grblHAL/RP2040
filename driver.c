@@ -543,7 +543,7 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
   #ifdef A_DIRECTION_PIN
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.a;
   #endif
-    step_dir_sr4_write(pio0, 0, sd_sr.value);
+    // dir signals are set on the next step pulse output
 #elif DIRECTION_OUTMODE == GPIO_MAP
     gpio_put_masked(DIRECTION_MASK, dir_outmap[dir_outbits.mask]);
   #ifdef X2_DIRECTION_PIN
@@ -1041,6 +1041,9 @@ void settings_changed (settings_t *settings)
 
 
 #if SD_SHIFT_REGISTER
+        pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds - 0.8f));
+        pio_steps.delay = settings->steppers.pulse_delay_microseconds <= 0.8f
+                           ? 2 : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds - 0.8f));
         sr_delay_set(pio0, 1, pio_steps.delay);
         sr_hold_set(pio0, 2, pio_steps.length);
         sd_sr.reset.x_step = settings->steppers.step_invert.x;
@@ -1063,7 +1066,7 @@ void settings_changed (settings_t *settings)
 
         pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds)) - 1;
         pio_steps.delay = settings->steppers.pulse_delay_microseconds == 0.0f
-                           ? 0 : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds)) - 1;
+                           ? 1 : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds)) - 1;
         pio_steps.reset = settings->steppers.step_invert.mask;
   #ifdef X2_STEP_PIN
         if(settings->steppers.step_invert.x)
@@ -1416,7 +1419,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "RP2040";
-    hal.driver_version = "210817";
+    hal.driver_version = "210909";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

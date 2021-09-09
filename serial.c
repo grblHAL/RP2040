@@ -181,6 +181,11 @@ static bool serialDisable (bool disable)
         hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
 }
 
+static bool serialEnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command(c);
+}
+
 static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command_ptr handler)
 {
     enqueue_realtime_command_ptr prev = enqueue_realtime_command;
@@ -200,6 +205,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .write = serialWriteS,
         .write_all = serialWriteS,
         .write_char = serialPutC,
+        .enqueue_rt_command = serialEnqueueRtCommand,
         .get_rx_buffer_free = serialRxFree,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
@@ -381,6 +387,11 @@ static bool serial2Disable (bool disable)
         hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
 }
 
+static bool serial2EnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command2(c);
+}
+
 static enqueue_realtime_command_ptr serial2SetRtHandler (enqueue_realtime_command_ptr handler)
 {
     enqueue_realtime_command_ptr prev = enqueue_realtime_command2;
@@ -401,6 +412,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .write_all = serial2WriteS,
         .write_char = serial2PutC,
         .write_n = serial2Write,
+        .enqueue_rt_command = serial2EnqueueRtCommand,
         .get_rx_buffer_free = serial2RxFree,
         .get_rx_buffer_count = serial2RxCount,
         .get_tx_buffer_count = serial2TxCount,

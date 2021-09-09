@@ -112,33 +112,34 @@ static inline void step_pulse_generate(PIO pio, uint32_t sm, uint32_t stepPulse)
 ;               via a single 74HC595 shift register. Delay and pulse length timings are handled by separate programs.
 ;
 .program step_dir_sr4
- ;.define public T3 7
+.define public T3 5     ; Shift register clock and latch pulse length
 .side_set 2
-    pull block          side 0x2
-    out y, 8            side 0x2
+    pull block          side 0x0
+    out y, 8            side 0x0
     mov isr, y          side 0x0
     mov x, osr          side 0x0
 ; output direction signals
     set y, 7            side 0x0
 loop1:
-    out pins, 1         side 0x0  ;[T3 - 1]
-    jmp y-- loop1       side 0x1  ;[T3 - 1]
-    irq set 4           side 0x2  ;[T3 - 1]
-    set y, 7            side 0x2  ;[T3 - 1]
+    out pins, 1         side 0x0 [T3]
+    jmp y-- loop1       side 0x1 [T3]
+    irq set 4           side 0x2 [T3]
+    set y, 7            side 0x0
     mov osr, isr        side 0x0
     wait 1 irq 5        side 0x0
 ; output step signals
 loop2:
-    out pins, 1         side 0x0 ;[T3 - 1]
-    jmp y-- loop2       side 0x1 ;[T3 - 1]
-    irq set 6           side 0x2 ;[T3 - 1]
-    set y, 7            side 0x2 ;[T3 - 1]
+    out pins, 1         side 0x0 [T3]
+    jmp y-- loop2       side 0x1 [T3]
+    irq set 6           side 0x2 [T3]
+    set y, 7            side 0x0
     mov osr, x          side 0x0
     wait 1 irq 7        side 0x0
 ; reset step signals
 loop3:
-    out pins, 1         side 0x0 ;[T3 - 1]
-    jmp y-- loop3       side 0x1 ;[T3 - 1]
+    out pins, 1         side 0x0 [T3]
+    jmp y-- loop3       side 0x1 [T3]
+    set y, 0            side 0x2 [T3]
 
 % c-sdk {
 #include "hardware/gpio.h"
