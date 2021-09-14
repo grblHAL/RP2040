@@ -223,12 +223,14 @@ static inline void sr_hold_set(PIO pio, uint32_t sm, uint32_t period) {
 ; out_sr16: output up to 16 signals via two chained 74HC595 shift registers.
 ;
 .program out_sr16
+.define public T3 5     ; Shift register clock and latch pulse length
 .side_set 2
-    pull block          side 0x2 [1]
+    pull block          side 0x0
     set y, 15           side 0x0
 loop1:
-    out pins, 1         side 0x0
-    jmp y-- loop1       side 0x1
+    out pins, 1         side 0x0 [T3]
+    jmp y-- loop1       side 0x1 [T3]
+    set y, 0            side 0x2 [T3]
 
 % c-sdk {
 #include "hardware/gpio.h"
@@ -239,7 +241,7 @@ static inline void out_sr16_program_init(PIO pio, uint32_t sm, uint32_t offset, 
  
     sm_config_set_out_pins(&c, dataPin, 1);
     sm_config_set_sideset_pins(&c, bckPin);
-    sm_config_set_clkdiv(&c, 4);
+    sm_config_set_clkdiv(&c, 1);
 
     pio_sm_set_pins_with_mask(pio, sm, mask, mask);
     pio_sm_set_pindirs_with_mask(pio, sm, mask, mask);
