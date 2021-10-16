@@ -113,6 +113,8 @@
   #include "cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)
   #include "pico_cnc_map.h"
+#elif defined(BOARD_PICOBOB)
+  #include "picobob_map.h"
 #elif defined(BOARD_MY_MACHINE)
   #include "my_machine_map.h"
 #else // default board
