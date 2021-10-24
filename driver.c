@@ -135,8 +135,12 @@ static input_signal_t inputpin[] = {
 #else
     { .id = Input_Reset,          .port = GPIO_INPUT, .pin = RESET_PIN,           .group = PinGroup_Control },
 #endif
+#ifdef FEED_HOLD_PIN
     { .id = Input_FeedHold,       .port = GPIO_INPUT, .pin = FEED_HOLD_PIN,       .group = PinGroup_Control },
+#endif
+#ifdef CYCLE_START_PIN
     { .id = Input_CycleStart,     .port = GPIO_INPUT, .pin = CYCLE_START_PIN,     .group = PinGroup_Control },
+#endif
 #ifdef SAFETY_DOOR_PIN
     { .id = Input_SafetyDoor,     .port = GPIO_INPUT, .pin = SAFETY_DOOR_PIN,     .group = PinGroup_Control },
 #endif
@@ -202,6 +206,15 @@ static output_signal_t outputpin[] = {
 #ifdef C_AXIS
     { .id = Output_StepC,           .port = GPIO_PIO,                   .pin = STEP_PINS_BASE + 5,      .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
 #endif
+#ifdef X2_STEP_PIN
+    { .id = Output_StepX_2,         .port = GPIO_PIO,                   .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+#endif
+#ifdef Y2_STEP_PIN
+    { .id = Output_StepY_2,         .port = GPIO_PIO,                   .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+#endif
+#ifdef Z2_STEP_PIN
+    { .id = Output_StepZ_2,         .port = GPIO_PIO,                   .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+#endif
 #endif
 #ifdef DIRECTION_PORT
     { .id = Output_DirX,            .port = DIRECTION_PORT,             .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
@@ -215,6 +228,15 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef C_AXIS
     { .id = Output_DirC,            .port = DIRECTION_PORT,             .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
+#endif
+#ifdef X2_DIRECTION_PIN
+    { .id = Output_DirX_2,          .port = DIRECTION_PORT,             .pin = X2_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
+#endif
+#ifdef Y2_DIRECTION_PIN
+    { .id = Output_DirY_2,          .port = DIRECTION_PORT,             .pin = Y2_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
+#endif
+#ifdef Z2_DIRECTION_PIN
+    { .id = Output_DirZ_2,          .port = DIRECTION_PORT,             .pin = Z2_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
 #endif
 #endif
 #if !TRINAMIC_ENABLE
@@ -354,7 +376,7 @@ static void stepperEnable (axes_signals_t enable)
     enable.mask ^= settings.steppers.enable_invert.mask;
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
     axes_signals_t tmc_enable = trinamic_stepper_enable(enable);
-#else
+#elif STEPPERS_ENABLE_OUTMODE
   #if STEPPERS_ENABLE_OUTMODE == GPIO_IOEXPAND
     #ifdef STEPPERS_DISABLEX_PIN
     ioex_out(STEPPERS_DISABLEX_PIN) = enable.x;
@@ -438,15 +460,15 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
 #else
     pio_steps.set = step_outbits_1.mask ^ settings.steppers.step_invert.mask;
   #ifdef X2_STEP_PIN
-    if(step_outbits_2.x ^ settings.steppers.step_invert.x)
+    if(step_outbits_1.x ^ settings.steppers.step_invert.x)
         pio_steps.set |= X2_STEP_BIT;
   #endif
   #ifdef Y2_STEP_PIN
-    if(step_outbits_2.y ^ settings.steppers.step_invert.y)
+    if(step_outbits_1.y ^ settings.steppers.step_invert.y)
         pio_steps.set |= Y2_STEP_BIT;
   #endif
   #ifdef Z2_STEP_PIN
-    if(step_outbits_2.z ^ settings.steppers.step_invert.z)
+    if(step_outbits_1.z ^ settings.steppers.step_invert.z)
         pio_steps.set |= Z2_STEP_BIT;
   #endif
     step_pulse_generate(pio0, 0, pio_steps.value);
@@ -503,6 +525,7 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     step_dir_sr4_write(pio0, 0, sd_sr.value);
 #else
     pio_steps.set = step_outbits.mask ^ settings.steppers.step_invert.mask;
+    //pio_steps.set = 0b1101 ^ settings.steppers.step_invert.mask;
   #ifdef X2_STEP_PIN
     if(step_outbits.x ^ settings.steppers.step_invert.x)
         pio_steps.set |= X2_STEP_BIT;
@@ -644,8 +667,12 @@ static control_signals_t systemGetState (void)
   #else                                   
     signals.reset = DIGITAL_IN(RESET_BIT);
   #endif
+  #ifdef FEED_HOLD_PIN
     signals.feed_hold = DIGITAL_IN(FEED_HOLD_BIT);
+  #endif
+  #ifdef CYCLE_START_PIN
     signals.cycle_start = DIGITAL_IN(CYCLE_START_BIT);
+  #endif
   #ifdef SAFETY_DOOR_PIN
     signals.safety_door_ajar = safety_door->active;
   #endif
@@ -699,7 +726,9 @@ inline static void spindle_off (void)
     ioex_out(SPINDLE_ENABLE_PIN) = settings.spindle.invert.on;
     ioexpand_out(io_expander);
 #else
+    #ifdef SPINDLE_ENABLE_PIN
     DIGITAL_OUT(SPINDLE_ENABLE_BIT, Off);
+    #endif
 #endif
 }
 
@@ -712,7 +741,9 @@ inline static void spindle_on (void)
     ioex_out(SPINDLE_ENABLE_PIN) = !settings.spindle.invert.on;
     ioexpand_out(io_expander);
 #else
+    #ifdef SPINDLE_ENABLE_PIN
     DIGITAL_OUT(SPINDLE_ENABLE_BIT, On);
+    #endif
 #endif
 #if SPINDLE_SYNC_ENABLE
     spindleDataReset();
@@ -730,8 +761,10 @@ inline static void spindle_dir (bool ccw)
         ioexpand_out(io_expander);
     }
 #else
+    #ifdef SPINDLE_DIRECTION_PIN
     if(hal.driver_cap.spindle_dir)
         DIGITAL_OUT(SPINDLE_DIRECTION_BIT, ccw);
+    #endif
 #endif
 }
 
@@ -810,8 +843,12 @@ static spindle_state_t spindleGetState (void)
     state.ccw = hal.driver_cap.spindle_dir && ioex_out(SPINDLE_DIRECTION_PIN);
     state.value ^= settings.spindle.invert.mask;
 #else
+    #ifdef SPINDLE_DIRECTION_PIN
     state.on = DIGITAL_IN(SPINDLE_ENABLE_BIT);
+    #endif
+    #ifdef SPINDLE_DIRECTION_PIN
     state.ccw = hal.driver_cap.spindle_dir && DIGITAL_IN(SPINDLE_DIRECTION_BIT);
+    #endif
 #endif
 
     return state;
@@ -877,7 +914,9 @@ static void coolantSetState (coolant_state_t mode)
     #endif
     ioexpand_out(io_expander);
 #else
+    #ifdef COOLANT_FLOOD_PIN
     DIGITAL_OUT(COOLANT_FLOOD_BIT, mode.flood);
+    #endif
     #ifdef COOLANT_MIST_PIN
     DIGITAL_OUT(COOLANT_MIST_BIT, mode.mist);
     #endif
@@ -900,7 +939,9 @@ static coolant_state_t coolantGetState (void)
     state.value ^= settings.coolant_invert.mask;
     #endif
 #else
+    #ifdef COOLANT_FLOOD_PIN
     state.flood = DIGITAL_IN(COOLANT_FLOOD_BIT);
+    #endif
     #ifdef COOLANT_MIST_PIN
     state.mist  = DIGITAL_IN(COOLANT_MIST_BIT);
     #endif
@@ -1352,7 +1393,7 @@ static bool driver_setup (settings_t *settings)
     sr_hold_program_init(pio0, 2, pio_offset, 11.65f);
 #else
     pulse = pio_add_program(pio0, &step_pulse_program);
-    step_pulse_program_init(pio0, 0, pulse, STEP_PINS_BASE, N_AXIS);
+    step_pulse_program_init(pio0, 0, pulse, STEP_PINS_BASE, N_AXIS + N_GANGED);
 #endif
 
  // Spindle init
