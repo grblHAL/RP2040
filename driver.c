@@ -1460,7 +1460,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "RP2040";
-    hal.driver_version = "210909";
+    hal.driver_version = "211016";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
