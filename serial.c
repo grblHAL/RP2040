@@ -210,7 +210,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
         .suspend_read = serialSuspendInput,
-        .disable = serialDisable,
+        .disable_rx = serialDisable,
         .set_baud_rate = serialSetBaudRate,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
