@@ -190,7 +190,7 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
 
             do {
                 if(event_bits & input->bit) {
-                    value = DIGITAL_IN(input->pin) ^ invert;
+                    value = DIGITAL_IN(input->bit) ^ invert;
                     break;
                 }
                 if(delay) {
@@ -208,7 +208,7 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
         bool wait_for = wait_mode != WaitMode_Low;
 
         do {
-            if((DIGITAL_IN(input->pin) ^ invert) == wait_for) {
+            if((DIGITAL_IN(input->bit) ^ invert) == wait_for) {
                 value = DIGITAL_IN(input->bit);
                 break;
             }
@@ -229,7 +229,7 @@ void ioports_event (input_signal_t *input)
     event_bits |= input->bit;
 
     if(input->interrupt_callback)
-        input->interrupt_callback(input->id - Output_Aux0, !DIGITAL_IN(input->pin));
+        input->interrupt_callback(input->id - Input_Aux0, DIGITAL_IN(input->bit));
 
     spin_lock = false;
 }

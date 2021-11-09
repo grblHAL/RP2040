@@ -24,6 +24,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "hardware/timer.h"
 #include "hardware/irq.h"
@@ -45,6 +46,7 @@
 #include "grbl/state_machine.h"
 #include "grbl/motor_pins.h"
 #include "grbl/pin_bits_masks.h"
+#include "grbl/protocol.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -129,6 +131,8 @@ static modbus_stream_t modbus_stream = {0};
 
 #include "grbl/stepdir_map.h"
 
+static periph_signal_t *periph_pins = NULL;
+
 static input_signal_t inputpin[] = {
 #if ESTOP_ENABLE
     { .id = Input_EStop,          .port = GPIO_INPUT, .pin = RESET_PIN,           .group = PinGroup_Control },
@@ -172,8 +176,8 @@ static input_signal_t inputpin[] = {
 #if MPG_MODE_ENABLE
   ,  { .id = Input_ModeSelect,    .port = GPIO_INPUT, .pin = MODE_SWITCH_PIN,     .group = PinGroup_MPG }
 #endif
-#if KEYPAD_ENABLE && defined(KEYPAD_STROBE_PIN)
-  , { .id = Input_KeypadStrobe,   .port = GPIO_INPUT, .pin = KEYPAD_STROBE_PIN,   .group = PinGroup_Keypad }
+#if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
+  , { .id = Input_KeypadStrobe,   .port = GPIO_INPUT, .pin = I2C_STROBE_PIN,      .group = PinGroup_Keypad }
 #endif
 #ifdef AUX_INPUT0_PIN
   , { .id = Input_Aux0,           .port = GPIO_INPUT, .pin = AUX_INPUT0_PIN,      .group = PinGroup_AuxInput }
@@ -342,11 +346,26 @@ static step_dir_sr_t sd_sr;
 static output_sr_t out_sr;
 #endif
 
-
 static void systick_handler (void);
 static void stepper_int_handler (void);
 static void gpio_int_handler (uint gpio, uint32_t events);
 static void spindle_set_speed (uint_fast16_t pwm_value);
+
+#if I2C_STROBE_ENABLE
+
+static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
+
+static bool irq_claim (irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
+{
+    bool ok;
+
+    if((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
+        i2c_strobe.callback = handler;
+
+    return ok;
+}
+
+#endif
 
 static int64_t delay_callback(alarm_id_t id, void *callback)
 {
@@ -366,6 +385,30 @@ static void driver_delay (uint32_t ms, delay_callback_ptr callback)
         }
     } else if(callback)
         callback();
+}
+
+static bool selectStream (const io_stream_t *stream)
+{
+    if(!stream)
+        stream = serial_stream;
+
+    if(hal.stream.read != stream->read)
+        stream->reset_read_buffer();
+
+    memcpy(&hal.stream, stream, sizeof(io_stream_t));
+
+    if(!hal.stream.write_all)
+        hal.stream.write_all = hal.stream.write;
+
+    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
+
+    if(hal.stream.disable_rx)
+        hal.stream.disable_rx(false);
+
+    if(grbl.on_stream_changed)
+        grbl.on_stream_changed(hal.stream.type);
+
+    return stream->type == hal.stream.type;
 }
 
 //*************************  STEPPER  *************************//
@@ -1343,16 +1386,52 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin_info(&pin);
     };
 
-/*
-    for(i = 0; i < sizeof(peripin) / sizeof(output_signal_t); i++) {
-        pin.pin = peripin[i].pin;
-        pin.function = peripin[i].id;
-        pin.mode.output = PIN_ISOUTPUT(pin.function);
-        pin.group = peripin[i].group;
-        pin.port = low_level ? (void *)peripin[i].port : (void *)port2char(peripin[i].port);
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        pin.pin = ppin->pin.pin;
+        pin.function = ppin->pin.function;
+        pin.group = ppin->pin.group;
+        pin.mode = ppin->pin.mode;
+        pin.description = ppin->pin.description;
 
         pin_info(&pin);
-    }; */
+
+        ppin = ppin->next;
+    } while(ppin);
+}
+
+void registerPeriphPin (const periph_pin_t *pin)
+{
+    periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
+
+    if(!add_pin)
+        return;
+
+    memcpy(&add_pin->pin, pin, sizeof(periph_pin_t));
+    add_pin->next = NULL;
+
+    if(periph_pins == NULL) {
+        periph_pins = add_pin;
+    } else {
+        periph_signal_t *last = periph_pins;
+        while(last->next)
+            last = last->next;
+        last->next = add_pin;
+    }
+}
+
+void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
+{
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        if(ppin->pin.function == function && ppin->pin.group == group) {
+            ppin->pin.description = description;
+            ppin = NULL;
+        } else
+            ppin = ppin->next;
+    } while(ppin);
 }
 
 // Initializes MCU peripherals for Grbl use
@@ -1395,8 +1474,6 @@ static bool driver_setup (settings_t *settings)
     pulse = pio_add_program(pio0, &step_pulse_program);
     step_pulse_program_init(pio0, 0, pulse, STEP_PINS_BASE, N_AXIS + N_GANGED);
 #endif
-
- // Spindle init
 
 #if OUT_SHIFT_REGISTER
     pio_offset = pio_add_program(pio1, &out_sr16_program);
@@ -1451,16 +1528,8 @@ bool driver_init (void)
     systick_hw->cvr = 0;
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
-#ifdef SERIAL2_MOD
-    serial2Init(115200);
-#endif
-
-#ifdef I2C_PORT
-    I2C_Init();
-#endif
-
     hal.info = "RP2040";
-    hal.driver_version = "211016";
+    hal.driver_version = "211108";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1506,23 +1575,37 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
+#if I2C_STROBE_ENABLE
+    hal.irq_claim = irq_claim;
+#endif
     hal.get_elapsed_ticks = getElapsedTicks;
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
     hal.enumerate_pins = enumeratePins;
+    hal.periph_port.register_pin = registerPeriphPin;
+    hal.periph_port.set_pin_description = setPeriphPinDescription;
+
+#ifdef SERIAL2_MOD
+    serial2Init(115200);
+#endif
 
 #if USB_SERIAL_CDC
     serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
-    memcpy(&hal.stream, serial_stream, sizeof(io_stream_t));
 #if MPG_MODE_ENABLE
     mpg_stream = serialInit(115200);
     hal.stream.write = hal.stream.write_all = mpgWriteS;
 #endif
 #else
     serial_stream = serialInit(115200);
-    memcpy(&hal.stream, serial_stream, sizeof(io_stream_t));
+#endif
+
+    hal.stream_select = selectStream;
+    hal.stream_select(serial_stream);
+
+#ifdef I2C_PORT
+    I2C_Init();
 #endif
 
 #if EEPROM_ENABLE
@@ -1592,20 +1675,16 @@ bool driver_init (void)
   #endif
 #endif
 
-#if TRINAMIC_ENABLE
-    trinamic_init();
-#endif
-
-#if KEYPAD_ENABLE
-    keypad_init();
-#endif
-
 #if IOEXPAND_ENABLE
     ioexpand_init();
 #endif
 
+#if MODBUS_ENABLE
+    modbus_init(serial2Init(115200));
+#endif
+
 #if SPINDLE_HUANYANG > 0
-    huanyang_init(modbus_init(serial2Init(115200)));
+    huanyang_init();
 #endif
 
 #if BLUETOOTH_ENABLE
@@ -1616,11 +1695,7 @@ bool driver_init (void)
 #endif
 #endif
 
-    my_plugin_init();
-
-#if ODOMETER_ENABLE
-    odometer_init(); // NOTE: this *must* be last plugin to be initialized as it claims storage at the end of NVS.
-#endif
+#include "grbl/plugins_init.h"
 
   //  debounceAlarmPool = alarm_pool_create(DEBOUNCE_ALARM_HW_TIMER, DEBOUNCE_ALARM_MAX_TIMER);
 
@@ -1765,11 +1840,12 @@ void gpio_int_handler(uint gpio, uint32_t events)
             ioports_event(input);
             break;
 #endif
-#if KEYPAD_ENABLE
+#if I2C_STROBE_ENABLE
         case PinGroup_Keypad:
 //            gpio_set_irq_enabled(input->pin, events, false);
 //            gpio_set_irq_enabled(input->pin, events == GPIO_IRQ_EDGE_RISE ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
-            keypad_keyclick_handler(DIGITAL_IN(input->bit) == 0);
+            if(i2c_strobe.callback)
+                i2c_strobe.callback(0, DIGITAL_IN(input->bit) == 0);
             break;
 #endif
 #if MPG_MODE_ENABLE

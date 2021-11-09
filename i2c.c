@@ -28,7 +28,7 @@
 #include "i2c.h"
 #include "grbl/hal.h"
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
 #include "keypad/keypad.h"
 #endif
 
@@ -49,6 +49,23 @@ void I2C_Init (void)
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
 
     i2c_init(QI2C_PORT, 100000UL);
+
+    static const periph_pin_t scl = {
+        .function = Output_SCK,
+        .group = PinGroup_I2C,
+        .pin = I2C_SCL,
+        .mode = { .mask = PINMODE_OD }
+    };
+
+    static const periph_pin_t sda = {
+        .function = Bidirectional_SDA,
+        .group = PinGroup_I2C,
+        .pin = I2C_SDA,
+        .mode = { .mask = PINMODE_OD }
+    };
+
+    hal.periph_port.register_pin(&scl);
+    hal.periph_port.register_pin(&sda);
 }
 
 void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
@@ -102,7 +119,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *i2c, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
 
 static uint8_t keycode = 0;
 static keycode_callback_ptr keypad_callback = NULL;

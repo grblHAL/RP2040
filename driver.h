@@ -83,7 +83,7 @@
 
 #define STEPPERS_ENABLE_PINMODE 0
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
+#if EEPROM_ENABLE || KEYPAD_ENABLE == 1 || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
 #define I2C_ENABLE 1
 #else
 #define I2C_ENABLE 0
@@ -155,7 +155,7 @@
 
 // End configuration
 
-#if KEYPAD_ENABLE && !defined(KEYPAD_STROBE_PIN)
+#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PIN)
 #error Keypad plugin not supported!
 #endif
 

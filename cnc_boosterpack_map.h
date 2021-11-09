@@ -91,8 +91,8 @@
 #define PROBE_PORT                  GPIO_INPUT
 #define PROBE_PIN                   16
 
-#if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN           17
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN              17
 #endif
 
 #if I2C_ENABLE

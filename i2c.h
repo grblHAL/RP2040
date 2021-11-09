@@ -36,7 +36,7 @@ void I2C_DriverInit (TMC_io_driver_t *drv);
 
 #endif
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
 
 #include "keypad/keypad.h"
 

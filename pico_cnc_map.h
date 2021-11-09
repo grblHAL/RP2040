@@ -166,7 +166,7 @@ typedef union {
 #define MODE_SWITCH_BIT     (1<<MODE_SWITCH_PIN)
 #endif
 
-#if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN   26
-#define KEYPAD_STROBE_BIT   (1<<KEYPAD_STROBE_PIN)
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN      26
+#define I2C_STROBE_BIT      (1<<I2C_STROBE_PIN)
 #endif
