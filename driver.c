@@ -296,7 +296,77 @@ static output_signal_t outputpin[] = {
     { .id = Output_Aux1,            .port = AUXOUTPUT1_PORT,            .pin = AUXOUTPUT1_PIN,          .group = PinGroup_AuxOutput },
 #endif
 #ifdef AUXOUTPUT2_PORT
-    { .id = Output_Aux2,            .port = AUXOUTPUT2_PORT,            .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput }
+    { .id = Output_Aux2,            .port = AUXOUTPUT2_PORT,            .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#if SD_SHIFT_REGISTER
+    { .id = Output_StepX,           .port = GPIO_SR8,  .pin = 0,  .group = PinGroup_StepperStep },
+    { .id = Output_StepY,           .port = GPIO_SR8,  .pin = 1,  .group = PinGroup_StepperStep },
+    { .id = Output_StepZ,           .port = GPIO_SR8,  .pin = 2,  .group = PinGroup_StepperStep },
+#ifdef A_AXIS
+    { .id = Output_StepA,           .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#ifdef B_AXIS
+    { .id = Output_StepB,           .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#ifdef C_AXIS
+    { .id = Output_StepC,           .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#ifdef X2_STEP_PIN
+    { .id = Output_StepX_2,         .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#ifdef Y2_STEP_PIN
+    { .id = Output_StepY_2,         .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#ifdef Z2_STEP_PIN
+    { .id = Output_StepZ_2,         .port = GPIO_SR8,  .pin = 3,  .group = PinGroup_StepperStep },
+#endif
+#endif
+    { .id = Output_DirX,            .port = GPIO_SR8,  .pin = 4,  .group = PinGroup_StepperDir },
+    { .id = Output_DirY,            .port = GPIO_SR8,  .pin = 5,  .group = PinGroup_StepperDir },
+    { .id = Output_DirZ,            .port = GPIO_SR8,  .pin = 6,  .group = PinGroup_StepperDir },
+#ifdef A_AXIS
+    { .id = Output_DirA,            .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#ifdef B_AXIS
+    { .id = Output_DirB,            .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#ifdef C_AXIS
+    { .id = Output_DirC,            .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#ifdef X2_DIRECTION_PIN
+    { .id = Output_DirX_2,          .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#ifdef Y2_DIRECTION_PIN
+    { .id = Output_DirY_2,          .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#ifdef Z2_DIRECTION_PIN
+    { .id = Output_DirZ_2,          .port = GPIO_SR8,  .pin = 7,  .group = PinGroup_StepperDir },
+#endif
+#if OUT_SHIFT_REGISTER
+    { .id = Output_StepperEnableX,  .port = GPIO_SR16, .pin = 0,  .group = PinGroup_StepperEnable },
+    { .id = Output_StepperEnableY,  .port = GPIO_SR16, .pin = 1,  .group = PinGroup_StepperEnable },
+    { .id = Output_StepperEnableZ,  .port = GPIO_SR16, .pin = 2,  .group = PinGroup_StepperEnable },
+#ifdef A_AXIS
+    { .id = Output_StepperEnableA,  .port = GPIO_SR16, .pin = 3,  .group = PinGroup_StepperEnable },
+#endif
+#ifdef B_AXIS
+    { .id = Output_StepperEnableB,  .port = GPIO_SR16, .pin = 3,  .group = PinGroup_StepperEnable },
+#endif
+#ifdef C_AXIS
+    { .id = Output_StepperEnableC,  .port = GPIO_SR16, .pin = 3,  .group = PinGroup_StepperEnable },
+#endif
+    { .id = Output_SpindleOn,       .port = GPIO_SR16, .pin = 4,  .group = PinGroup_SpindleControl },
+    { .id = Output_SpindleDir,      .port = GPIO_SR16, .pin = 5,  .group = PinGroup_SpindleControl },
+    { .id = Output_CoolantFlood,    .port = GPIO_SR16, .pin = 6,  .group = PinGroup_Coolant },
+    { .id = Output_CoolantMist,     .port = GPIO_SR16, .pin = 7,  .group = PinGroup_Coolant },
+    { .id = Output_Aux0,            .port = GPIO_SR16, .pin = 8,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux1,            .port = GPIO_SR16, .pin = 9,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux2,            .port = GPIO_SR16, .pin = 10, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux3,            .port = GPIO_SR16, .pin = 11, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux4,            .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux5,            .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux6,            .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux7,            .port = GPIO_SR16, .pin = 15, .group = PinGroup_AuxOutput },
 #endif
 };
 
@@ -1380,7 +1450,10 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.pin = outputpin[i].pin;
         pin.function = outputpin[i].id;
         pin.group = outputpin[i].group;
-        pin.port = outputpin[i].port == GPIO_PIO ? (void *)"PIO" : (outputpin[i].port == GPIO_IOEXPAND ? (void *)"IOX" : NULL);
+        pin.port = outputpin[i].port == GPIO_PIO ? (void *)"PIO" :
+                   (outputpin[i].port == GPIO_IOEXPAND ? (void *)"IOX" :
+                    (outputpin[i].port == GPIO_SR8 ? (void *)"SR8." :
+                     (outputpin[i].port == GPIO_SR16 ? (void *)"SR16." : NULL)));
         pin.description = outputpin[i].description;
 
         pin_info(&pin);
@@ -1529,7 +1602,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "211108";
+    hal.driver_version = "211112";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1649,6 +1722,8 @@ bool driver_init (void)
 
     uint32_t i;
     input_signal_t *input;
+    output_signal_t *output;
+
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
@@ -1657,6 +1732,7 @@ bool driver_init (void)
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
             aux_inputs.n_pins++;
+            input->cap.irq_mode = IRQ_Mode_All;
         }
         if(input->group == PinGroup_Limit) {
             if(limit_inputs.pins.inputs == NULL)
@@ -1669,9 +1745,18 @@ bool driver_init (void)
 #endif
     }
 
+    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        output= &outputpin[i];
+        if(output->group == PinGroup_AuxOutput) {
+            if(aux_outputs.pins.outputs == NULL)
+                aux_outputs.pins.outputs = output;
+            aux_outputs.n_pins++;
+        }
+    }
+
 #ifdef HAS_BOARD_INIT
   #if OUT_SHIFT_REGISTER
-    board_init (&aux_inputs, &out_sr);
+    board_init(&aux_inputs, &aux_outputs, &out_sr);
   #endif
 #endif
 

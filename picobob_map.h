@@ -1,5 +1,5 @@
 /*
-  cnc_boosterpack_map.h - driver code for RP2040 ARM processors
+  picobobs_map.h - driver code for RP2040 ARM processors
 
   Part of grblHAL
 

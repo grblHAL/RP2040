@@ -211,7 +211,7 @@ typedef struct {
 bool driver_init (void);
 
 #if OUT_SHIFT_REGISTER
-void board_init (pin_group_pins_t *aux_inputs, output_sr_t *reg);
+void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, output_sr_t *reg);
 #endif
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
