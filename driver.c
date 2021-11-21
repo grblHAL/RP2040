@@ -588,23 +588,6 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
 #endif
 }
 
-static axes_signals_t getAutoSquaredAxes (void)
-{
-    axes_signals_t ganged = {0};
-
-#if X_AUTO_SQUARE
-    ganged.x = On;
-#endif
-#if Y_AUTO_SQUARE
-    ganged.y = On;
-#endif
-#if Z_AUTO_SQUARE
-    ganged.z = On;
-#endif
-
-    return ganged;
-}
-
 // Enable/disable motors for auto squaring of ganged axes
 static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 {
@@ -655,6 +638,41 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
 #endif
 }
 
+#endif // SQUARING_ENABLED
+
+#ifdef GANGING_ENABLED
+
+static axes_signals_t getGangedAxes (bool auto_squared)
+{
+    axes_signals_t ganged = {0};
+
+    if(auto_squared) {
+        #if X_AUTO_SQUARE
+            ganged.x = On;
+        #endif
+        #if Y_AUTO_SQUARE
+            ganged.y = On;
+        #endif
+        #if Z_AUTO_SQUARE
+            ganged.z = On;
+        #endif
+    } else {
+        #if X_GANGED
+            ganged.x = On;
+        #endif
+
+        #if Y_GANGED
+            ganged.y = On;
+        #endif
+
+        #if Z_GANGED
+            ganged.z = On;
+        #endif
+    }
+
+    return ganged;
+}
+
 #endif
 
 // Set stepper direction output pins
@@ -665,17 +683,20 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
 #if SD_SHIFT_REGISTER
     dir_outbits.mask ^= settings.steppers.dir_invert.mask;
     sd_sr.set.x_dir = sd_sr.reset.x_dir = dir_outbits.x;
+    sd_sr.set.y_dir = sd_sr.reset.y_dir = dir_outbits.y;
+    sd_sr.set.z_dir = sd_sr.reset.z_dir = dir_outbits.z;
+ #ifdef GANGING_ENABLED
+    dir_outbits.mask ^= settings.steppers.ganged_dir_invert.mask;
   #ifdef X2_DIRECTION_PIN
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.x;
   #endif
-    sd_sr.set.y_dir = sd_sr.reset.y_dir = dir_outbits.y;
   #ifdef Y2_DIRECTION_PIN
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.y;
   #endif
-    sd_sr.set.z_dir = sd_sr.reset.z_dir = dir_outbits.z;
   #ifdef Z2_DIRECTION_PIN
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.z;
   #endif
+ #endif
   #ifdef A_DIRECTION_PIN
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_outbits.a;
   #endif
@@ -683,17 +704,19 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
 #elif DIRECTION_OUTMODE == GPIO_MAP
     gpio_put_masked(DIRECTION_MASK, dir_outmap[dir_outbits.mask]);
   #ifdef X2_DIRECTION_PIN
-    DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits.x ^ settings.steppers.dir_invert.x);
+    DIGITAL_OUT(X2_DIRECTION_BIT, (dir_outbits.x ^ settings.steppers.dir_invert.x) ^ settings.steppers.ganged_dir_invert.mask.x);
   #endif
   #ifdef Y2_DIRECTION_PIN
-    DIGITAL_OUT(Y2_DIRECTION_BIT, dir_outbits.y ^ settings.steppers.dir_invert.y);
+    DIGITAL_OUT(Y2_DIRECTION_BIT, (dir_outbits.y ^ settings.steppers.dir_invert.y) ^ settings.steppers.ganged_dir_invert.mask.y);
   #endif
   #ifdef Z2_DIRECTION_PIN
-    DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits.z ^ settings.steppers.dir_invert.z);
+    DIGITAL_OUT(Z2_DIRECTION_BIT, (dir_outbits.z ^ settings.steppers.dir_invert.z) ^ settings.steppers.ganged_dir_invert.mask.z);
   #endif
 #else
     dir_outbits.mask ^= settings.steppers.dir_invert.mask;
     gpio_put_masked(DIRECTION_MASK, dir_outbits.mask << DIRECTION_OUTMODE);
+ #ifdef GANGING_ENABLED
+    dir_outbits.mask ^= settings.steppers.ganged_dir_invert.mask;
   #ifdef X2_DIRECTION_PIN
     DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits.x);
   #endif
@@ -703,6 +726,7 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
   #ifdef Z2_DIRECTION_PIN
     DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits.z);
   #endif
+ #endif
 #endif
 }
 
@@ -1561,11 +1585,7 @@ static bool driver_setup (settings_t *settings)
     gpio_init(MODE_SWITCH_PIN);
 #endif
 
-#if N_AXIS > 3
-    IOInitDone = settings->version == 20;
-#else
-    IOInitDone = settings->version == 19;
- #endif
+    IOInitDone = settings->version == 21;
 
     hal.settings_changed(settings);
     hal.spindle.set_state((spindle_state_t){0}, 0.0f);
@@ -1602,7 +1622,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "211112";
+    hal.driver_version = "211121";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1618,8 +1638,10 @@ bool driver_init (void)
     hal.stepper.enable = stepperEnable;
     hal.stepper.cycles_per_tick = stepperCyclesPerTick;
     hal.stepper.pulse_start = stepperPulseStart;
+#ifdef GANGING_ENABLED
+    hal.stepper.get_ganged = getGangedAxes;
+#endif
 #ifdef SQUARING_ENABLED
-    hal.stepper.get_auto_squared = getAutoSquaredAxes;
     hal.stepper.disable_motors = StepperDisableMotors;
 #endif
 
@@ -1786,7 +1808,7 @@ bool driver_init (void)
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
-    return hal.version == 8;
+    return hal.version == 9;
 }
 
 /* interrupt handlers */
