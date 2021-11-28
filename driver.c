@@ -62,10 +62,6 @@
 #include "usb_serial.h"
 #endif
 
-#if BLUETOOTH_ENABLE
-#include "bluetooth/bluetooth.h"
-#endif
-
 #if EEPROM_ENABLE
 #include "eeprom/eeprom.h"
 #endif
@@ -1622,7 +1618,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "211121";
+    hal.driver_version = "211124";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1782,6 +1778,8 @@ bool driver_init (void)
   #endif
 #endif
 
+    serialRegisterStreams();
+
 #if IOEXPAND_ENABLE
     ioexpand_init();
 #endif
@@ -1792,14 +1790,6 @@ bool driver_init (void)
 
 #if SPINDLE_HUANYANG > 0
     huanyang_init();
-#endif
-
-#if BLUETOOTH_ENABLE
-#if USB_SERIAL_CDC
-    bluetooth_init(serialInit(115200));
-#else
-    bluetooth_init(serial2Init(115200));
-#endif
 #endif
 
 #include "grbl/plugins_init.h"

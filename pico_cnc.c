@@ -58,7 +58,7 @@ static const setting_detail_t aux_settings[] = {
     { Settings_IoPort_InvertIn, Group_AuxPorts, "Invert I/O Port inputs", NULL, Format_Bitfield, input_ports, NULL, NULL, Setting_NonCore, &settings.ioport.invert_in.mask, NULL, is_setting_available },
 };
 
-static setting_details_t details = {
+static setting_details_t setting_details = {
     .groups = aux_groups,
     .n_groups = sizeof(aux_groups) / sizeof(setting_group_detail_t),
     .settings = aux_settings,
@@ -83,11 +83,6 @@ static bool is_setting_available (const setting_detail_t *setting)
     }
 
     return available;
-}
-
-static setting_details_t *on_get_settings (void)
-{
-    return &details;
 }
 
 static void aux_settings_load (void)
@@ -481,8 +476,7 @@ void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, ou
         hal.port.get_pin_info = get_pin_info;
         hal.port.set_pin_description = set_pin_description;
 
-        details.on_get_settings = grbl.on_get_settings;
-        grbl.on_get_settings = on_get_settings;
+        settings_register(&setting_details);
 
         // Add M62-M65 port number mappings (P<n>) to description
         pnum = pn = malloc((3 * ports + (ports > 9 ? ports - 10 : 0)) + 1);

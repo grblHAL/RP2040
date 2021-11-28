@@ -64,6 +64,39 @@ static void uart2_interrupt_handler (void);
 
 #endif
 
+static io_stream_properties_t serial[] = {
+    {
+      .type = StreamType_Serial,
+      .instance = 0,
+      .flags.claimable = On,
+      .flags.claimed = Off,
+      .flags.connected = On,
+      .flags.can_set_baud = On,
+      .claim = serialInit
+    },
+#ifdef SERIAL2_MOD
+    {
+      .type = StreamType_Serial,
+      .instance = 1,
+      .flags.claimable = On,
+      .flags.claimed = Off,
+      .flags.connected = On,
+      .flags.can_set_baud = On,
+      .claim = serial2Init
+    }
+#endif
+};
+
+void serialRegisterStreams (void)
+{
+    static io_stream_details_t streams = {
+        .n_streams = sizeof(serial) / sizeof(io_stream_properties_t),
+        .streams = serial,
+    };
+
+    stream_register_streams(&streams);
+}
+
 //
 // serialGetC - returns -1 if no data available
 //
@@ -214,6 +247,11 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .set_baud_rate = serialSetBaudRate,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
+
+    if(serial[0].flags.claimed)
+        return NULL;
+
+    serial[0].flags.claimed = On;
 
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
@@ -443,6 +481,11 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .set_baud_rate = serial2SetBaudRate,
         .set_enqueue_rt_handler = serial2SetRtHandler
     };
+
+    if(serial[1].flags.claimed)
+        return NULL;
+
+    serial[1].flags.claimed = On;
 
     gpio_set_function(UART2_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART2_RX_PIN, GPIO_FUNC_UART);
