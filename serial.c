@@ -233,7 +233,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .connected = true,
+        .state.connected = true,
         .read = serialGetC,
         .write = serialWriteS,
         .write_all = serialWriteS,
@@ -463,7 +463,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .connected = true,
+        .state.connected = true,
         .read = serial2GetC,
         .write = serial2WriteS,
         .write_all = serial2WriteS,
