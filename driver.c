@@ -121,10 +121,6 @@ static input_signal_t *safety_door;
 static ioexpand_t io_expander = {0};
 #endif
 
-#if MODBUS_ENABLE
-static modbus_stream_t modbus_stream = {0};
-#endif
-
 #include "grbl/stepdir_map.h"
 
 static periph_signal_t *periph_pins = NULL;
@@ -451,30 +447,6 @@ static void driver_delay (uint32_t ms, delay_callback_ptr callback)
         }
     } else if(callback)
         callback();
-}
-
-static bool selectStream (const io_stream_t *stream)
-{
-    if(!stream)
-        stream = serial_stream;
-
-    if(hal.stream.read != stream->read)
-        stream->reset_read_buffer();
-
-    memcpy(&hal.stream, stream, sizeof(io_stream_t));
-
-    if(!hal.stream.write_all)
-        hal.stream.write_all = hal.stream.write;
-
-    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
-
-    if(hal.stream.disable_rx)
-        hal.stream.disable_rx(false);
-
-    if(grbl.on_stream_changed)
-        grbl.on_stream_changed(hal.stream.type);
-
-    return stream->type == hal.stream.type;
 }
 
 //*************************  STEPPER  *************************//
@@ -1606,7 +1578,7 @@ static void execute_realtime (uint_fast16_t state)
 #endif
 
 // Initialize HAL pointers, setup serial comms and enable EEPROM
-// NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done
+// NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
 {
     // Enable EEPROM and serial port here for Grbl to be able to configure itself and report any errors
@@ -1618,7 +1590,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "211124";
+    hal.driver_version = "211209";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1682,18 +1654,15 @@ bool driver_init (void)
 #endif
 
 #if USB_SERIAL_CDC
-    serial_stream = usb_serialInit();
+    stream_connect(serial_stream = usb_serialInit());
     grbl.on_execute_realtime = execute_realtime;
 #if MPG_MODE_ENABLE
     mpg_stream = serialInit(115200);
     hal.stream.write = hal.stream.write_all = mpgWriteS;
 #endif
 #else
-    serial_stream = serialInit(115200);
+    stream_connect(serial_stream = serialInit(115200));
 #endif
-
-    hal.stream_select = selectStream;
-    hal.stream_select(serial_stream);
 
 #ifdef I2C_PORT
     I2C_Init();

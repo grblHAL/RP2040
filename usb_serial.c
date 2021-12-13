@@ -141,7 +141,7 @@ int stdio_usb_in_chars (char *buf, int length)
 }
 
 //
-// Returns number of characters in serial input buffer
+// Returns number of characters in USB input buffer
 //
 static uint16_t usb_serialRxCount (void)
 {
@@ -151,7 +151,7 @@ static uint16_t usb_serialRxCount (void)
 }
 
 //
-// Returns number of free characters in serial input buffer
+// Returns number of free characters in USB input buffer
 //
 static uint16_t usb_serialRxFree (void)
 {
@@ -161,7 +161,7 @@ static uint16_t usb_serialRxFree (void)
 }
 
 //
-// Flushes the serial input buffer (including the USB buffer)
+// Flushes the USB input buffer (including the USB buffer)
 //
 static void usb_serialRxFlush (void)
 {
@@ -170,7 +170,7 @@ static void usb_serialRxFlush (void)
 }
 
 //
-// Flushes and adds a CAN character to the serial input buffer
+// Flushes and adds a CAN character to the USB input buffer
 //
 static void usb_serialRxCancel (void)
 {
@@ -180,7 +180,7 @@ static void usb_serialRxCancel (void)
 }
 
 //
-// Writes a character to the serial output stream
+// Writes a character to the USB output stream
 //
 static bool usb_serialPutC (const char c)
 {
@@ -223,7 +223,7 @@ bool _usb_write (void)
 }
 
 //
-// Writes a number of characters from string to the serial, blocks if buffer full
+// Writes a number of characters from string to the USB output stream, blocks if buffer full
 //
 static void usb_serialWrite (const char *s, uint16_t length)
 {
@@ -235,7 +235,7 @@ static void usb_serialWrite (const char *s, uint16_t length)
 }
 
 //
-// Writes a null terminated string to the serial output stream, blocks if buffer full
+// Writes a null terminated string to the USB output stream, blocks if buffer full
 //
 static void usb_serialWriteS (const char *s)
 {
@@ -298,9 +298,9 @@ const io_stream_t *usb_serialInit (void)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
+        .state.is_usb = On,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
-        .write_all = usb_serialWriteS,
         .write_n = usb_serialWrite,
         .write_char = usb_serialPutC,
         .enqueue_rt_command = usbEnqueueRtCommand,
