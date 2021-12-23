@@ -83,13 +83,6 @@
 
 #define STEPPERS_ENABLE_PINMODE 0
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE == 1 || IOEXPAND_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
-#define I2C_ENABLE 1
-#else
-#define I2C_ENABLE 0
-
-  //I2C_PORT 1 // SCL_PIN = 27, SDA_PIN = 26
-#endif
 // Define timer allocations.
 
 /*
@@ -134,6 +127,11 @@
 #define FLASH_ENABLE 1
 #else
 #define FLASH_ENABLE 0
+#endif
+
+#ifdef IOEXPAND_ENABLE
+#undef I2C_ENABLE
+#define I2C_ENABLE 1
 #endif
 
 #if I2C_ENABLE && !defined(I2C_PORT)
