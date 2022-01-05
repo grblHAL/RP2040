@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,9 +21,9 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-//#define BOARD_PICO_CNC
+#define BOARD_PICO_CNC
 //#define BOARD_PICOBOB
-#define BOARD_CNC_BOOSTERPACK
+//#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
 
 // Configuration
@@ -32,7 +32,8 @@
 #define USB_SERIAL_CDC       1 // Serial communication via native USB.
 //#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module.
 //#define SDCARD_ENABLE        1 // Run gcode programs from SD card.
-//#define KEYPAD_ENABLE        1 // I2C keypad for jogging etc.
+//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin.
+//#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data.
 //#define ODOMETER_ENABLE      1 // Odometer plugin.
 //#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
@@ -41,7 +42,6 @@
 //#define TRINAMIC_DEV         1 // Development mode, adds a few M-codes to aid debugging. Do not enable in production code.
 //#define EEPROM_ENABLE        1 // I2C EEPROM support. Set to 1 for 24LC16(2K), 2 for larger sizes.
 //#define EEPROM_IS_FRAM       1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
-//#define MPG_MODE_ENABLE      1
 
 // If the selected board map supports more than three motors ganging and/or auto-squaring
 // of axes can be enabled here.

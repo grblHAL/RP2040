@@ -136,7 +136,7 @@ typedef union {
 #define AUX_INPUT0_PIN      AUX_IO0_PIN
 #define AUX_INPUT1_PIN      AUX_IO1_PIN
 #define AUX_INPUT2_PIN      AUX_IO2_PIN
-#if !MPG_MODE_ENABLE
+#if MPG_MODE != 1
 #define AUX_INPUT3_PIN      AUX_IO3_PIN
 #endif
 #ifndef SAFETY_DOOR_PIN
@@ -159,11 +159,8 @@ typedef union {
 #define SD_MOSI_PIN         AUX_IO1_PIN
 #define SD_MISO_PIN         AUX_IO2_PIN
 #define SD_CS_PIN           AUX_IO3_PIN
-#endif
-
-#if MPG_MODE_ENABLE
-#define MODE_SWITCH_PIN     AUX_IO3_PIN
-#define MODE_SWITCH_BIT     (1<<MODE_SWITCH_PIN)
+#elif MPG_MODE == 1
+#define MPG_MODE_PIN        AUX_IO3_PIN
 #endif
 
 #if I2C_STROBE_ENABLE

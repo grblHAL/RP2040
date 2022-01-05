@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -416,6 +416,11 @@ static void serial2Write (const char *s, uint16_t length)
         serial2PutC(*ptr++);
 }
 
+static bool serial2SuspendInput (bool suspend)
+{
+    return stream_rx_suspend(&rx2buf, suspend);
+}
+
 static uint16_t serial2TxCount (void) {
 
     uint_fast16_t head = tx2buf.head, tail = tx2buf.tail;
@@ -474,8 +479,8 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .reset_read_buffer = serial2RxFlush,
         .cancel_read_buffer = serial2RxCancel,
         .reset_write_buffer = serial2TxFlush,
-        .disable = serial2Disable,
-    //    .suspend_read =  = serial2SuspendInput
+        .disable_rx = serial2Disable,
+        .suspend_read = serial2SuspendInput,
         .set_baud_rate = serial2SetBaudRate,
         .set_enqueue_rt_handler = serial2SetRtHandler
     };
@@ -492,7 +497,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 
     uart_set_hw_flow(UART2_PORT, false, false);
     uart_set_format(UART2_PORT, 8, 1, UART_PARITY_NONE);
-    uart_set_baudrate(UART2_PORT, 115200);
+    uart_set_baudrate(UART2_PORT, baud_rate);
     uart_set_fifo_enabled(UART2_PORT, true);
 
     irq_set_exclusive_handler(UART2_IRQ, uart2_interrupt_handler);

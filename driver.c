@@ -66,7 +66,7 @@
 #include "eeprom/eeprom.h"
 #endif
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 2
 #include "keypad/keypad.h"
 #endif
 
@@ -101,9 +101,6 @@ static uint pulse, timer;
 static uint16_t pulse_length, pulse_delay;
 static bool pwmEnabled = false, IOInitDone = false;
 static const io_stream_t *serial_stream;
-#if MPG_MODE_ENABLE
-static const io_stream_t *mpg_stream;
-#endif
 static axes_signals_t next_step_outbits;
 static spindle_pwm_t spindle_pwm;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
@@ -165,8 +162,8 @@ static input_signal_t inputpin[] = {
 #ifdef C_LIMIT_PIN
   , { .id = Input_LimitC,         .port = GPIO_INPUT, .pin = C_LIMIT_PIN,         .group = PinGroup_Limit }
 #endif
-#if MPG_MODE_ENABLE
-  ,  { .id = Input_ModeSelect,    .port = GPIO_INPUT, .pin = MODE_SWITCH_PIN,     .group = PinGroup_MPG }
+#if MPG_MODE_PIN
+  ,  { .id = Input_MPGSelect,     .port = GPIO_INPUT, .pin = MPG_MODE_PIN,        .group = PinGroup_MPG }
 #endif
 #if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
   , { .id = Input_KeypadStrobe,   .port = GPIO_INPUT, .pin = I2C_STROBE_PIN,      .group = PinGroup_Keypad }
@@ -719,7 +716,7 @@ static void limitsEnable (bool on, bool homing)
 
     do {
         i--;
-        gpio_set_irq_enabled(limit_inputs.pins.inputs[i].pin, limit_inputs.pins.inputs[i].invert ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, on);
+        pinEnableIRQ(&limit_inputs.pins.inputs[i], limit_inputs.pins.inputs[i].irq_mode);
     } while(i);
 
 #if TRINAMIC_ENABLE
@@ -1086,47 +1083,23 @@ static uint32_t getElapsedTicks (void)
    return elapsed_ticks;
 }
 
-#if MPG_MODE_ENABLE
+#if MPG_MODE == 1
 
-static void mpgWriteS (const char *data)
+static input_signal_t *mpg_pin = NULL;
+
+static void mpg_select (sys_state_t state)
 {
-    serial_stream->write(data);
-    mpg_stream->write(data);
+    stream_mpg_enable(DIGITAL_IN(mpg_pin->bit) == 0);
+
+    pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
-static bool enq_mpg (char c)
+static void mpg_enable (sys_state_t state)
 {
-    keypad_enqueue_keycode(c);
-
-    return true;
-}
-
-static void modeSelect (bool mpg_mode)
-{
-    gpio_set_irq_enabled(MODE_SWITCH_PIN, !mpg_mode ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, false);
-    gpio_set_irq_enabled(MODE_SWITCH_PIN, mpg_mode ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, true);
-
-    stream_enable_mpg(mpg_stream, mpg_mode);
-    if(!mpg_mode)
-        mpg_stream->set_enqueue_rt_handler(enq_mpg);
-}
-
-static void modeChange (void)
-{
-    modeSelect(DIGITAL_IN(MODE_SWITCH_BIT) == 0);
-}
-
-static void modeEnable (void)
-{
-    bool on = DIGITAL_IN(MODE_SWITCH_BIT) == 0;
-
-    if(sys.mpg_mode != on)
-        modeSelect(true);
+    if(sys.mpg_mode != (DIGITAL_IN(mpg_pin->bit) == 0))
+        mpg_select(state);
     else
-        mpg_stream->set_enqueue_rt_handler(enq_mpg);
-
-    gpio_set_irq_enabled(MODE_SWITCH_PIN, !on ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, false);
-    gpio_set_irq_enabled(MODE_SWITCH_PIN, on ? GPIO_IRQ_EDGE_RISE : GPIO_IRQ_EDGE_FALL, true);
+        pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
 #endif
@@ -1157,6 +1130,14 @@ void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode)
 
         case IRQ_Mode_Change:
             gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL, true);
+            break;
+
+        case IRQ_Mode_Low:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_LOW, true);
+            break;
+
+        case IRQ_Mode_High:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_HIGH, true);
             break;
 
         case IRQ_Mode_None:
@@ -1283,12 +1264,15 @@ void settings_changed (settings_t *settings)
                     pullup = !settings->control_disable_pullup.cycle_start;
                     input->invert = control_fei.cycle_start;
                     break;
-
+#ifdef SAFETY_DOOR_PIN
                 case Input_SafetyDoor:
+                    safety_door = input;
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     input->invert = control_fei.safety_door_ajar;
+                    input->active = DIGITAL_IN(input->bit);
+                    input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High);
                     break;
-
+#endif
                 case Input_Probe:
                     pullup = !settings->probe.disable_probe_pullup;
                     input->invert = settings->probe.invert_probe_pin;
@@ -1332,11 +1316,12 @@ void settings_changed (settings_t *settings)
                     pullup = !settings->limits.disable_pullup.c;
                     input->invert = limit_fei.c;
                     break;
-
-                case Input_ModeSelect:
-              //      input->irq_mode = IRQ_Mode_Change;
+#ifdef MPG_MODE_PIN
+                case Input_MPGSelect:
+                    pullup = true;
+                    mpg_pin = input;
                     break;
-
+#endif
                 case Input_KeypadStrobe:
                     pullup = true;
                     input->irq_mode = IRQ_Mode_Change;
@@ -1346,44 +1331,32 @@ void settings_changed (settings_t *settings)
                     break;
             }
 
-            if(input->group == PinGroup_AuxInput) {
-                pullup = true;
-                input->cap.irq_mode = IRQ_Mode_All;
+            switch(input->group) {
+ 
+                case PinGroup_Limit:
+                case PinGroup_Control:
+                    input->irq_mode = input->invert ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+
+                case PinGroup_AuxInput:
+                    pullup = true;
+                    input->cap.irq_mode = IRQ_Mode_All;
+                    break;
+
+                default:
+                    break;
             }
 
             gpio_set_pulls(input->pin, pullup, !pullup);
-//            gpio_set_irqover(input->pin, input->invert ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
             gpio_set_inover(input->pin, input->invert ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-
-            if(input->group == PinGroup_Control)
-                gpio_set_irq_enabled(input->pin, input->invert ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
-            else
+            if(input->group != PinGroup_Limit)
                 pinEnableIRQ(input, input->irq_mode);
-       
+
             if(input->id == Input_Probe)
                 probeConfigure(false, false);
-#ifdef SAFETY_DOOR_PIN
-            else if(input->id == Input_SafetyDoor) {
-                safety_door = input;
-                safety_door->active = DIGITAL_IN(safety_door->bit);
-                gpio_set_irq_enabled(safety_door->pin, !safety_door->invert ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
-            }
-#endif
-                gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
+
+            gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
         } while(i);
-
-        /***************************
-         *  MPG mode input enable  *
-         ***************************/
-
-#if MPG_MODE_ENABLE
-        if(hal.driver_cap.mpg_mode) {
-            // Enable pullup
-            gpio_set_pulls(MODE_SWITCH_PIN, true, false);
-            // Delay mode enable a bit so grblHAL can finish startup and MPG controller can check ready status
-            hal.delay_ms(50, modeEnable);
-        }
-#endif
 
         /*************************
          *  Output signals init  *
@@ -1549,8 +1522,8 @@ static bool driver_setup (settings_t *settings)
     sdcard_init();
 #endif
 
-#if MPG_MODE_ENABLE
-    gpio_init(MODE_SWITCH_PIN);
+#if MPG_MODE == 1
+    gpio_init(MPG_MODE_PIN);
 #endif
 
     IOInitDone = settings->version == 21;
@@ -1590,7 +1563,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "211209";
+    hal.driver_version = "220105";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1656,10 +1629,6 @@ bool driver_init (void)
 #if USB_SERIAL_CDC
     stream_connect(serial_stream = usb_serialInit());
     grbl.on_execute_realtime = execute_realtime;
-#if MPG_MODE_ENABLE
-    mpg_stream = serialInit(115200);
-    hal.stream.write = hal.stream.write_all = mpgWriteS;
-#endif
 #else
     stream_connect(serial_stream = serialInit(115200));
 #endif
@@ -1703,9 +1672,6 @@ bool driver_init (void)
 #ifdef PROBE_PIN
     hal.driver_cap.probe_pull_up = On;
 #endif
-#if MPG_MODE_ENABLE
-    hal.driver_cap.mpg_mode = On;
-#endif
 
     uint32_t i;
     input_signal_t *input;
@@ -1748,6 +1714,15 @@ bool driver_init (void)
 #endif
 
     serialRegisterStreams();
+
+#if MPG_MODE == 1
+    if(hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, NULL))
+        protocol_enqueue_rt_command(mpg_enable);
+#elif MPG_MODE == 2
+    hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, keypad_enqueue_keycode);
+#elif KEYPAD_ENABLE == 2
+    stream_open_instance(0, 115200, keypad_enqueue_keycode);
+#endif
 
 #if IOEXPAND_ENABLE
     ioexpand_init();
@@ -1908,16 +1883,14 @@ void gpio_int_handler(uint gpio, uint32_t events)
 #endif
 #if I2C_STROBE_ENABLE
         case PinGroup_Keypad:
-//            gpio_set_irq_enabled(input->pin, events, false);
-//            gpio_set_irq_enabled(input->pin, events == GPIO_IRQ_EDGE_RISE ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
             if(i2c_strobe.callback)
                 i2c_strobe.callback(0, DIGITAL_IN(input->bit) == 0);
             break;
 #endif
-#if MPG_MODE_ENABLE
+#if MPG_MODE == 1
         case PinGroup_MPG:
-            gpio_set_irq_enabled(MODE_SWITCH_PIN, GPIO_IRQ_ALL, false);
-            hal.delay_ms(50, modeChange);
+            pinEnableIRQ(input, IRQ_Mode_None);
+            protocol_enqueue_rt_command(mpg_select);
             break;
 #endif
         default:
