@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
   Copyright (c) 2021 Volksolive
 
   Grbl is free software: you can redistribute it and/or modify
@@ -440,10 +440,12 @@ static void driver_delay (uint32_t ms, delay_callback_ptr callback)
             add_alarm_in_ms(ms, delay_callback, callback, false);
         else {
             uint32_t delay = ms * 1000, start = timer_hw->timerawl;
-            while(timer_hw->timerawl - start < delay);
+            while(timer_hw->timerawl - start < delay)
+                grbl.on_execute_delay(state_get());
         }
     } else if(callback)
         callback();
+        tight_loop_contents();
 }
 
 //*************************  STEPPER  *************************//
@@ -491,18 +493,20 @@ static void stepperWakeUp (void)
 {
     stepperEnable((axes_signals_t){AXES_BITMASK});
     stepper_timer_set_period(pio1, 0, timer, 1000);
+    irq_set_enabled(PIO1_IRQ_0, true);
 }
 
 // Disables stepper driver interrupts
 static void stepperGoIdle (bool clear_signals)
 {
+    irq_set_enabled(PIO1_IRQ_0, false);
     stepper_timer_stop(pio1, 0);
 }
 
 // Sets up stepper driver interrupt timeout, "Normal" version
-static void stepperCyclesPerTick (uint32_t cycles_per_tick)
+static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
 {
-    stepper_timer_set_period(pio1, 0, timer, cycles_per_tick);
+    stepper_timer_set_period(pio1, 0, timer, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
 }
 
 #ifdef SQUARING_ENABLED
@@ -696,7 +700,7 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
 }
 
 // Sets stepper direction and pulse pins and starts a step pulse.
-static void stepperPulseStart (stepper_t *stepper)
+static void __not_in_flash_func(stepperPulseStart)(stepper_t *stepper)
 {
     if(stepper->dir_change)
         stepperSetDirOutputs(stepper->dir_outbits);
@@ -726,7 +730,7 @@ static void limitsEnable (bool on, bool homing)
 
 // Returns limit state as an limit_signals_t variable.
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
-inline static limit_signals_t limitsGetState()
+inline static limit_signals_t limitsGetState (void)
 {
     limit_signals_t signals = {0};
 
@@ -759,7 +763,7 @@ inline static limit_signals_t limitsGetState()
 
 // Returns system state as a control_signals_t variable.
 // Each bitfield bit indicates a control signal, where triggered is 1 and not triggered is 0.
-static control_signals_t systemGetState (void)
+static control_signals_t __not_in_flash_func(systemGetState) (void)
 {
     control_signals_t signals = {0};
 
@@ -1349,6 +1353,7 @@ void settings_changed (settings_t *settings)
 
             gpio_set_pulls(input->pin, pullup, !pullup);
             gpio_set_inover(input->pin, input->invert ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+
             if(input->group != PinGroup_Limit)
                 pinEnableIRQ(input, input->irq_mode);
 
@@ -1497,7 +1502,7 @@ static bool driver_setup (settings_t *settings)
     stepper_timer_program_init(pio1, 0, timer, 12.5f); // 10MHz
 
     irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
-    irq_set_enabled(PIO1_IRQ_0, true);
+ //   irq_set_priority(PIO1_IRQ_0, 0);
 
 #if SD_SHIFT_REGISTER
     pio_offset = pio_add_program(pio0, &step_dir_sr4_program);
@@ -1563,7 +1568,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220105";
+    hal.driver_version = "220111";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1684,7 +1689,7 @@ bool driver_init (void)
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
-            aux_inputs.n_pins++;
+            input->id = Input_Aux0 + aux_inputs.n_pins++;
             input->cap.irq_mode = IRQ_Mode_All;
         }
         if(input->group == PinGroup_Limit) {
@@ -1703,7 +1708,7 @@ bool driver_init (void)
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
-            aux_outputs.n_pins++;
+            output->id = Output_Aux0 + aux_outputs.n_pins++;
         }
     }
 
@@ -1748,7 +1753,7 @@ bool driver_init (void)
 /* interrupt handlers */
 
 // Main stepper driver
-void stepper_int_handler (void)
+void __not_in_flash_func(stepper_int_handler)(void)
 {
     stepper_timer_irq_clear(pio1);
 
@@ -1756,7 +1761,7 @@ void stepper_int_handler (void)
 }
 
 // Limit debounce callback
-static int64_t limit_debounce_callback(alarm_id_t id, void *input)
+static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void *input)
 {
     if(((input_signal_t *)input)->debounce) {
 
@@ -1783,7 +1788,7 @@ static int64_t limit_debounce_callback(alarm_id_t id, void *input)
 }
 
 // SR Latch callback - used to delay resetting of pins after they are triggered
-static int64_t srLatch_debounce_callback(alarm_id_t id, void *input)
+static int64_t __not_in_flash_func(srLatch_debounce_callback)(alarm_id_t id, void *input)
 {
     if(((input_signal_t *)input)->id == Input_Probe)
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, probe.inverted ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
@@ -1818,7 +1823,7 @@ void PPI_TIMER_IRQHandler (void)
 
 // GPIO Interrupt handler
 // TODO: bypass the Pico library interrupt handler.
-void gpio_int_handler(uint gpio, uint32_t events)
+void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 {
     input_signal_t *input = NULL;
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
@@ -1899,7 +1904,7 @@ void gpio_int_handler(uint gpio, uint32_t events)
 }
 
 // Interrupt handler for 1 ms interval timer
-void isr_systick (void)
+void __not_in_flash_func(isr_systick)(void)
 {
     ms_event = true;
     elapsed_ticks++;

@@ -289,7 +289,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     return &stream;           
 }
 
-static void uart_interrupt_handler (void)
+static void __not_in_flash_func(uart_interrupt_handler)(void)
 {
     uint32_t data, ctrl = UART->mis;
 
@@ -526,7 +526,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
     return &stream;
 }
 
-static void uart2_interrupt_handler (void)
+static void __not_in_flash_func(uart2_interrupt_handler)(void)
 {
     uint32_t data, ctrl = UART2->mis;
 

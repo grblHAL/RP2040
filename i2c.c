@@ -78,7 +78,8 @@ uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool 
 {
 
     i2c_write_blocking(QI2C_PORT, i2cAddr, buf, 1, true);
-    i2c_read_blocking(QI2C_PORT, i2cAddr, buf, 1, true);
+    i2c_read_blocking(QI2C_PORT, i2cAddr, buf, bytes, false);
+
     return buf;
 }
 
