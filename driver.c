@@ -720,7 +720,7 @@ static void limitsEnable (bool on, bool homing)
 
     do {
         i--;
-        pinEnableIRQ(&limit_inputs.pins.inputs[i], limit_inputs.pins.inputs[i].irq_mode);
+        pinEnableIRQ(&limit_inputs.pins.inputs[i], on ? limit_inputs.pins.inputs[i].irq_mode : IRQ_Mode_None);
     } while(i);
 
 #if TRINAMIC_ENABLE
@@ -1245,7 +1245,8 @@ void settings_changed (settings_t *settings)
             pullup = input->group == PinGroup_AuxInput;
 
             gpio_init(input->pin);
-            gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
+            if(input->group != PinGroup_Limit)
+                gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
 
             switch(input->id) {
 
@@ -1568,7 +1569,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220111";
+    hal.driver_version = "220115";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
