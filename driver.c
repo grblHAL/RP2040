@@ -86,6 +86,19 @@
 #include "ioexpand.h"
 #endif
 
+#if defined(X_STEP_PIO_PIN) || defined(Y_STEP_PIO_PIN) || defined(Z_STEP_PIO_PIN)
+#define STEP_SINGLE_AXIS_SM
+  #ifdef X_STEP_PIO_PIN
+    static uint x_step_sm;
+  #endif
+  #ifdef Y_STEP_PIO_PIN
+    static uint y_step_sm;
+  #endif
+  #ifdef Z_STEP_PIO_PIN
+    static uint z_step_sm;
+  #endif
+#endif
+
 typedef union {
     uint32_t value;
     struct {
@@ -97,7 +110,7 @@ typedef union {
 } pio_steps_t;
 
 static pio_steps_t pio_steps = { .delay = 20, .length = 100 };
-static uint pulse, timer;
+static uint step_pulse_sm, stepper_timer_sm;
 static uint16_t pulse_length, pulse_delay;
 static bool pwmEnabled = false, IOInitDone = false;
 static const io_stream_t *serial_stream;
@@ -140,7 +153,9 @@ static input_signal_t inputpin[] = {
 #ifdef LIMITS_OVERRIDE_PIN
     { .id = Input_LimitsOverride, .port = GPIO_INPUT, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control },
 #endif
+#ifdef PROBE_PIN
     { .id = Input_Probe,          .port = GPIO_INPUT, .pin = PROBE_PIN,           .group = PinGroup_Probe },
+#endif
     { .id = Input_LimitX,         .port = GPIO_INPUT, .pin = X_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef X2_LIMIT_PIN
     { .id = Input_LimitX_2,       .port = GPIO_INPUT, .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
@@ -208,6 +223,16 @@ static output_signal_t outputpin[] = {
 #ifdef Z2_STEP_PIN
     { .id = Output_StepZ_2,         .port = GPIO_PIO,                   .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
 #endif
+#elif defined(STEP_SINGLE_AXIS_SM)
+  #ifdef X_STEP_PIO_PIN
+    { .id = Output_StepX,           .port = GPIO_PIO,                   .pin = X_STEP_PIO_PIN,          .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+  #endif
+  #ifdef Y_STEP_PIO_PIN
+    { .id = Output_StepY,           .port = GPIO_PIO,                   .pin = Y_STEP_PIO_PIN,          .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+  #endif
+  #ifdef Z_STEP_PIO_PIN
+    { .id = Output_StepZ,           .port = GPIO_PIO,                   .pin = Z_STEP_PIO_PIN,          .group = PinGroup_StepperStep,   .mode = {STEP_PINMODE} },
+  #endif
 #endif
 #ifdef DIRECTION_PORT
     { .id = Output_DirX,            .port = DIRECTION_PORT,             .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
@@ -492,7 +517,7 @@ static void stepperEnable (axes_signals_t enable)
 static void stepperWakeUp (void)
 {
     stepperEnable((axes_signals_t){AXES_BITMASK});
-    stepper_timer_set_period(pio1, 0, timer, 1000);
+    stepper_timer_set_period(pio1, 0, stepper_timer_sm, 1000);
     irq_set_enabled(PIO1_IRQ_0, true);
 }
 
@@ -506,7 +531,7 @@ static void stepperGoIdle (bool clear_signals)
 // Sets up stepper driver interrupt timeout, "Normal" version
 static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
 {
-    stepper_timer_set_period(pio1, 0, timer, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
+    stepper_timer_set_period(pio1, 0, stepper_timer_sm, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
 }
 
 #ifdef SQUARING_ENABLED
@@ -570,7 +595,24 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 // NOTE: step_outbits are: bit0 -> X, bit1 -> Y, bit2 -> Z...
 inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_signals_t step_outbits)
 {
-#if SD_SHIFT_REGISTER
+#ifdef STEP_SINGLE_AXIS_SM
+    step_outbits.mask ^= settings.steppers.step_invert.mask;
+  #ifdef X_STEP_PIO_PIN
+    pio_steps.set = step_outbits.x;
+    pio_steps.reset = settings.steppers.step_invert.x;
+    step_pulse_generate(pio0, x_step_sm, pio_steps.value);
+  #endif
+  #ifdef Y_STEP_PIO_PIN
+    pio_steps.set = step_outbits.y;
+    pio_steps.reset = settings.steppers.step_invert.y;
+    step_pulse_generate(pio0, y_step_sm, pio_steps.value);
+  #endif
+  #ifdef Z_STEP_PIO_PIN
+   pio_steps.set = step_outbits.z;
+   pio_steps.reset = settings.steppers.step_invert.z;
+   step_pulse_generate(pio0, z_step_sm, pio_steps.value);
+  #endif
+#elif SD_SHIFT_REGISTER
     step_outbits.mask ^= settings.steppers.step_invert.mask;
     sd_sr.set.x_step = step_outbits.x;
   #ifdef X2_STEP_PIN
@@ -590,7 +632,6 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     step_dir_sr4_write(pio0, 0, sd_sr.value);
 #else
     pio_steps.set = step_outbits.mask ^ settings.steppers.step_invert.mask;
-    //pio_steps.set = 0b1101 ^ settings.steppers.step_invert.mask;
   #ifdef X2_STEP_PIN
     if(step_outbits.x ^ settings.steppers.step_invert.x)
         pio_steps.set |= X2_STEP_BIT;
@@ -1162,14 +1203,10 @@ void settings_changed (settings_t *settings)
     stepdirmap_init(settings);
 #endif
 
-    stepperSetStepOutputs((axes_signals_t){0});
-    stepperSetDirOutputs((axes_signals_t){0});
-
     if(IOInitDone) {
 
         // Init of the spindle PWM
         driver_spindle_pwm_init();
-
 
 #if SD_SHIFT_REGISTER
         pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds - 0.8f));
@@ -1214,6 +1251,9 @@ void settings_changed (settings_t *settings)
 
 #endif
 
+        stepperSetStepOutputs((axes_signals_t){0});
+        stepperSetDirOutputs((axes_signals_t){0});
+
         /***********************
          *  Input pins config  *
          ***********************/
@@ -1245,7 +1285,7 @@ void settings_changed (settings_t *settings)
             pullup = input->group == PinGroup_AuxInput;
 
             gpio_init(input->pin);
-            if(input->group != PinGroup_Limit)
+            if(!(input->group == PinGroup_Limit || input->group == PinGroup_AuxInput))
                 gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
 
             switch(input->id) {
@@ -1355,7 +1395,7 @@ void settings_changed (settings_t *settings)
             gpio_set_pulls(input->pin, pullup, !pullup);
             gpio_set_inover(input->pin, input->invert ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
 
-            if(input->group != PinGroup_Limit)
+            if(!(input->group == PinGroup_Limit || input->group == PinGroup_AuxInput))
                 pinEnableIRQ(input, input->irq_mode);
 
             if(input->id == Input_Probe)
@@ -1499,13 +1539,30 @@ static bool driver_setup (settings_t *settings)
 
     uint32_t pio_offset;
 
-    timer = pio_add_program(pio1, &stepper_timer_program);
-    stepper_timer_program_init(pio1, 0, timer, 12.5f); // 10MHz
+    stepper_timer_sm = pio_add_program(pio1, &stepper_timer_program);
+    stepper_timer_program_init(pio1, 0, stepper_timer_sm, 12.5f); // 10MHz
 
     irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
  //   irq_set_priority(PIO1_IRQ_0, 0);
 
-#if SD_SHIFT_REGISTER
+#ifdef STEP_SINGLE_AXIS_SM
+    uint32_t step_sm = 0;
+  #ifdef X_STEP_PIO_PIN
+    x_step_sm = step_sm++;
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
+    step_pulse_program_init(pio0, x_step_sm, pio_offset, X_STEP_PIO_PIN, 1);
+  #endif
+  #ifdef Y_STEP_PIO_PIN
+    y_step_sm = step_sm++;
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
+    step_pulse_program_init(pio0, y_step_sm, pio_offset, Y_STEP_PIO_PIN, 1);
+  #endif
+  #ifdef Z_STEP_PIO_PIN
+    z_step_sm = step_sm++;
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
+    step_pulse_program_init(pio0, z_step_sm, pio_offset, Z_STEP_PIO_PIN, 1);
+  #endif
+#elif SD_SHIFT_REGISTER
     pio_offset = pio_add_program(pio0, &step_dir_sr4_program);
     step_dir_sr4_program_init(pio0, 0, pio_offset, SD_SR_DATA_PIN, SD_SR_SCK_PIN);
 
@@ -1515,8 +1572,8 @@ static bool driver_setup (settings_t *settings)
     pio_offset= pio_add_program(pio0, &sr_hold_program);
     sr_hold_program_init(pio0, 2, pio_offset, 11.65f);
 #else
-    pulse = pio_add_program(pio0, &step_pulse_program);
-    step_pulse_program_init(pio0, 0, pulse, STEP_PINS_BASE, N_AXIS + N_GANGED);
+    step_pulse_sm = pio_add_program(pio0, &step_pulse_program);
+    step_pulse_program_init(pio0, 0, step_pulse_sm, STEP_PINS_BASE, N_AXIS + N_GANGED);
 #endif
 
 #if OUT_SHIFT_REGISTER
@@ -1569,7 +1626,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220115";
+    hal.driver_version = "220119";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1713,9 +1770,15 @@ bool driver_init (void)
         }
     }
 
+#ifdef HAS_IOPORTS
+    ioports_init(&aux_inputs, &aux_outputs);
+#endif
+
 #ifdef HAS_BOARD_INIT
   #if OUT_SHIFT_REGISTER
     board_init(&aux_inputs, &aux_outputs, &out_sr);
+  #else
+    board_init();
   #endif
 #endif
 
