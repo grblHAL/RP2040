@@ -198,6 +198,15 @@ static input_signal_t inputpin[] = {
 #ifdef AUX_INPUT4_PIN
   , { .id = Input_Aux4,           .port = GPIO_INPUT, .pin = AUX_INPUT4_PIN,      .group = PinGroup_AuxInput }
 #endif
+#ifdef AUX_INPUT5_PIN
+  , { .id = Input_Aux5,           .port = GPIO_INPUT, .pin = AUX_INPUT5_PIN,      .group = PinGroup_AuxInput }
+#endif
+#ifdef AUX_INPUT6_PIN
+  , { .id = Input_Aux6,           .port = GPIO_INPUT, .pin = AUX_INPUT6_PIN,      .group = PinGroup_AuxInput }
+#endif
+#ifdef AUX_INPUT7_PIN
+  , { .id = Input_Aux7,           .port = GPIO_INPUT, .pin = AUX_INPUT7_PIN,      .group = PinGroup_AuxInput }
+#endif
 };
 
 static output_signal_t outputpin[] = {
@@ -311,6 +320,21 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef AUXOUTPUT2_PORT
     { .id = Output_Aux2,            .port = AUXOUTPUT2_PORT,            .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT3_PORT
+    { .id = Output_Aux3,            .port = AUXOUTPUT3_PORT,            .pin = AUXOUTPUT3_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT4_PORT
+    { .id = Output_Aux4,            .port = AUXOUTPUT4_PORT,            .pin = AUXOUTPUT4_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT5_PORT
+    { .id = Output_Aux5,            .port = AUXOUTPUT5_PORT,            .pin = AUXOUTPUT5_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT6_PORT
+    { .id = Output_Aux6,            .port = AUXOUTPUT6_PORT,            .pin = AUXOUTPUT6_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT7_PORT
+    { .id = Output_Aux7,            .port = AUXOUTPUT7_PORT,            .pin = AUXOUTPUT7_PIN,          .group = PinGroup_AuxOutput },
 #endif
 #if SD_SHIFT_REGISTER
     { .id = Output_StepX,           .port = GPIO_SR8,  .pin = 0,  .group = PinGroup_StepperStep },
@@ -765,7 +789,7 @@ static void limitsEnable (bool on, bool homing)
     } while(i);
 
 #if TRINAMIC_ENABLE
-    trinamic_homing(homing);
+//    trinamic_homing(homing);
 #endif
 }
 
@@ -1626,7 +1650,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220119";
+    hal.driver_version = "220122";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

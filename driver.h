@@ -108,6 +108,10 @@
   #include "pico_cnc_map.h"
 #elif defined(BOARD_PICOBOB)
   #include "picobob_map.h"
+#elif defined(BOARD_BTT_SKR_PICO_10)
+  #include "btt_skr_pico_10_map.h"
+#elif defined BOARD_CITOH_CX6000
+  #include "citoh_cx6000_map.h"
 #elif defined(BOARD_MY_MACHINE)
   #include "my_machine_map.h"
 #else // default board
@@ -144,7 +148,7 @@
 #ifndef TRINAMIC_MIXED_DRIVERS
 #define TRINAMIC_MIXED_DRIVERS 1
 #endif
-#include "trinamic/trinamic.h"
+#include "motors/trinamic.h"
 #endif
 
 #if MODBUS_ENABLE
@@ -163,8 +167,8 @@
 #error "Only one option that uses the serial port can be enabled!"
 #endif
 
-#if MODBUS_TEST || KEYPAD_TEST|| BLUETOOTH_ENABLE || TRINAMIC_UART_ENABLE || MPG_ENABLE
-//#define SERIAL2_MOD
+#if MODBUS_TEST || KEYPAD_TEST || BLUETOOTH_ENABLE || TRINAMIC_UART_ENABLE || MPG_ENABLE
+#define SERIAL2_MOD
 #endif
 
 #undef MODBUS_TEST
@@ -233,6 +237,8 @@ bool driver_init (void);
 
 #if OUT_SHIFT_REGISTER
 void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, output_sr_t *reg);
+#else
+void board_init (void);
 #endif
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);

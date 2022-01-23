@@ -131,7 +131,6 @@ typedef union {
 #define AUX_IO3_PIN         13
 
 #if !SDCARD_ENABLE || !defined(SAFETY_DOOR_PIN)
-#define HAS_IOPORTS
 #if !SDCARD_ENABLE 
 #define AUX_INPUT0_PIN      AUX_IO0_PIN
 #define AUX_INPUT1_PIN      AUX_IO1_PIN

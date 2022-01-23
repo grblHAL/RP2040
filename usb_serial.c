@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Some parts are copyright (c) 2021 Terje Io
+  Some parts are copyright (c) 2021-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -305,6 +305,7 @@ const io_stream_t *usb_serialInit (void)
         .write_char = usb_serialPutC,
         .enqueue_rt_command = usbEnqueueRtCommand,
         .get_rx_buffer_free = usb_serialRxFree,
+        .get_rx_buffer_count = usb_serialRxCount,
         .reset_read_buffer = usb_serialRxFlush,
         .cancel_read_buffer = usb_serialRxCancel,
         .suspend_read = usb_serialSuspendInput,

@@ -21,15 +21,20 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-#define BOARD_PICO_CNC
+//#define BOARD_PICO_CNC
 //#define BOARD_PICOBOB
+//#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
 //#define BOARD_CNC_BOOSTERPACK
+//#define BOARD_CITOH_CX6000    // C.ITOH CX-6000 HPGL plotter
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
 
 // Configuration
 // Uncomment to enable.
 
+#ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC       1 // Serial communication via native USB.
+#endif
+//#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module.
 //#define SDCARD_ENABLE        1 // Run gcode programs from SD card.
 //#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin.
