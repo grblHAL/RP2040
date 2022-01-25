@@ -1571,19 +1571,19 @@ static bool driver_setup (settings_t *settings)
 
 #ifdef STEP_SINGLE_AXIS_SM
     uint32_t step_sm = 0;
+
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
+
   #ifdef X_STEP_PIO_PIN
     x_step_sm = step_sm++;
-    pio_offset = pio_add_program(pio0, &step_pulse_program);
     step_pulse_program_init(pio0, x_step_sm, pio_offset, X_STEP_PIO_PIN, 1);
   #endif
   #ifdef Y_STEP_PIO_PIN
     y_step_sm = step_sm++;
-    pio_offset = pio_add_program(pio0, &step_pulse_program);
     step_pulse_program_init(pio0, y_step_sm, pio_offset, Y_STEP_PIO_PIN, 1);
   #endif
   #ifdef Z_STEP_PIO_PIN
     z_step_sm = step_sm++;
-    pio_offset = pio_add_program(pio0, &step_pulse_program);
     step_pulse_program_init(pio0, z_step_sm, pio_offset, Z_STEP_PIO_PIN, 1);
   #endif
 #elif SD_SHIFT_REGISTER
