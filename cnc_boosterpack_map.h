@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,18 +40,20 @@
 #endif
 
 // Define step pulse output pins.
-#define STEP_PINS_BASE 2 // N_AXIS number of consecutive pins are used by PIO
+#define STEP_PORT                   GPIO_PIO  // N_AXIS pin PIO SM
+#define STEP_PINS_BASE              2 // N_AXIS number of consecutive pins are used by PIO
 
 // Define step direction output pins.
+#define DIRECTION_PORT              GPIO_OUTPUT
 #define X_DIRECTION_PIN             5
 #define Y_DIRECTION_PIN             6
 #define Z_DIRECTION_PIN             7
 #define DIRECTION_OUTMODE           GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
+#define ENABLE_PORT                 GPIO_IOEXPAND
 #define STEPPERS_ENABLEX_PIN        6
 #define STEPPERS_ENABLEZ_PIN        0
-#define STEPPERS_ENABLE_OUTMODE     GPIO_IOEXPAND
 
 // Define homing/hard limit switch input pins.
 #define LIMIT_PORT                  GPIO_IN
@@ -61,22 +63,18 @@
 #define LIMIT_INMODE                GPIO_OE
 
 // Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT         GPIO_IOEXPAND
+#define SPINDLE_PORT                GPIO_IOEXPAND
 #define SPINDLE_ENABLE_PIN          0
-#define SPINDLE_DIRECTION_PORT      GPIO_IOEXPAND
 #define SPINDLE_DIRECTION_PIN       5
-#define SPINDLE_OUTMODE             GPIO_IOEXPAND
 
 // Define spindle PWM output pin.
 #define SPINDLE_PWM_PORT            GPIO_OUTPUT
 #define SPINDLE_PWM_PIN             11
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT          GPIO_IOEXPAND
+#define COOLANT_PORT                GPIO_IOEXPAND
 #define COOLANT_FLOOD_PIN           2
-#define COOLANT_MIST_PORT           GPIO_IOEXPAND
 #define COOLANT_MIST_PIN            3
-#define COOLANT_OUTMODE             GPIO_IOEXPAND
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN                   12
@@ -85,7 +83,6 @@
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN             15
 #endif
-#define CONTROL_INMODE              GPIO_MAP
 
 // Define probe switch input pin.
 #define PROBE_PORT                  GPIO_INPUT

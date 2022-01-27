@@ -1,12 +1,12 @@
 /*
 
-  ioexpand.h -  driver code for Atmel SAMD21 ARM processor
+  ioexpand.h - driver code for RP2040 ARM processor
 
   I2C I/O expander
 
   Part of grblHAL
 
-  Copyright (c) 2018-2019 Terje Io
+  Copyright (c) 2018-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@
 
 #define ioex_out(pin) ioex_outN(pin)
 #define ioex_outN(pin) io_expander.out ## pin
+#define ioex_in(pin) ioex_inN(pin)
+#define ioex_inN(pin) io_expander.in ## pin
 
 typedef union {
     uint8_t mask;

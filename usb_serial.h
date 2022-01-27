@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
 
 
   Grbl is free software: you can redistribute it and/or modify
@@ -25,10 +25,6 @@
 #pragma once
 
 #include "grbl/hal.h"
-
-extern void usb_execute_realtime (uint_fast16_t state);
-
-#define usb_serial_poll() usb_execute_realtime(0)
 
 const io_stream_t *usb_serialInit(void);
 

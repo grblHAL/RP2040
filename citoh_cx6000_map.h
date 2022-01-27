@@ -35,21 +35,21 @@
 #define HAS_IOPORTS
 
 // Define step pulse output pins.
-#define X_STEP_PIO_PIN         4   // X_AXIS step out via PIO
-#define Y_STEP_PIO_PIN         7   // Y_AXIS step out via PIO
+#define STEP_PORT               GPIO_PIO_1 // Single pin PIO SM
+#define X_STEP_PIN              4
+#define Y_STEP_PIN              7
+#define Z_STEP_PIN              12
 
 // Define step direction output pins.
 #define DIRECTION_PORT          GPIO_OUTPUT
+#define DIRECTION_OUTMODE       GPIO_MAP
 #define X_DIRECTION_PIN         3
 #define Y_DIRECTION_PIN         6
 #define Z_DIRECTION_PIN         15
-#define DIRECTION_OUTMODE       GPIO_MAP
 
 // Define stepper driver enable/disable output pin.
 #define STEPPERS_ENABLE_PORT    GPIO_OUTPUT
 #define STEPPERS_ENABLE_PIN     5
-#define STEPPERS_ENABLE_MASK    STEPPERS_ENABLE_BIT
-#define STEPPERS_ENABLE_OUTMODE GPIO_DIRECT
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN             13
@@ -75,7 +75,7 @@
 #define AUXOUTPUT2_PORT         GPIO_OUTPUT
 #define AUXOUTPUT2_PIN          27 // Reset front panel
 
-#define RESET_PIN               1
-#define PROBE_PIN               1
+#define RESET_PIN               10
+#define PROBE_PIN               10
 #define SPINDLE_PWM_PORT        GPIO_OUTPUT
 #define SPINDLE_PWM_PIN         14

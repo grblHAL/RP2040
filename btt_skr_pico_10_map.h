@@ -19,7 +19,7 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if N_ABC_MOTORS
+#if N_ABC_MOTORS > 1
 #error "Axis configuration is not supported!"
 #endif
 
@@ -32,34 +32,43 @@
 #define HAS_BOARD_INIT
 
 // Define step pulse output pins.
-#define X_STEP_PIO_PIN              11  // X_AXIS step out via PIO
-#define Y_STEP_PIO_PIN              8   // Y_AXIS step out via PIO
-#define Z_STEP_PIO_PIN              19  // Z_AXIS step out via PIO
+#define STEP_PORT                   GPIO_PIO_1 // Single pin PIO SM
+#define X_STEP_PIN                  11
+#define Y_STEP_PIN                  8
+#define Z_STEP_PIN                  19
 
 // Define step direction output pins.
+#define DIRECTION_PORT              GPIO_OUTPUT
+#define DIRECTION_OUTMODE           GPIO_MAP
 #define X_DIRECTION_PIN             10
 #define Y_DIRECTION_PIN             5
 #define Z_DIRECTION_PIN             28
-#define DIRECTION_OUTMODE           GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
-#define X_STEPPERS_ENABLE_PORT      12
-#define Y_STEPPERS_ENABLE_PORT      7
-#define Z_STEPPERS_ENABLE_PORT      2
+#define ENABLE_PORT                 GPIO_OUTPUT
+#define X_ENABLE_PIN                12
+#define Y_ENABLE_PIN                7
+#define Z_ENABLE_PIN                2
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN                 14
+#define M3_DIRECTION_PIN            13
+#define M3_ENABLE_PIN               15
+#define M3_LIMIT_PIN                16
+#endif
 
 // Define homing/hard limit switch input pins.
 #define LIMIT_PORT                  GPIO_IN
 #define X_LIMIT_PIN                 3
 #define Y_LIMIT_PIN                 4
 #define Z_LIMIT_PIN                 25
-#define LIMIT_INMODE                GPIO_OE
 
 // Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT         GPIO_OUTPUT
+#define SPINDLE_PORT                GPIO_OUTPUT
 #define SPINDLE_ENABLE_PIN          17
-#define SPINDLE_DIRECTION_PORT      GPIO_OUTPUT
 #define SPINDLE_DIRECTION_PIN       18
-#define SPINDLE_OUTMODE             GPIO_OUTPUT
 
 // Define spindle PWM output pin.
 #define SPINDLE_PWM_PORT            GPIO_OUTPUT
@@ -67,11 +76,9 @@
 
 // Define flood and mist coolant enable output pins.
 /*
-#define COOLANT_FLOOD_PORT          GPIO_OUTPUT
+#define COOLANT_PORT                GPIO_OUTPUT
 #define COOLANT_FLOOD_PIN           2
-#define COOLANT_MIST_PORT           GPIO_OUTPUT
 #define COOLANT_MIST_PIN            3
-#define COOLANT_OUTMODE             GPIO_OUTPUT
 */
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
@@ -81,7 +88,6 @@
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN             15
 #endif
-#define CONTROL_INMODE              GPIO_MAP
 
 // Define probe switch input pin.
 #define PROBE_PORT                  GPIO_INPUT

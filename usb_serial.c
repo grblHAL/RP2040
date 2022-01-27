@@ -47,7 +47,7 @@
 
 static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
-static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
+static volatile enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 // PICO_CONFIG: PICO_STDIO_USB_STDOUT_TIMEOUT_US, Number of microseconds to be blocked trying to write USB output before assuming the host has disappeared and discarding data, default=500000, group=pico_stdio_usb
 #ifndef PICO_STDIO_USB_STDOUT_TIMEOUT_US
@@ -67,6 +67,8 @@ static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_
 
 static_assert(PICO_STDIO_USB_LOW_PRIORITY_IRQ > RTC_IRQ, ""); // note RTC_IRQ is currently the last one
 static mutex_t stdio_usb_mutex;
+
+static void execute_realtime (uint_fast16_t state);
 
 static void low_priority_worker_irq (void)
 {
@@ -324,6 +326,7 @@ const io_stream_t *usb_serialInit (void)
     txbuf.s = txbuf.data;
     txbuf.max_length = CFG_TUD_CDC_TX_BUFSIZE;
     txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
+    grbl.on_execute_realtime = execute_realtime;
 
     return &stream;
 }
@@ -334,12 +337,19 @@ const io_stream_t *usb_serialInit (void)
 // them for processing by grbl. Real time command characters are stripped out
 // and submitted for realtime processing.
 //
-void usb_execute_realtime (uint_fast16_t state)
+static void execute_realtime (uint_fast16_t state)
 {
-    char c, *dp;
-    int avail, free;
+    static volatile bool lock = false;
     static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
 
+    if(lock)
+        return;
+
+    char c, *dp;
+    int avail, free;
+ 
+    lock = true;
+ 
     if((avail = tud_cdc_available())) {
 
         dp = tmpbuf;
@@ -360,4 +370,6 @@ void usb_execute_realtime (uint_fast16_t state)
             }
         }
     }
+
+    lock = false;
 }

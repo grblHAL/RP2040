@@ -78,8 +78,9 @@
 #define GPIO_INPUT    35
 #define GPIO_OUTPUT   36
 #define GPIO_PIO      37
-#define GPIO_SR8      38
-#define GPIO_SR16     39
+#define GPIO_PIO_1    38
+#define GPIO_SR8      39
+#define GPIO_SR16     40
 
 #define STEPPERS_ENABLE_PINMODE 0
 

@@ -239,6 +239,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .write_char = serialPutC,
         .enqueue_rt_command = serialEnqueueRtCommand,
         .get_rx_buffer_free = serialRxFree,
+        .get_rx_buffer_count = serialRxCount,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
         .suspend_read = serialSuspendInput,
@@ -255,11 +256,10 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
     
-    uart_init(UART_PORT, 2400);
+    uart_init(UART_PORT, baud_rate);
 
     uart_set_hw_flow(UART_PORT, false, false);
     uart_set_format(UART_PORT, 8, 1, UART_PARITY_NONE);
-    uart_set_baudrate(UART_PORT, baud_rate);
     uart_set_fifo_enabled(UART_PORT, true);
 
     irq_set_exclusive_handler(UART_IRQ, uart_interrupt_handler);
@@ -289,7 +289,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     return &stream;           
 }
 
-static void __not_in_flash_func(uart_interrupt_handler)(void)
+static void uart_interrupt_handler(void)
 {
     uint32_t data, ctrl = UART->mis;
 
@@ -493,11 +493,10 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
     gpio_set_function(UART2_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART2_RX_PIN, GPIO_FUNC_UART);
     
-    uart_init(UART2_PORT, 2400);
+    uart_init(UART2_PORT, baud_rate);
 
     uart_set_hw_flow(UART2_PORT, false, false);
     uart_set_format(UART2_PORT, 8, 1, UART_PARITY_NONE);
-    uart_set_baudrate(UART2_PORT, baud_rate);
     uart_set_fifo_enabled(UART2_PORT, true);
 
     irq_set_exclusive_handler(UART2_IRQ, uart2_interrupt_handler);

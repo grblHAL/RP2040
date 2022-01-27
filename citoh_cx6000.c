@@ -39,7 +39,7 @@
 #define PEN_N 6
 #define PEN_YINSERT 7.5f
 
-static bool pen_status;
+static pen_status_t pen_status;
 static bool debouncing = false, online = true;
 uint8_t pen_down_port = 4, online_port = 5, pen_led_port = 0, alert_led_port = 1, panel_reset_port = 2;
 uint8_t jog_ports[] = { 0, 1, 2 ,3};
@@ -110,7 +110,7 @@ static void set_pen_status (sys_state_t state)
 static int64_t pen_changed (alarm_id_t id, void *map)
 {
     online = hal.port.wait_on_input(Port_Digital, online_port, WaitMode_Immediate, 0.0f) == 0;
-    pen_status = online && hal.port.wait_on_input(Port_Digital, pen_down_port, WaitMode_Immediate, 0.0f) != 0 ? Pen_Down : Pen_Up;
+    pen_status = (online && hal.port.wait_on_input(Port_Digital, pen_down_port, WaitMode_Immediate, 0.0f) != 1) ? Pen_Down : Pen_Up;
     debouncing = false;
     if(pen_status != get_pen_status())
         protocol_enqueue_rt_command(set_pen_status);
@@ -128,12 +128,12 @@ static void pen_irq_handler (uint8_t port, bool state)
 
 static void online_irq_handler (uint8_t port, bool state)
 {
-//    if(!debouncing) {
+    if(!debouncing) {
         debouncing = true;
         pen_status = Pen_Up;
         protocol_enqueue_rt_command(set_pen_status);
-        add_alarm_in_ms(400, pen_changed, NULL, true);
-//    }
+        add_alarm_in_ms(40, pen_changed, NULL, true);
+    }
 }
 
 static void register_handlers (sys_state_t state)
