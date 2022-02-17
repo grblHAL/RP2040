@@ -1837,7 +1837,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220127";
+    hal.driver_version = "220216";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1895,10 +1895,6 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
-
-#ifdef SERIAL2_MOD
-    serial2Init(115200);
-#endif
 
 #if USB_SERIAL_CDC
     stream_connect(serial_stream = usb_serialInit());
@@ -1995,12 +1991,17 @@ bool driver_init (void)
     serialRegisterStreams();
 
 #if MPG_MODE == 1
-    if(hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, NULL))
+  #if KEYPAD_ENABLE == 2
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
         protocol_enqueue_rt_command(mpg_enable);
+  #else
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
+        protocol_enqueue_rt_command(mpg_enable);
+  #endif
 #elif MPG_MODE == 2
-    hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, keypad_enqueue_keycode);
+    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode);
 #elif KEYPAD_ENABLE == 2
-    stream_open_instance(0, 115200, keypad_enqueue_keycode);
+    stream_open_instance(KEYPAD_STREAM, 115200, keypad_enqueue_keycode);
 #endif
 
 #if IOEXPAND_ENABLE
