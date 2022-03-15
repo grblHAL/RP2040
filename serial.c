@@ -133,6 +133,8 @@ static uint16_t serialRxFree (void)
 
 static void serialRxFlush (void)
 {
+    while(!(UART->fr & UART_UARTFR_RXFE_BITS))
+        UART->dr;
     rxbuf.tail = rxbuf.head;
     rxbuf.overflow = false;
 }
@@ -195,7 +197,7 @@ static uint16_t serialTxCount (void) {
 
     uint_fast16_t head = txbuf.head, tail = txbuf.tail;
 
-    return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART->fr & UART_UARTFR_BUSY_BITS) ? 0 : 1);
+    return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART->fr & UART_UARTFR_BUSY_BITS) ? 1 : 0);
 }
 
 
@@ -294,7 +296,7 @@ static void uart_interrupt_handler(void)
     uint32_t data, ctrl = UART->mis;
 
     if(ctrl & (UART_UARTMIS_RXMIS_BITS | UART_UARTIMSC_RTIM_BITS)) {
-        while (uart_is_readable(UART_PORT)) {
+        while (!(UART->fr & UART_UARTFR_RXFE_BITS)) {
             data = UART->dr & 0xFF;                                     // Read input (use only 8 bits of data)
             if(!enqueue_realtime_command((char)data)) {
                 uint_fast16_t next_head = BUFNEXT(rxbuf.head, rxbuf);   // Get next head pointer
@@ -363,6 +365,8 @@ static uint16_t serial2RxFree (void)
 
 static void serial2RxFlush (void)
 {
+    while(!(UART2->fr & UART_UARTFR_RXFE_BITS))
+        UART2->dr;
     rx2buf.tail = rx2buf.head;
     rx2buf.overflow = false;
 }
@@ -378,24 +382,24 @@ static bool serial2PutC (const char c)
 {
     uint_fast16_t next_head;
 
-    if(!(UART2->imsc & UART_UARTIMSC_TXIM_BITS)) {                  // If the transmit interrupt is deactivated
-        if(!(UART2->fr & UART_UARTFR_TXFF_BITS)) {                  // and if the TX FIFO is not full
-            UART2->dr = c;                                          // Write data in the TX FIFO
+    if(!(UART2->imsc & UART_UARTIMSC_TXIM_BITS)) {              // If the transmit interrupt is deactivated
+        if(!(UART2->fr & UART_UARTFR_TXFF_BITS)) {              // and if the TX FIFO is not full
+            UART2->dr = c;                                      // Write data in the TX FIFO
             return true;
         } else
-            hw_set_bits(&UART2->imsc, UART_UARTIMSC_TXIM_BITS);     // Enable transmit interrupt
+            hw_set_bits(&UART2->imsc, UART_UARTIMSC_TXIM_BITS); // Enable transmit interrupt
     }
 
     // Write data in the Buffer is transmit interrupt activated or TX FIFO is                                                                
-    next_head = BUFNEXT(tx2buf.head, tx2buf);                 // Get and update head pointer
+    next_head = BUFNEXT(tx2buf.head, tx2buf);                   // Get and update head pointer
 
-    while(tx2buf.tail == next_head) {                             // Buffer full, block until space is available...
+    while(tx2buf.tail == next_head) {                           // Buffer full, block until space is available...
         if(!hal.stream_blocking_callback())
             return false;
     }
 
-    tx2buf.data[tx2buf.head] = c;                             // Add data to buffer
-    tx2buf.head = next_head;                                     // and update head pointer
+    tx2buf.data[tx2buf.head] = c;                               // Add data to buffer
+    tx2buf.head = next_head;                                    // and update head pointer
 
     return true;
 }
@@ -425,7 +429,7 @@ static uint16_t serial2TxCount (void) {
 
     uint_fast16_t head = tx2buf.head, tail = tx2buf.tail;
 
-    return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART2->fr & UART_UARTFR_BUSY_BITS) ? 0 : 1);
+    return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART2->fr & UART_UARTFR_BUSY_BITS) ? 1 : 0);
 }
 
 static bool serial2SetBaudRate (uint32_t baud_rate)
@@ -442,10 +446,10 @@ static bool serial2SetBaudRate (uint32_t baud_rate)
 
 static bool serial2Disable (bool disable)
 {
-   if(disable)
+    if(disable)
         hw_clear_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);       
     else
-        hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);    
+        hw_set_bits(&UART2->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
 }
 
 static bool serial2EnqueueRtCommand (char c)
@@ -522,6 +526,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 
     hal.periph_port.register_pin(&rx);
     hal.periph_port.register_pin(&tx);
+
     return &stream;
 }
 
@@ -530,7 +535,7 @@ static void __not_in_flash_func(uart2_interrupt_handler)(void)
     uint32_t data, ctrl = UART2->mis;
 
     if(ctrl & (UART_UARTMIS_RXMIS_BITS | UART_UARTIMSC_RTIM_BITS)) {
-        while (uart_is_readable(UART2_PORT)) {
+        while (!(UART2->fr & UART_UARTFR_RXFE_BITS)) {
             data = UART2->dr & 0xFF;                                    // Read input (use only 8 bits of data)
             if(!enqueue_realtime_command2((char)data)) {
                 uint_fast16_t next_head = BUFNEXT(rx2buf.head, rx2buf); // Get next head pointer

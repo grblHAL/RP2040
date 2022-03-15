@@ -346,7 +346,7 @@ static output_signal_t outputpin[] = {
 #ifdef Z2_DIRECTION_PIN
     { .id = Output_DirZ_2,          .port = DIRECTION_PORT,   .pin = Z2_DIRECTION_PIN,      .group = PinGroup_StepperDir,    .mode = {DIRECTION_PINMODE} },
 #endif
-#if !TRINAMIC_ENABLE
+#if !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #ifndef STEPPERS_ENABLE_PIN
 #ifdef X_ENABLE_PIN
     { .id = Output_StepperEnableX,  .port = ENABLE_PORT,      .pin = X_ENABLE_PIN,          .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE} },
@@ -378,7 +378,7 @@ static output_signal_t outputpin[] = {
 #else // STEPPERS_ENABLE_PIN
     { .id = Output_StepperEnable,   .port = ENABLE_PORT,      .pin = STEPPERS_ENABLE_PIN,   .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE} },
 #endif
-#endif // !TRINAMIC_ENABLE
+#endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #if !VFD_SPINDLE
 #ifdef SPINDLE_PWM_PIN
     { .id = Output_SpindlePWM,      .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
@@ -1837,7 +1837,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220216";
+    hal.driver_version = "220314";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

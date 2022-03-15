@@ -67,7 +67,7 @@ TMC_uart_write_datagram_t *tmc_uart_read (trinamic_motor_t driver, TMC_uart_read
 
     tmc_uart.disable_rx(true);
 
-    dly = 5000;
+    dly = 8000;
     while(--dly)
         protocol_execute_noop(0);
 

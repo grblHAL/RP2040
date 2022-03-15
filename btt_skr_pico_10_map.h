@@ -34,7 +34,7 @@
 // Define step pulse output pins.
 #define STEP_PORT                   GPIO_PIO_1 // Single pin PIO SM
 #define X_STEP_PIN                  11
-#define Y_STEP_PIN                  8
+#define Y_STEP_PIN                  6
 #define Z_STEP_PIN                  19
 
 // Define step direction output pins.
@@ -61,8 +61,8 @@
 
 // Define homing/hard limit switch input pins.
 #define LIMIT_PORT                  GPIO_IN
-#define X_LIMIT_PIN                 3
-#define Y_LIMIT_PIN                 4
+#define X_LIMIT_PIN                 4
+#define Y_LIMIT_PIN                 3
 #define Z_LIMIT_PIN                 25
 
 // Define spindle enable and spindle direction output pins.
@@ -81,14 +81,18 @@
 #define COOLANT_MIST_PIN            3
 */
 
+#if N_ABC_MOTORS == 0
+
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN                   12
+#define RESET_PIN                   16
 #define FEED_HOLD_PIN               13
 #define CYCLE_START_PIN             14
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN             15
 #endif
 
+#endif
+
 // Define probe switch input pin.
 #define PROBE_PORT                  GPIO_INPUT
-#define PROBE_PIN                   16
+#define PROBE_PIN                   22
