@@ -1062,8 +1062,7 @@ inline static void spindle_dir (bool ccw)
 #if SPINDLE_PORT == GPIO_OUTPUT
 
   #ifdef SPINDLE_DIRECTION_PIN
-    if(hal.driver_cap.spindle_dir)
-        DIGITAL_OUT(SPINDLE_DIRECTION_BIT, ccw);
+    DIGITAL_OUT(SPINDLE_DIRECTION_BIT, ccw);
   #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
@@ -1113,21 +1112,10 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
     }
 }
 
-#ifdef SPINDLE_PWM_DIRECT
-
 static uint_fast16_t spindleGetPWM (float rpm)
 {
     return spindle_compute_pwm_value(&spindle_pwm, rpm, false);
 }
-
-#else
-
-static void spindleUpdateRPM (float rpm)
-{
-    spindle_set_speed(spindle_compute_pwm_value(&spindle_pwm, rpm, false));
-}
-
-#endif
 
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_state_t state, float rpm)
@@ -1152,13 +1140,13 @@ static spindle_state_t spindleGetState (void)
     state.on = DIGITAL_IN(SPINDLE_ENABLE_BIT);
   #endif
   #ifdef SPINDLE_DIRECTION_PIN
-    state.ccw = hal.driver_cap.spindle_dir && DIGITAL_IN(SPINDLE_DIRECTION_BIT);
+    state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_BIT);
   #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
 
     state.on = ioex_in(SPINDLE_ENABLE_PIN);
-    state.ccw = hal.driver_cap.spindle_dir && ioex_in(SPINDLE_DIRECTION_PIN);
+    state.ccw = ioex_in(SPINDLE_DIRECTION_PIN);
     state.value ^= settings.spindle.invert.mask;
 
 #elif SPINDLE_PORT == GPIO_SR16
@@ -1174,7 +1162,7 @@ static spindle_state_t spindleGetState (void)
 
 void driver_spindle_pwm_init (void) {
 
-    if(hal.driver_cap.variable_spindle) {
+    if(hal.spindle.cap.variable) {
 
         hal.spindle.set_state = spindleSetStateVariable;
 
@@ -1381,7 +1369,7 @@ void settings_changed (settings_t *settings)
 {
 
 #ifdef SPINDLE_PWM_PIN
-    hal.driver_cap.variable_spindle = settings->spindle.rpm_min < settings->spindle.rpm_max;
+    hal.spindle.cap.variable = settings->spindle.rpm_min < settings->spindle.rpm_max;
 #endif
 
 #if USE_STEPDIR_MAP
@@ -1837,7 +1825,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220314";
+    hal.driver_version = "220325";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1871,14 +1859,16 @@ bool driver_init (void)
     hal.probe.configure = probeConfigure;
 #endif
 
+    hal.spindle.cap.direction = On;
+#ifdef SPINDLE_PWM_PIN
+    hal.spindle.cap.variable = On;
+    hal.spindle.cap.laser = On;
+#endif
+    hal.spindle.cap.pwm_invert = On;
     hal.spindle.set_state = spindleSetState;
     hal.spindle.get_state = spindleGetState;
-#ifdef SPINDLE_PWM_DIRECT
     hal.spindle.get_pwm = spindleGetPWM;
     hal.spindle.update_pwm = spindle_set_speed;
-#else
-    hal.spindle.update_rpm = spindleUpdateRPM;
-#endif
 #if PPI_ENABLE
     hal.spindle.pulse_on = spindlePulseOn;
 #endif
@@ -1925,11 +1915,6 @@ bool driver_init (void)
     hal.signals_cap.e_stop = On;
     hal.signals_cap.reset = Off;
 #endif
-    hal.driver_cap.spindle_dir = On;
-#ifdef SPINDLE_PWM_PIN
-    hal.driver_cap.variable_spindle = On;
-#endif
-    hal.driver_cap.spindle_pwm_invert = On;
 #if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
     hal.driver_cap.mist_control = On;
 #endif
