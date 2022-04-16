@@ -4,6 +4,7 @@ include(pico_sdk_import.cmake)
 include(grbl/CMakeLists.txt)
 include(fatfs/CMakeLists.txt)
 include(trinamic/CMakeLists.txt)
+include(spindle/CMakeLists.txt)
 # include(hpgl/CMakeLists.txt)
 
 project(grblHAL)
@@ -43,6 +44,7 @@ target_link_libraries(grblHAL PRIVATE
 # hpgl
  fatfs
  trinamic
+ spindle
  tinyusb_device_unmarked
  pico_stdlib
  hardware_uart

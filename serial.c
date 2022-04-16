@@ -72,6 +72,7 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.connected = On,
       .flags.can_set_baud = On,
+      .flags.modbus_ready = On,
       .claim = serialInit
     },
 #ifdef SERIAL2_MOD
@@ -82,6 +83,7 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.connected = On,
       .flags.can_set_baud = On,
+      .flags.modbus_ready = On,
       .claim = serial2Init
     }
 #endif
@@ -116,6 +118,7 @@ static int16_t serialGetC (void)
 
 static void serialTxFlush (void)
 {
+    hw_clear_bits(&UART->imsc, UART_UARTIMSC_TXIM_BITS);
     txbuf.tail = txbuf.head;
 }
 
@@ -238,12 +241,15 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .state.connected = On,
         .read = serialGetC,
         .write = serialWriteS,
+        .write_n = serialWrite,
         .write_char = serialPutC,
         .enqueue_rt_command = serialEnqueueRtCommand,
         .get_rx_buffer_free = serialRxFree,
         .get_rx_buffer_count = serialRxCount,
+        .get_tx_buffer_count = serialTxCount,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
+        .reset_write_buffer = serialTxFlush,
         .suspend_read = serialSuspendInput,
         .disable_rx = serialDisable,
         .set_baud_rate = serialSetBaudRate,

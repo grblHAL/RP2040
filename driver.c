@@ -1825,7 +1825,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220325";
+    hal.driver_version = "220416";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1991,14 +1991,6 @@ bool driver_init (void)
 
 #if IOEXPAND_ENABLE
     ioexpand_init();
-#endif
-
-#if MODBUS_ENABLE
-    modbus_init(serial2Init(115200));
-#endif
-
-#if SPINDLE_HUANYANG > 0
-    huanyang_init();
 #endif
 
 #include "grbl/plugins_init.h"
