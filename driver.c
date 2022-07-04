@@ -605,7 +605,7 @@ static void stepperGoIdle (bool clear_signals)
 }
 
 // Sets up stepper driver interrupt timeout, "Normal" version
-static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
+static void __not_in_flash_func(stepperCyclesPerTick) (uint32_t cycles_per_tick)
 {
     stepper_timer_set_period(pio1, 0, stepper_timer_sm, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
 }
@@ -834,7 +834,7 @@ static axes_signals_t getGangedAxes (bool auto_squared)
 // Set stepper direction output pins
 // NOTE: see note for stepperSetStepOutputs()
 //inline static __attribute__((always_inline)) void stepperSetDirOutputs (axes_signals_t dir_outbits)
-static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
+static void stepperSetDirOutputs (axes_signals_t dir_outbits)
 {
 #if DIRECTION_PORT == GPIO_OUTPUT
 
@@ -892,7 +892,7 @@ static  void stepperSetDirOutputs (axes_signals_t dir_outbits)
 }
 
 // Sets stepper direction and pulse pins and starts a step pulse.
-static void __not_in_flash_func(stepperPulseStart)(stepper_t *stepper)
+static void __not_in_flash_func(stepperPulseStart) (stepper_t *stepper)
 {
     if(stepper->dir_change)
         stepperSetDirOutputs(stepper->dir_outbits);
@@ -1094,20 +1094,21 @@ static void spindleSetState (spindle_state_t state, float rpm)
 // Variable spindle control functions
 
 // Sets spindle speed
-static void spindle_set_speed (uint_fast16_t pwm_value)
+static void __not_in_flash_func(spindle_set_speed) (uint_fast16_t pwm_value)
 {
     if (pwm_value == spindle_pwm.off_value) {
         pwmEnabled = false;
-        if(settings.spindle.flags.pwm_action == SpindleAction_DisableWithZeroSPeed)
+        if(settings.spindle.flags.enable_rpm_controlled)
             spindle_off();
         if(spindle_pwm.always_on) 
             pwm_set_gpio_level(SPINDLE_PWM_PIN, spindle_pwm.off_value);
         else
             pwm_set_gpio_level(SPINDLE_PWM_PIN, 0);
     } else {
-        if(!pwmEnabled)
+        if(!pwmEnabled) {
             spindle_on();
-        pwmEnabled = true;
+            pwmEnabled = true;
+        }
         pwm_set_gpio_level(SPINDLE_PWM_PIN, pwm_value);
     }
 }
@@ -1120,13 +1121,17 @@ static uint_fast16_t spindleGetPWM (float rpm)
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_state_t state, float rpm)
 {
-    if (!state.on || rpm == 0.0f) {
-        spindle_set_speed(spindle_pwm.off_value);
-        spindle_off();
-    } else {
+    if (state.on)
         spindle_dir(state.ccw);
-        spindle_set_speed(spindle_compute_pwm_value(&spindle_pwm, rpm, false));
+
+    if(!settings.spindle.flags.enable_rpm_controlled) {
+        if (state.on)
+            spindle_on();
+        else
+            spindle_off();
     }
+
+    spindle_set_speed(state.on ? spindle_compute_pwm_value(&spindle_pwm, rpm, false) : spindle_pwm.off_value);
 }
 
 // Returns spindle state in a spindle_state_t variable
@@ -1160,18 +1165,16 @@ static spindle_state_t spindleGetState (void)
     return state;
 }
 
-void driver_spindle_pwm_init (void) {
+void driver_spindle_pwm_init (void)
+{
+    uint32_t prescaler = settings.spindle.pwm_freq > 2000.0f ? 1 : (settings.spindle.pwm_freq > 200.0f ? 12 : 50);
 
-    if(hal.spindle.cap.variable) {
+    if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, clock_get_hz(clk_sys) / prescaler))) {
 
         hal.spindle.set_state = spindleSetStateVariable;
 
         // Get the default config for 
         pwm_config config = pwm_get_default_config();
-        
-        uint32_t prescaler = settings.spindle.pwm_freq > 2000.0f ? 1 : (settings.spindle.pwm_freq > 200.0f ? 12 : 50);
-
-        spindle_precompute_pwm_values(&spindle_pwm, clock_get_hz(clk_sys) / prescaler);
 
         // Set divider, not using the 4 fractional bit part of the clock divider, only the integer part
         pwm_config_set_clkdiv_int(&config, prescaler);
@@ -1186,8 +1189,14 @@ void driver_spindle_pwm_init (void) {
 
         // Load the configuration into our PWM slice, and set it running.
         pwm_init(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN), &config, true);
-    } else
+
+    } else {
+        if(pwmEnabled)
+            hal.spindle.set_state((spindle_state_t){0}, 0.0f);
         hal.spindle.set_state = spindleSetState;
+    }
+
+    spindle_update_caps(hal.spindle.cap.variable);
 }
 
 #if PPI_ENABLE
@@ -1825,7 +1834,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220416";
+    hal.driver_version = "220704";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2005,7 +2014,7 @@ bool driver_init (void)
 /* interrupt handlers */
 
 // Main stepper driver
-void __not_in_flash_func(stepper_int_handler)(void)
+void __not_in_flash_func(stepper_int_handler) (void)
 {
     stepper_timer_irq_clear(pio1);
 
@@ -2013,7 +2022,7 @@ void __not_in_flash_func(stepper_int_handler)(void)
 }
 
 // Limit debounce callback
-static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void *input)
+static int64_t __not_in_flash_func(limit_debounce_callback) (alarm_id_t id, void *input)
 {
     if(((input_signal_t *)input)->debounce) {
 
@@ -2040,7 +2049,7 @@ static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void 
 }
 
 // SR Latch callback - used to delay resetting of pins after they are triggered
-static int64_t __not_in_flash_func(srLatch_debounce_callback)(alarm_id_t id, void *input)
+static int64_t __not_in_flash_func(srLatch_debounce_callback) (alarm_id_t id, void *input)
 {
     if(((input_signal_t *)input)->id == Input_Probe)
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, probe.inverted ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
@@ -2075,7 +2084,7 @@ void PPI_TIMER_IRQHandler (void)
 
 // GPIO Interrupt handler
 // TODO: bypass the Pico library interrupt handler.
-void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
+void __not_in_flash_func(gpio_int_handler) (uint gpio, uint32_t events)
 {
     input_signal_t *input = NULL;
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
@@ -2156,7 +2165,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 }
 
 // Interrupt handler for 1 ms interval timer
-void __not_in_flash_func(isr_systick)(void)
+void __not_in_flash_func(isr_systick) (void)
 {
     elapsed_ticks++;
 
