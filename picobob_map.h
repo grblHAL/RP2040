@@ -79,7 +79,7 @@
 #define RESET_PIN             3
 
 //Stepper enable is replaced with coolant control
-#define COOLANT_FLOOD_PORT    GPIO_OUTPUT
+#define COOLANT_PORT    GPIO_OUTPUT
 #define COOLANT_FLOOD_PIN     16
 
 // Define probe switch input pin.
