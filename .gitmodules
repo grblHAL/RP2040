@@ -22,3 +22,9 @@
 [submodule "spindle"]
 	path = spindle
 	url = https://github.com/grblHAL/Plugins_spindle
+[submodule "networking"]
+	path = networking
+	url = https://github.com/grblHAL/Plugin_networking
+[submodule "main/webui"]
+	path = main/webui
+	url = https://github.com/grblHAL/Plugin_WebUI
