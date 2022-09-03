@@ -25,9 +25,6 @@
 [submodule "networking"]
 	path = networking
 	url = https://github.com/grblHAL/Plugin_networking
-[submodule "main/webui"]
-	path = main/webui
-	url = https://github.com/grblHAL/Plugin_WebUI
 [submodule "webui"]
 	path = webui
 	url = https://github.com/grblHAL/Plugin_WebUI
