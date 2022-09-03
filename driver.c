@@ -86,10 +86,15 @@
 #include "ioexpand.h"
 #endif
 
+#if WIFI_ENABLE
+#include "wifi.h"
+#endif
+
 #ifdef GPIO_PIO_1
     static uint x_step_sm;
     static uint y_step_sm;
     static uint z_step_sm;
+    static PIO z_step_pio;
 #ifdef X2_STEP_PIN
     static uint x2_step_sm;
 #endif
@@ -121,7 +126,7 @@ typedef union {
 } pio_steps_t;
 
 static pio_steps_t pio_steps = { .delay = 20, .length = 100 };
-static uint step_pulse_sm, stepper_timer_sm;
+static uint step_pulse_sm, stepper_timer_sm, stepper_timer_sm_offset;
 static uint16_t pulse_length, pulse_delay;
 static bool pwmEnabled = false, IOInitDone = false;
 static const io_stream_t *serial_stream;
@@ -479,6 +484,7 @@ static step_dir_sr_t sd_sr;
 #endif
 
 #if OUT_SHIFT_REGISTER
+static uint32_t out_sr_sm;
 static output_sr_t out_sr;
 #endif
 
@@ -577,7 +583,7 @@ static void stepperEnable (axes_signals_t enable)
    #ifdef A_ENABLE_PIN
     out_sr.m3_ena = enable.a;
    #endif
-    out_sr16_write(pio1, 1, out_sr.value);
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
 #elif ENABLE_PORT == GPIO_IOEXPAND
     #ifdef STEPPERS_DISABLEX_PIN
     ioex_out(STEPPERS_DISABLEX_PIN) = enable.x;
@@ -593,7 +599,7 @@ static void stepperEnable (axes_signals_t enable)
 static void stepperWakeUp (void)
 {
     stepperEnable((axes_signals_t){AXES_BITMASK});
-    stepper_timer_set_period(pio1, 0, stepper_timer_sm, 1000);
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, 1000);
     irq_set_enabled(PIO1_IRQ_0, true);
 }
 
@@ -601,13 +607,13 @@ static void stepperWakeUp (void)
 static void stepperGoIdle (bool clear_signals)
 {
     irq_set_enabled(PIO1_IRQ_0, false);
-    stepper_timer_stop(pio1, 0);
+    stepper_timer_stop(pio1, stepper_timer_sm);
 }
 
 // Sets up stepper driver interrupt timeout, "Normal" version
 static void __not_in_flash_func(stepperCyclesPerTick) (uint32_t cycles_per_tick)
 {
-    stepper_timer_set_period(pio1, 0, stepper_timer_sm, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
 }
 
 #ifdef SQUARING_ENABLED
@@ -641,7 +647,7 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
   #endif
     pio_steps.set = step_outbits_1.z;
     pio_steps.reset = settings.steppers.step_invert.z;
-    step_pulse_generate(pio1, z_step_sm, pio_steps.value);
+    step_pulse_generate(z_step_pio, z_step_sm, pio_steps.value);
   #ifdef Z2_STEP_PIN
     pio_steps.set = step_outbits_2.z;
     step_pulse_generate(pio0, z2_step_sm, pio_steps.value);
@@ -734,7 +740,7 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
   #endif
     pio_steps.set = step_outbits.z;
     pio_steps.reset = settings.steppers.step_invert.z;
-    step_pulse_generate(pio1, z_step_sm, pio_steps.value);
+    step_pulse_generate(z_step_pio, z_step_sm, pio_steps.value);
   #ifdef Z2_STEP_PIN
     step_pulse_generate(pio0, z2_step_sm, pio_steps.value);
   #endif
@@ -1027,7 +1033,7 @@ inline static void spindle_off (void)
 #elif SPINDLE_PORT == GPIO_SR16
 
     out_sr.spindle_ena = settings.spindle.invert.on;
-    out_sr16_write(pio1, 1, out_sr.value);
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
 
 #endif
 }
@@ -1048,7 +1054,7 @@ inline static void spindle_on (void)
 #elif SPINDLE_PORT == GPIO_SR16
 
     out_sr.spindle_ena = !settings.spindle.invert.on;
-    out_sr16_write(pio1, 1, out_sr.value);
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
 
 #endif
 
@@ -1075,7 +1081,7 @@ inline static void spindle_dir (bool ccw)
 #elif SPINDLE_PORT == GPIO_SR16
 
     out_sr.spindle_dir = ccw ^ settings.spindle.invert.ccw;
-    out_sr16_write(pio1, 1, out_sr.value);
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
 
 #endif
 }
@@ -1121,11 +1127,11 @@ static uint_fast16_t spindleGetPWM (float rpm)
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_state_t state, float rpm)
 {
-    if (state.on)
+    if(state.on)
         spindle_dir(state.ccw);
 
     if(!settings.spindle.flags.enable_rpm_controlled) {
-        if (state.on)
+        if(state.on)
             spindle_on();
         else
             spindle_off();
@@ -1239,7 +1245,7 @@ static void coolantSetState (coolant_state_t mode)
     mode.value ^= settings.coolant_invert.mask;
     out_sr.flood_ena = mode.flood;
     out_sr.mist_ena = mode.mist;
-    out_sr16_write(pio1, 1, out_sr.value);
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
 
 #endif
 }
@@ -1386,6 +1392,13 @@ void settings_changed (settings_t *settings)
 #endif
 
     if(IOInitDone) {
+
+
+    #if WIFI_ENABLE
+        static bool wifi_ok = false;
+        if(!wifi_ok)
+            wifi_ok = wifi_start();
+    #endif
 
         // Init of the spindle PWM
         driver_spindle_pwm_init();
@@ -1702,7 +1715,7 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
     } while(ppin);
 }
 
-// Initializes MCU peripherals for Grbl use
+// Initializes MCU peripherals
 static bool driver_setup (settings_t *settings)
 {
     /*************************
@@ -1722,17 +1735,23 @@ static bool driver_setup (settings_t *settings)
  // Stepper init
 
     uint32_t pio_offset;
+#if WIFI_ENABLE
+    uint32_t step_sm = stepper_timer_sm = 1; //pio_claim_unused_sm(pio1, true);
+#else
+    uint32_t step_sm = stepper_timer_sm = 0; //pio_claim_unused_sm(pio1, true);
+#endif
 
-    stepper_timer_sm = pio_add_program(pio1, &stepper_timer_program);
-    stepper_timer_program_init(pio1, 0, stepper_timer_sm, 12.5f); // 10MHz
+    stepper_timer_sm_offset = pio_add_program(pio1, &stepper_timer_program);
+    stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, 12.5f); // 10MHz
+//    pio_sm_claim(pio1, stepper_timer_sm);
 
+//    irq_add_shared_handler(PIO1_IRQ_0, stepper_int_handler, 0);
     irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
- //   irq_set_priority(PIO1_IRQ_0, 0);
+//    irq_set_priority(PIO1_IRQ_0, 0);
 
 #if STEP_PORT == GPIO_PIO_1
 
-    uint32_t step_sm = 1;
-
+    step_sm++;
     pio_offset = pio_add_program(pio1, &step_pulse_program);
 
     x_step_sm = step_sm++;
@@ -1741,13 +1760,24 @@ static bool driver_setup (settings_t *settings)
     y_step_sm = step_sm++;
     step_pulse_program_init(pio1, y_step_sm, pio_offset, Y_STEP_PIN, 1);
 
-    z_step_sm = step_sm++;
-    step_pulse_program_init(pio1, z_step_sm, pio_offset, Z_STEP_PIN, 1);
+    if((z_step_sm = step_sm) > 3) {
+        z_step_sm = step_sm = 0;
+        z_step_pio = pio0;
+        pio_offset = pio_add_program(pio0, &step_pulse_program);
+    } else
+        z_step_pio = pio1;
+    step_pulse_program_init(z_step_pio, z_step_sm, pio_offset, Z_STEP_PIN, 1);
 
 #if N_ABC_MOTORS > 1
 
-    step_sm = 0;
-    pio_offset = pio_add_program(pio0, &step_pulse_program);
+#if WIFI_ENABLE && N_ABC_MOTORS > 2
+#error "Max number of motors with WIFI_ENABLE is 5"
+#endif
+
+    if(++step_sm > 3) {
+        step_sm = 0;
+        pio_offset = pio_add_program(pio0, &step_pulse_program);
+    }
 
 #ifdef X2_STEP_PIN
     x2_step_sm = step_sm++;
@@ -1795,8 +1825,10 @@ static bool driver_setup (settings_t *settings)
 #endif
 
 #if OUT_SHIFT_REGISTER
+    out_sr_sm = step_sm + 1;
     pio_offset = pio_add_program(pio1, &out_sr16_program);
-    out_sr16_program_init(pio1, 1, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
+    out_sr16_program_init(pio1, out_sr_sm, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
+    pio_sm_claim(pio1, out_sr_sm);
 #endif
 
 #if SDCARD_ENABLE
@@ -1825,7 +1857,7 @@ static bool driver_setup (settings_t *settings)
 // NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
 {
-    // Enable EEPROM and serial port here for Grbl to be able to configure itself and report any errors
+ // Enable EEPROM and serial port here for grblHAL to be able to configure itself and report any errors
 
 //    irq_set_exclusive_handler(-1, systick_handler);
 
@@ -1834,13 +1866,14 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220704";
+    hal.driver_version = "220903";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
     hal.driver_setup = driver_setup;
     hal.f_step_timer = 10000000;
+    hal.f_mcu = clock_get_hz(clk_sys) / 1000000UL;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.delay_ms = driver_delay;
     hal.settings_changed = settings_changed;
@@ -1915,7 +1948,7 @@ bool driver_init (void)
     hal.nvs.type = NVS_None;
 #endif
 
-  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
+  // driver capabilities, used for announcing and negotiating (with the core) driver functionality
 
 #ifdef SAFETY_DOOR_PIN
     hal.signals_cap.safety_door_ajar = On;
@@ -2000,6 +2033,10 @@ bool driver_init (void)
 
 #if IOEXPAND_ENABLE
     ioexpand_init();
+#endif
+
+#if WIFI_ENABLE
+    wifi_init();
 #endif
 
 #include "grbl/plugins_init.h"

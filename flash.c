@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2022 Terje Io
 
   This code reads/writes the whole RAM-based emulated EPROM contents from/to flash
 
@@ -36,7 +36,7 @@
 
 #include "driver.h"
 
-#define FLASH_TARGET_OFFSET (1024 * 512)
+#define FLASH_TARGET_OFFSET (2016 * 1024) // Last 32K
 
 static const uint8_t *flash_target = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);    // Last page start adress
 
@@ -53,7 +53,7 @@ bool memcpy_to_flash (uint8_t *source)
         return true;
  
     __disable_irq();
-    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
+    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE); // 4K
     flash_range_program(FLASH_TARGET_OFFSET, source, FLASH_PAGE_SIZE * (hal.nvs.size / FLASH_PAGE_SIZE + (hal.nvs.size % FLASH_PAGE_SIZE ? 1 :0)));
     __enable_irq();
  

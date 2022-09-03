@@ -1,14 +1,26 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
+
+option(ADD_HPGL "Add HPGL plugin" OFF) 
+option(ADD_WIFI "Add WiFi networking" OFF)
+
+if(ADD_WIFI)
+set(PICO_BOARD pico_w)
+endif()
 
 include(pico_sdk_import.cmake)
+if(ADD_WIFI)
+include(networking/CMakeLists.txt)
+include(webui/CMakeLists.txt)
+endif()
 include(grbl/CMakeLists.txt)
 include(fatfs/CMakeLists.txt)
 include(trinamic/CMakeLists.txt)
 include(spindle/CMakeLists.txt)
-# include(hpgl/CMakeLists.txt)
+if(ADD_HPGL)
+include(hpgl/CMakeLists.txt)
+endif()
 
 project(grblHAL)
-
 pico_sdk_init()
 
 add_executable(grblHAL
@@ -29,19 +41,43 @@ add_executable(grblHAL
  keypad/keypad.c
  sdcard/sdcard.c
  sdcard/ymodem.c
+ sdcard/fs_fatfs.c
  bluetooth/hc_05.c
  motors/trinamic.c
- citoh_cx6000.c
 )
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
+
+if(ADD_WIFI)
+target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)
+target_compile_definitions(grblHAL PUBLIC NDEBUG=0)
+target_compile_definitions(grblHAL PUBLIC WEBUI_AUTO_REPORT_INTERVAL=0)
+target_sources(grblHAL PRIVATE
+ wifi.c
+ dhcpserver.c
+)
+target_link_libraries(grblHAL PRIVATE
+ networking
+ webui
+ pico_cyw43_arch_lwip_poll
+)
+endif()
+
+if(ADD_HPGL)
+target_sources(grblHAL PRIVATE
+ citoh_cx6000.c
+)
+target_link_libraries(grblHAL PRIVATE
+ hpgl
+)
+endif()
+
 target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_link_libraries(grblHAL PRIVATE
  grbl
-# hpgl
  fatfs
  trinamic
  spindle
@@ -57,5 +93,7 @@ target_link_libraries(grblHAL PRIVATE
  hardware_flash
 )
 
-# create map/bin/hex file etc.
 pico_add_extra_outputs(grblHAL)
+
+unset(ADD_WIFI CACHE)
+unset(ADD_HPGL CACHE)

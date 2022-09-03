@@ -8,7 +8,7 @@
 / Function Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_FS_READONLY	1
+#define FF_FS_READONLY	0
 /* This option switches read-only configuration. (0:Read/Write or 1:Read-only)
 /  Read-only configuration removes writing API functions, f_write(), f_sync(),
 /  f_unlink(), f_mkdir(), f_chmod(), f_rename(), f_truncate(), f_getfree()
@@ -150,7 +150,7 @@
 */
 
 
-#define FF_FS_RPATH		0
+#define FF_FS_RPATH		2
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.
@@ -206,7 +206,7 @@
 /  disk_ioctl() function. */
 
 
-#define FF_FS_NOFSINFO	0
+#define FF_FS_NOFSINFO	1
 /* If you need to know correct free space on the FAT32 volume, set bit 0 of this
 /  option, and f_getfree() function at first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
