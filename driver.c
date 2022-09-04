@@ -25,6 +25,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "hardware/timer.h"
 #include "hardware/irq.h"
@@ -33,6 +34,7 @@
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
 #include "hardware/spi.h"
+#include "hardware/rtc.h"
 #include "hardware/structs/systick.h"
 #include "hardware/structs/iobank0.h"
 #include "hardware/structs/sio.h"
@@ -1853,6 +1855,44 @@ static bool driver_setup (settings_t *settings)
     return IOInitDone;
 }
 
+static bool set_rtc_time (struct tm *time)
+{
+    static bool init_ok = false;
+
+    if(!init_ok) {
+        init_ok = true;
+        rtc_init();
+    }
+
+    datetime_t dt = {0};
+    dt.year = time->tm_year + 1900;
+    dt.month = time->tm_mon + 1;
+    dt.day = time->tm_mday;
+    dt.hour = time->tm_hour;
+    dt.min = time->tm_min;
+    dt.sec = time->tm_sec;
+
+    return rtc_set_datetime(&dt);
+}
+
+static bool get_rtc_time (struct tm *time)
+{
+    bool ok;
+    datetime_t dt = {0};
+
+    if((ok = rtc_running() && rtc_get_datetime(&dt))) {
+        time->tm_year = dt.year - 1900;
+        time->tm_mon = dt.month - 1;
+        time->tm_mday = dt.day;
+        time->tm_hour = dt.hour;
+        time->tm_min = dt.min;
+        time->tm_sec = dt.sec;
+    }
+
+    return ok;
+}
+
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
@@ -1866,7 +1906,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220903";
+    hal.driver_version = "220904";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1927,6 +1967,9 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
+
+    hal.rtc.get_datetime = get_rtc_time;
+    hal.rtc.set_datetime = set_rtc_time;
 
 #if USB_SERIAL_CDC
     stream_connect(serial_stream = usb_serialInit());
