@@ -44,7 +44,7 @@
 #include "driverPIO.pio.h"
 
 #include "grbl/crossbar.h"
-#include "grbl/limits.h"
+#include "grbl/machine_limits.h"
 #include "grbl/state_machine.h"
 #include "grbl/motor_pins.h"
 #include "grbl/pin_bits_masks.h"
@@ -1632,7 +1632,7 @@ void settings_changed (settings_t *settings)
     }
 }
 
-static void enumeratePins (bool low_level, pin_info_ptr pin_info)
+static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
 {
     static xbar_t pin = {0};
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
@@ -1648,7 +1648,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.port = inputpin[i].port == GPIO_SR8 ? (void *)"SR8" : (inputpin[i].port == GPIO_SR16 ? (void *)"SR16" : NULL);
         pin.description = inputpin[i].description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     pin.mode.mask = 0;
@@ -1664,7 +1664,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
                      (outputpin[i].port == GPIO_SR16 ? (void *)"SR16." : NULL)));
         pin.description = outputpin[i].description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     periph_signal_t *ppin = periph_pins;
@@ -1678,10 +1678,8 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.mode = ppin->pin.mode;
         pin.description = ppin->pin.description;
 
-        pin_info(&pin);
-
-        ppin = ppin->next;
-    } while(ppin);
+        pin_info(&pin, data);
+    } while(ppin = ppin->next);
 }
 
 void registerPeriphPin (const periph_pin_t *pin)
@@ -1906,7 +1904,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220904";
+    hal.driver_version = "220907";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2088,7 +2086,7 @@ bool driver_init (void)
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
-    return hal.version == 9;
+    return hal.version == 10;
 }
 
 /* interrupt handlers */

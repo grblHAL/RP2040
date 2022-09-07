@@ -681,13 +681,21 @@ void disk_timerproc (void)
 
 DWORD get_fattime (void)
 {
+    struct tm time;
+    DWORD dt = ((2007UL-1980) << 25) | // Year = 2007
+                (6UL << 21) |          // Month = June
+                (5UL << 16) |          // Day = 5
+                (11U << 11) |          // Hour = 11
+                (38U << 5) |           // Min = 38
+                (0U >> 1);             // Sec = 0
 
-    return    ((2007UL-1980) << 25)    // Year = 2007
-            | (6UL << 21)            // Month = June
-            | (5UL << 16)            // Day = 5
-            | (11U << 11)            // Hour = 11
-            | (38U << 5)            // Min = 38
-            | (0U >> 1)                // Sec = 0
-            ;
+    if(hal.rtc.get_datetime && hal.rtc.get_datetime(&time))
+        dt = ((time.tm_year - 80) << 25) |
+             ((time.tm_mon + 1) << 21) |
+              (time.tm_mday << 16) |
+              (time.tm_hour << 11) |
+              (time.tm_min << 5) |
+              (time.tm_sec >> 1);
 
+    return dt;
 }
