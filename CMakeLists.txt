@@ -42,14 +42,19 @@ add_executable(grblHAL
  sdcard/sdcard.c
  sdcard/ymodem.c
  sdcard/fs_fatfs.c
+ sdcard/fs_littlefs.c
  bluetooth/hc_05.c
  motors/trinamic.c
+ littlefs/lfs.c
+ littlefs/lfs_util.c
+ littlefs_hal.c
 )
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
+target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
 if(ADD_WIFI)
 target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)

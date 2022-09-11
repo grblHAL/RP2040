@@ -60,6 +60,11 @@
 #include "diskio.h"
 #endif
 
+#if LITTLEFS_ENABLE
+#include "littlefs_hal.h"
+#include "sdcard/fs_littlefs.h"
+#endif
+
 #if USB_SERIAL_CDC
 #include "usb_serial.h"
 #endif
@@ -1839,11 +1844,13 @@ static bool driver_setup (settings_t *settings)
     gpio_init(MPG_MODE_PIN);
 #endif
 
+#if LITTLEFS_ENABLE && WEBUI_ENABLE
+    fs_littlefs_mount("/littlefs", pico_littlefs_hal());
+#endif
+
     IOInitDone = settings->version == 21;
 
     hal.settings_changed(settings);
-    hal.spindle.set_state((spindle_state_t){0}, 0.0f);
-    hal.coolant.set_state((coolant_state_t){0});
     stepperSetDirOutputs((axes_signals_t){0});
 
 #if PPI_ENABLE
@@ -1904,7 +1911,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220907";
+    hal.driver_version = "220911";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
