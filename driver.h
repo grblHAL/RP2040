@@ -103,6 +103,10 @@
 #define PPI_TIMER_IRQHandler        timerHANDLER(PPI_TIMER_N)
 */
 
+#if WEBUI_ENABLE && LITTLEFS_ENABLE
+#define WEBUI_INFLASH 1
+#endif
+
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)
