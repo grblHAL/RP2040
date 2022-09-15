@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <malloc.h>
 
 #include "hardware/timer.h"
 #include "hardware/irq.h"
@@ -1897,6 +1898,12 @@ static bool get_rtc_time (struct tm *time)
     return ok;
 }
 
+extern char __StackLimit, __bss_end__;
+
+uint32_t get_free_mem (void)
+{
+    return &__StackLimit - &__bss_end__ - mallinfo().uordblks;
+}
 
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
@@ -1911,7 +1918,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220911";
+    hal.driver_version = "220914";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1920,6 +1927,7 @@ bool driver_init (void)
     hal.f_step_timer = 10000000;
     hal.f_mcu = clock_get_hz(clk_sys) / 1000000UL;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
+    hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay;
     hal.settings_changed = settings_changed;
 

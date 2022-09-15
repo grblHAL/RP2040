@@ -59,7 +59,7 @@ char *wifi_get_ipaddr (void);
 char *wifi_get_mac (void);
 bool wifi_dns_running (void);
 network_settings_t *get_network_settings (void);
- 
+void wifi_ap_scan (void);
 char *iptoa(void *ip);
 
 #endif

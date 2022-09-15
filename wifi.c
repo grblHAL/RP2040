@@ -110,6 +110,7 @@ char *wifi_get_mac (void)
     return mac;
 }
 
+
 static void reportIP (bool newopt)
 {
     on_report_options(newopt);
@@ -278,7 +279,7 @@ static void enet_poll (sys_state_t state)
     on_execute_realtime(state);
 }
 
-static void wifi_ap_scan (void)
+void wifi_ap_scan (void)
 {
     ap_list.ap_num = 0;
     if(ap_list.ap_records) {

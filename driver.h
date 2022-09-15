@@ -104,6 +104,9 @@
 */
 
 #if WEBUI_ENABLE && LITTLEFS_ENABLE
+#ifdef WEBUI_INFLASH
+#undef WEBUI_INFLASH
+#endif
 #define WEBUI_INFLASH 1
 #endif
 
