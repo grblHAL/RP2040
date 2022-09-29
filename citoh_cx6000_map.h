@@ -29,6 +29,7 @@
 
 #undef KEYPAD_ENABLE
 #define KEYPAD_ENABLE 2
+#define KEYPAD_STREAM 2 // Will deliberately fail stream connect!
 
 #define BOARD_NAME "C.ITOH CX-6000 Plotter"
 #define HAS_BOARD_INIT
@@ -48,7 +49,7 @@
 #define Z_DIRECTION_PIN         15
 
 // Define stepper driver enable/disable output pin.
-#define STEPPERS_ENABLE_PORT    GPIO_OUTPUT
+#define ENABLE_PORT             GPIO_OUTPUT
 #define STEPPERS_ENABLE_PIN     5
 
 // Define homing/hard limit switch input pins.
@@ -58,7 +59,7 @@
 #define LIMIT_INMODE            GPIO_MAP
 
 // Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     GPIO_OUTPUT
+#define SPINDLE_PORT            GPIO_OUTPUT
 #define SPINDLE_ENABLE_PIN      17
 
 #define AUX_INPUT0_PIN          18 // Y-
@@ -76,6 +77,10 @@
 #define AUXOUTPUT2_PIN          27 // Reset front panel
 
 #define RESET_PIN               10
-#define PROBE_PIN               10
+#define PROBE_PIN               12
 #define SPINDLE_PWM_PORT        GPIO_OUTPUT
 #define SPINDLE_PWM_PIN         14
+
+#if !USB_SERIAL_CDC
+#define RTS_PIN                 2
+#endif

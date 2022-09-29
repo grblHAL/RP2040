@@ -397,6 +397,9 @@ static output_signal_t outputpin[] = {
     { .id = Output_SpindlePWM,      .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #endif
+#ifdef RTS_PIN
+    { .id = Output_RTS,             .port = GPIO_OUTPUT,      .pin = RTS_PIN,               .group = PinGroup_UART },
+#endif
 #ifdef SD_CS_PIN
     { .id = Output_SdCardCS,        .port = GPIO_OUTPUT,      .pin = SD_CS_PIN,             .group = PinGroup_SdCard },
 #endif
@@ -1918,7 +1921,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "220921";
+    hal.driver_version = "220928";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

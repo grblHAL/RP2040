@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2017-2020 Terje Io
+  Copyright (c) 2017-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 #include "driver.h"
 
-#define RX_BUFFER_HWM 900
+#define RX_BUFFER_HWM 800
 #define RX_BUFFER_LWM 300
 
 void serialRegisterStreams (void);

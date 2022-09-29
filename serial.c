@@ -26,8 +26,8 @@
 #include "hardware/irq.h"
 
 #include "serial.h"
-#include "driver.h"
 #include "grbl/protocol.h"
+#include "grbl/pin_bits_masks.h"
 
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
@@ -73,6 +73,9 @@ static io_stream_properties_t serial[] = {
       .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
+#ifdef RTS_PIN
+      .flags.rts_handshake = On,
+#endif
       .claim = serialInit
     },
 #ifdef SERIAL2_MOD
@@ -99,6 +102,18 @@ void serialRegisterStreams (void)
     stream_register_streams(&streams);
 }
 
+static uint16_t serialRxCount (void)
+{
+    uint_fast16_t head = rxbuf.head, tail = rxbuf.tail;
+
+    return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
+}
+
+static uint16_t serialRxFree (void)
+{
+    return RX_BUFFER_SIZE - 1 - serialRxCount();
+}
+
 //
 // serialGetC - returns -1 if no data available
 //
@@ -113,6 +128,11 @@ static int16_t serialGetC (void)
     data = rxbuf.data[bptr];            // Get next character, increment tmp pointer
     rxbuf.tail = BUFNEXT(bptr, rxbuf);  // and update pointer
 
+#ifdef RTS_PIN
+    if(rxbuf.rts_state && serialRxCount() <= RX_BUFFER_LWM)
+        DIGITAL_OUT(RTS_BIT, (rxbuf.rts_state = Off));
+#endif
+
     return data;
 }
 
@@ -122,24 +142,16 @@ static void serialTxFlush (void)
     txbuf.tail = txbuf.head;
 }
 
-static uint16_t serialRxCount (void)
-{
-    uint_fast16_t head = rxbuf.head, tail = rxbuf.tail;
-
-    return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
-}
-
-static uint16_t serialRxFree (void)
-{
-    return RX_BUFFER_SIZE - 1 - serialRxCount();
-}
-
 static void serialRxFlush (void)
 {
     while(!(UART->fr & UART_UARTFR_RXFE_BITS))
         UART->dr;
     rxbuf.tail = rxbuf.head;
     rxbuf.overflow = false;
+
+#ifdef RTS_PIN
+    DIGITAL_OUT(RTS_BIT, (rxbuf.rts_state = Off));
+#endif
 }
 
 static void serialRxCancel (void)
@@ -275,6 +287,10 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     
     hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
 
+#ifdef RTS_PIN
+    DIGITAL_OUT(RTS_BIT, (rxbuf.rts_state = Off));
+#endif
+
     static const periph_pin_t tx = {
         .function = Output_TX,
         .group = PinGroup_UART,
@@ -311,6 +327,10 @@ static void uart_interrupt_handler(void)
                 else {
                     rxbuf.data[rxbuf.head] = (char)data;                // Add data to buffer
                     rxbuf.head = next_head;                             // and update pointer
+#ifdef RTS_PIN
+                    if(!rxbuf.rts_state && BUFCOUNT(rxbuf.head, rxbuf.tail, RX_BUFFER_SIZE) >= RX_BUFFER_HWM)
+                        DIGITAL_OUT(RTS_BIT, (rxbuf.rts_state = On));
+#endif
                 }
             }
         }
