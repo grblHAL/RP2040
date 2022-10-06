@@ -33,7 +33,8 @@ add_executable(grblHAL
  i2c.c
  PCA9654E.c
  pico_cnc.c
- btt_skr_pico_10.c
+#  btt_skr_pico_10.c
+ mrbeam_picogrbl.c
  ioports.c
  tmc_uart.c
  eeprom/eeprom_24AAxxx.c
@@ -50,6 +51,7 @@ add_executable(grblHAL
  littlefs_hal.c
 )
 
+pico_set_linker_script(grblHAL ${CMAKE_CURRENT_SOURCE_DIR}/grblhal_noboot2.ld)
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 target_compile_definitions(grblHAL PUBLIC RP2040)

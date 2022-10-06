@@ -21,12 +21,13 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-#define BOARD_PICO_CNC
+// #define BOARD_PICO_CNC
 //#define BOARD_PICOBOB
 //#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_CITOH_CX6000    // C.ITOH CX-6000 HPGL plotter
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
+#define BOARD_MRBEAM_PICOGRBL 
 
 // Configuration
 // Uncomment to enable.
