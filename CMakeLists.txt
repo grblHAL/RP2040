@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 option(ADD_HPGL "Add HPGL plugin" OFF) 
 option(ADD_WIFI "Add WiFi networking" OFF)
+option(ADD_mDNS "Add mDNS service" OFF) # Set LWIP_DIR below to the root path of lwIP sources when ON!
 
 if(ADD_WIFI)
 set(PICO_BOARD pico_w)
@@ -11,6 +12,10 @@ include(pico_sdk_import.cmake)
 if(ADD_WIFI)
 include(networking/CMakeLists.txt)
 include(webui/CMakeLists.txt)
+if(ADD_mDNS)
+set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIR
+include(${LWIP_DIR}/src/Filelists.cmake)
+endif()
 endif()
 include(grbl/CMakeLists.txt)
 include(fatfs/CMakeLists.txt)
@@ -69,6 +74,16 @@ target_link_libraries(grblHAL PRIVATE
  webui
  pico_cyw43_arch_lwip_poll
 )
+if(ADD_mDNS)
+target_compile_definitions(grblHAL PUBLIC LWIP_IGMP=1)
+target_compile_definitions(grblHAL PUBLIC LWIP_NUM_NETIF_CLIENT_DATA=1)
+target_compile_definitions(grblHAL PUBLIC LWIP_MDNS_RESPONDER=1)
+target_compile_definitions(grblHAL PUBLIC MDNS_MAX_SERVICES=8)
+target_compile_definitions(grblHAL PUBLIC MDNS_ENABLE=1)
+target_sources(grblHAL PRIVATE
+ ${lwipmdns_SRCS}
+)
+endif()
 endif()
 
 if(ADD_HPGL)
@@ -103,3 +118,4 @@ pico_add_extra_outputs(grblHAL)
 
 unset(ADD_WIFI CACHE)
 unset(ADD_HPGL CACHE)
+unset(ADD_mDNS CACHE)

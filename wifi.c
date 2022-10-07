@@ -33,6 +33,7 @@
 #include "networking/networking.h"
 #include "networking/utils.h"
 #include "lwip/timeouts.h"
+#include "lwip/apps/mdns.h"
 
 #include "wifi.h"
 #include "dhcpserver.h"
@@ -110,7 +111,6 @@ char *wifi_get_mac (void)
     return mac;
 }
 
-
 static void reportIP (bool newopt)
 {
     on_report_options(newopt);
@@ -124,6 +124,14 @@ static void reportIP (bool newopt)
 #if WEBDAV_ENABLE
         if(services.webdav)
             hal.stream.write(",WebDAV");
+#endif
+#if MDNS_ENABLE
+        if(services.mdns)
+            hal.stream.write(",mDNS");
+#endif
+#if SSDP_ENABLE
+        if(services.ssdp)
+            hal.stream.write(",SSDP");
 #endif
     } else {
         hal.stream.write("[WIFI MAC:");
@@ -164,6 +172,26 @@ network_info_t *networking_get_info (void)
     return &info;
 }
 
+#if MDNS_ENABLE
+
+static void mdns_device_info (struct mdns_service *service, void *txt_userdata)
+{
+    char build[20] = "build=";
+
+    strcat(build, uitoa(GRBL_BUILD));
+    mdns_resp_add_service_txtitem(service, "model=grblHAL", 13);
+    mdns_resp_add_service_txtitem(service, (char *)txt_userdata, strlen((char *)txt_userdata));
+    mdns_resp_add_service_txtitem(service, build, strlen(build));
+}
+
+static void mdns_service_info (struct mdns_service *service, void *txt_userdata)
+{
+    if(txt_userdata)
+        mdns_resp_add_service_txtitem(service, (char *)txt_userdata, strlen((char *)txt_userdata));
+}
+
+#endif
+
 static void lwIPHostTimerHandler (void *arg)
 {
     if(services.mask)
@@ -187,25 +215,58 @@ static void start_services (void)
 {
 #if TELNET_ENABLE
     if(network.services.telnet && !services.telnet)
-        services.telnet = telnetd_init(network.telnet_port == 0 ? NETWORK_TELNET_PORT : network.telnet_port);
+        services.telnet = telnetd_init(network.telnet_port);
 #endif
+
 #if WEBSOCKET_ENABLE
     if(network.services.websocket && !services.websocket)
-        services.websocket = websocketd_init(network.websocket_port == 0 ? NETWORK_WEBSOCKET_PORT : network.websocket_port);
+        services.websocket = websocketd_init(network.websocket_port);
 #endif
+
 #if FTP_ENABLE
     if(network.services.ftp && !services.ftp)
-        services.ftp = ftpd_init(network.ftp_port == 0 ? NETWORK_FTP_PORT : network.ftp_port);
+        services.ftp = ftpd_init(network.ftp_port);
 #endif
+
 #if HTTP_ENABLE
     if(network.services.http && !services.http) {
-        services.http = httpd_init(network.http_port == 0 ? NETWORK_HTTP_PORT : network.http_port);
-#if WEBDAV_ENABLE
+        services.http = httpd_init(network.http_port);
+  #if WEBDAV_ENABLE
         if(network.services.webdav && !services.webdav)
             services.webdav = webdav_init();
-#endif
+  #endif
+  #if SSDP_ENABLE
+        if(network.services.ssdp && !services.ssdp)
+            services.ssdp = ssdp_init(network.http_port);
+  #endif
     }
 #endif
+
+#if MDNS_ENABLE
+    if(*network.hostname && network.services.mdns && !services.mdns) {
+
+        mdns_resp_init();
+
+        if((services.mdns = mdns_resp_add_netif(netif_default, network.hostname) == ERR_OK)) {
+
+            mdns_resp_add_service(netif_default, network.hostname, "_device-info", DNSSD_PROTO_TCP, 0, mdns_device_info, "version=" GRBL_VERSION);
+
+            if(services.http)
+                mdns_resp_add_service(netif_default, network.hostname, "_http", DNSSD_PROTO_TCP, network.http_port, mdns_service_info, "path=/");
+            if(services.webdav)
+                mdns_resp_add_service(netif_default, network.hostname, "_webdav", DNSSD_PROTO_TCP, network.http_port, mdns_service_info, "path=/");
+            if(services.websocket)
+                mdns_resp_add_service(netif_default, network.hostname, "_websocket", DNSSD_PROTO_TCP, network.websocket_port, mdns_service_info, NULL);
+            if(services.telnet)
+                mdns_resp_add_service(netif_default, network.hostname, "_telnet", DNSSD_PROTO_TCP, network.telnet_port, mdns_service_info, NULL);
+            if(services.ftp)
+                mdns_resp_add_service(netif_default, network.hostname, "_ftp", DNSSD_PROTO_TCP, network.ftp_port, mdns_service_info, "path=/");
+
+//            mdns_resp_announce(netif_default);
+        }
+    }
+#endif
+
 #if TELNET_ENABLE || WEBSOCKET_ENABLE || FTP_ENABLE
     sys_timeout(STREAM_POLL_INTERVAL, lwIPHostTimerHandler, NULL);
 #endif
@@ -229,6 +290,10 @@ static void stop_services (void)
 #if WEBSOCKET_ENABLE
     if(running.websocket)
         websocketd_stop();
+#endif
+#if SSDP_ENABLE
+    if(!running.ssdp)
+        ssdp_stop();
 #endif
 //    if(running.dns)
 //        dns_server_stop();
@@ -354,8 +419,8 @@ static void netif_status_callback (struct netif *netif)
 
         case CYW43_LINK_UP:
             if(netif->ip_addr.addr != 0) {
-                start_services();
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
+                start_services();
             }
             protocol_enqueue_rt_command(msg_sta_active);
             break;
@@ -412,6 +477,15 @@ bool wifi_start (void)
         interface = CYW43_ITF_AP;
         memcpy(&network, &wifi.ap.network, sizeof(network_settings_t));
 
+        if(network.telnet_port == 0)
+            network.telnet_port = NETWORK_TELNET_PORT;
+        if(network.websocket_port == 0)
+            network.websocket_port = NETWORK_WEBSOCKET_PORT;
+        if(network.http_port == 0)
+            network.http_port = NETWORK_HTTP_PORT;
+        if(network.ftp_port == 0)
+            network.ftp_port = NETWORK_FTP_PORT;
+        
         cyw43_arch_enable_ap_mode(wifi.ap.ssid, wifi.ap.password, CYW43_AUTH_WPA2_AES_PSK);
 
         netif_set_status_callback(netif_default, netif_status_callback);
@@ -433,6 +507,15 @@ bool wifi_start (void)
         
         interface = CYW43_ITF_STA;
         memcpy(&network, &wifi.sta.network, sizeof(network_settings_t));
+
+        if(network.telnet_port == 0)
+            network.telnet_port = NETWORK_TELNET_PORT;
+        if(network.websocket_port == 0)
+            network.websocket_port = NETWORK_WEBSOCKET_PORT;
+        if(network.http_port == 0)
+            network.http_port = NETWORK_HTTP_PORT;
+        if(network.ftp_port == 0)
+            network.ftp_port = NETWORK_FTP_PORT;
 
         cyw43_arch_enable_sta_mode();
 

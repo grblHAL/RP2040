@@ -1923,9 +1923,14 @@ bool driver_init (void)
     hal.info = "RP2040";
     hal.driver_version = "220928";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
+    hal.driver_url = "https://github.com/grblHAL/RP2040";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
+#ifdef BOARD_URL
+    hal.board = BOARD_URL;
+#endif
+
     hal.driver_setup = driver_setup;
     hal.f_step_timer = 10000000;
     hal.f_mcu = clock_get_hz(clk_sys) / 1000000UL;

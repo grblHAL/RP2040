@@ -76,6 +76,8 @@
 #if WIFI_ENABLE > 0
 #define TELNET_ENABLE        1 // Telnet daemon - requires WiFi streaming enabled.
 #define WEBSOCKET_ENABLE     1 // Websocket daemon - requires WiFi streaming enabled.
+//#define MDNS_ENABLE          0 // mDNS daemon. Do NOT enable here, enable in CMakeLists.txt!
+//#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
 #ifdef SDCARD_ENABLE
 //#define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled.
 //#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.

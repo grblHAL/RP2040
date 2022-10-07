@@ -28,6 +28,7 @@
 #endif
 
 #define BOARD_NAME "PicoBOB"
+#define BOARD_URL "https://github.com/Expatria-Technologies/PicoBOB"
 
 // Define step pulse output pins.
 #define STEP_PORT             GPIO_PIO  // N_AXIS pin PIO SM

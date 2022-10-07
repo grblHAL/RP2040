@@ -28,6 +28,7 @@
 #endif
 
 #define BOARD_NAME "CNC BoosterPack"
+#define BOARD_URL "https://github.com/terjeio/CNC_Boosterpack"
 
 #define IOEXPAND_ENABLE 1
 
