@@ -35,14 +35,16 @@
 
 typedef struct {
     uint8_t bssid[6];   ///< access point mac address
-    uint8_t ssid[32];   ///< wlan access point name
-    uint8_t authmode;  ///< wifi auth mode \ref CYW43_AUTH_
+    ssid_t ssid;   ///< wlan access point name
+    bool primary;
+    uint32_t authmode;  ///< wifi auth mode \ref CYW43_AUTH_
     int16_t rssi;       ///< signal strength
     uint16_t channel;
 } ap_record_t;
 
 typedef struct {
     uint16_t ap_num;
+    uint32_t timestamp;
     ap_record_t *ap_records;
     uint8_t *ap_selected;
     ip4_addr_t ip_addr;
@@ -59,6 +61,7 @@ char *wifi_get_ipaddr (void);
 char *wifi_get_mac (void);
 bool wifi_dns_running (void);
 network_settings_t *get_network_settings (void);
+char *wifi_get_authmode_name (uint32_t authmode);
 void wifi_ap_scan (void);
 char *iptoa(void *ip);
 

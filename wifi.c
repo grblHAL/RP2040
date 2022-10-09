@@ -56,7 +56,7 @@ static stream_type_t active_stream = StreamType_Null;
 static wifi_settings_t wifi;
 static network_settings_t network;
 static network_services_t services = {0}, allowed_services;
-static ap_list_t ap_list = {0};
+static ap_list_t ap_list = {0}, ap_list_found = {0};
 static dhcp_server_t dhcp_server;
 static nvs_address_t nvs_address;
 static on_report_options_ptr on_report_options;
@@ -66,37 +66,31 @@ static char netservices[NETWORK_SERVICES_LEN] = ""; // must be large enough to h
 
 ap_list_t *wifi_get_aplist (void)
 {
-//    if(ap_list.ap_records && xSemaphoreTake(aplist_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
-//        return &ap_list;
-//    else
+    if(ap_list_found.ap_records)
+        return &ap_list_found;
+    else
         return NULL;
 }
 
 void wifi_release_aplist (void)
 {
- //   xSemaphoreGive(aplist_mutex);
+    if(ap_list_found.ap_records) {
+        free(ap_list_found.ap_records);
+        ap_list_found.ap_records = NULL;
+    }
 }
-/*
-char *iptoa (void *ip) {
-    static char aip[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET, ip, aip, INET6_ADDRSTRLEN);
-    return aip;
+
+char *wifi_get_authmode_name (uint32_t authmode)
+{
+    return authmode == CYW43_AUTH_OPEN ? "open" :
+           authmode == CYW43_AUTH_WPA_TKIP_PSK ? "wpa-psk" :
+           authmode == CYW43_AUTH_WPA2_AES_PSK ? "wpa2-psk" :
+           authmode == CYW43_AUTH_WPA2_MIXED_PSK ? "wpa-wpa2-psk" :
+           "unknown";
 }
-*/
+
 char *wifi_get_ipaddr (void)
 {
-    /*
-    ip4_addr_t *ip;
-
-#if NETWORK_IPMODE_STATIC
-    ip = (ip4_addr_t *)&wifi.sta.network.ip;
-#else
-    ip = ap_list.ap_selected ? &ap_list.ip_addr : (ip4_addr_t *)&wifi.ap.network.ip;
-#endif
-
-
-    return iptoa(ip);
-    */
    return IPAddress;
 }
 
@@ -299,67 +293,6 @@ static void stop_services (void)
 //        dns_server_stop();
 }
 
-
-static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
-{
-    if (result) {
-
-        ap_record_t *records = realloc((void *)ap_list.ap_records, (ap_list.ap_num + 1) * sizeof(ap_record_t));
-        if(records) {
-            ap_list.ap_records = records;
-            ap_list.ap_records[ap_list.ap_num].authmode = result->auth_mode;
-            ap_list.ap_records[ap_list.ap_num].rssi = result->rssi;
-            ap_list.ap_records[ap_list.ap_num].channel = result->channel;
-            memcpy(&ap_list.ap_records[ap_list.ap_num].bssid, result->bssid, sizeof(result->bssid));
-            strncpy(ap_list.ap_records[ap_list.ap_num].ssid, result->ssid, result->ssid_len);
-            ap_list.ap_records[ap_list.ap_num].ssid[result->ssid_len] = '\0';
-            ap_list.ap_num++;
-        }
-    }
- 
-    scan_in_progress = cyw43_wifi_scan_active(&cyw43_state);
-
-    return 0;
-}
-
-static void enet_poll (sys_state_t state)
-{
-    static bool led_on = false;
-    static uint32_t last_ms0, next_ms1;
-
-    uint32_t ms = hal.get_elapsed_ticks();
-
-    if(last_ms0 != ms) {
-        last_ms0 = ms;
-        cyw43_arch_poll();
-        linkUp = cyw43_tcpip_link_status(&cyw43_state, interface) == CYW43_LINK_UP;
-    }
-
-    if(scan_in_progress && (ms > next_ms1)) {
-        led_on = !led_on;
-        next_ms1 = ms + 1000;
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
-    }
-
-    on_execute_realtime(state);
-}
-
-void wifi_ap_scan (void)
-{
-    ap_list.ap_num = 0;
-    if(ap_list.ap_records) {
-        free(ap_list.ap_records);
-        ap_list.ap_records = NULL;
-    }
-
-    if (!scan_in_progress) {
-        cyw43_wifi_scan_options_t scan_options = {0};
-        scan_in_progress = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result) == 0;
-    } else if (!cyw43_wifi_scan_active(&cyw43_state)) {
-        scan_in_progress = false; 
-    }
-}
-
 static void msg_ap_ready (sys_state_t state)
 {
     hal.stream.write_all("[MSG:WIFI AP READY]" ASCII_EOL);
@@ -402,6 +335,89 @@ static void msg_sta_failed (sys_state_t state)
 static void msg_wifi_failed (sys_state_t state)
 {
     hal.stream.write_all("[MSG:WIFI STARTUP FAILED]" ASCII_EOL);
+}
+
+static int scan_result(void *env, const cyw43_ev_scan_result_t *result)
+{
+    if (result) {
+
+        if(ap_list.ap_records) { // do not add duplicates
+            ssid_t ssid;
+            uint_fast8_t idx = ap_list.ap_num;
+ 
+            strncpy(ssid, result->ssid, result->ssid_len);
+            ssid[result->ssid_len] = '\0';
+ 
+            do {
+                if(!strcmp(ap_list.ap_records[--idx].ssid, ssid))
+                    return 0;
+            } while(idx);
+        }
+
+        ap_record_t *records = realloc((void *)ap_list.ap_records, (ap_list.ap_num + 1) * sizeof(ap_record_t));
+        if(records) {
+            ap_list.ap_records = records;
+            ap_list.ap_records[ap_list.ap_num].authmode = result->auth_mode;
+            ap_list.ap_records[ap_list.ap_num].rssi = result->rssi;
+            ap_list.ap_records[ap_list.ap_num].primary = true;            
+            ap_list.ap_records[ap_list.ap_num].channel = result->channel;
+            memcpy(&ap_list.ap_records[ap_list.ap_num].bssid, result->bssid, sizeof(result->bssid));
+            strncpy(ap_list.ap_records[ap_list.ap_num].ssid, result->ssid, result->ssid_len);
+            ap_list.ap_records[ap_list.ap_num].ssid[result->ssid_len] = '\0';
+            ap_list.ap_num++;
+        }
+    }
+
+    return 0;
+}
+
+static void enet_poll (sys_state_t state)
+{
+    static bool led_on = false;
+    static uint32_t last_ms0, next_ms1;
+
+    uint32_t ms = hal.get_elapsed_ticks();
+
+    if(last_ms0 != ms) {
+        last_ms0 = ms;
+        cyw43_arch_poll();
+        linkUp = cyw43_tcpip_link_status(&cyw43_state, interface) == CYW43_LINK_UP;
+    }
+
+    if(scan_in_progress && (ms > next_ms1)) {
+ 
+        led_on = !led_on;
+        next_ms1 = ms + 1000;
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
+
+        if(!(scan_in_progress = cyw43_wifi_scan_active(&cyw43_state))) {
+            if(ap_list.ap_records) {
+                wifi_release_aplist();
+                memcpy(&ap_list_found, &ap_list, sizeof(ap_list_t));
+                ap_list_found.timestamp = hal.get_elapsed_ticks();
+                memset(&ap_list, 0, sizeof(ap_list_t));
+            }
+            protocol_enqueue_rt_command(msg_ap_scan_completed);
+        }
+    }
+
+    on_execute_realtime(state);
+}
+
+void wifi_ap_scan (void)
+{
+    ap_list.ap_num = 0;
+    if(ap_list.ap_records) {
+        free(ap_list.ap_records);
+        ap_list.ap_records = NULL;
+    }
+
+    if (!scan_in_progress) {
+        cyw43_wifi_scan_options_t scan_options = {0};
+        scan_in_progress = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result) == 0;
+    } else if (!cyw43_wifi_scan_active(&cyw43_state)) {
+        scan_in_progress = false; 
+    }
 }
 
 /*
@@ -457,11 +473,6 @@ bool wifi_start (void)
     if(nvs_address == 0)
         return false;
 
-#if !WIFI_SOFTAP
-    if(wifi.mode == WiFiMode_APSTA) // Reset to default
-        wifi.mode = WiFiMode_STA;
-#endif
-
     if (cyw43_arch_init()) {
         protocol_enqueue_rt_command(msg_wifi_failed);
         return false;
@@ -497,8 +508,11 @@ bool wifi_start (void)
         get_addr(&mask, network.mask);
 
         dhcp_server_init(&dhcp_server, &ip, &mask);
-
+ 
+        ip4addr_ntoa_r(netif_ip_addr4(netif_default), IPAddress, IP4ADDR_STRLEN_MAX);
         start_services();
+
+        wifi_ap_scan();
     }
 
 #endif
@@ -524,10 +538,7 @@ bool wifi_start (void)
 
         if(*wifi.sta.ssid != '\0')
             cyw43_arch_wifi_connect_async(wifi.sta.ssid, wifi.sta.password, CYW43_AUTH_WPA2_AES_PSK);
-
-//        wifi_ap_scan();
     }
-
 
 #if LWIP_NETIF_HOSTNAME
     netif_set_hostname(netif_default, network.hostname);
@@ -619,7 +630,7 @@ static const setting_detail_t ethernet_settings[] = {
     { Setting_WiFi_AP_Password, Group_Networking_Wifi, "WiFi Access Point (AP) Password", NULL, Format_Password, "x(32)", NULL, "32", Setting_NonCore, &wifi.ap.password, NULL, NULL, true },
     { Setting_Hostname2, Group_Networking, "Hostname (AP)", NULL, Format_String, "x(64)", NULL, "64", Setting_NonCore, &wifi.ap.network.hostname, NULL, NULL, true },
     { Setting_IpAddress2, Group_Networking, "IP Address (AP)", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, wifi_set_ip, wifi_get_ip, NULL, true },
-    { Setting_Gateway2, Group_Networking, "Gateway (AP)", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, wifi_set_ip, wifi_get_ip, NULL, true },
+//    { Setting_Gateway2, Group_Networking, "Gateway (AP)", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, wifi_set_ip, wifi_get_ip, NULL, true },
     { Setting_NetMask2, Group_Networking, "Netmask (AP)", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, wifi_set_ip, wifi_get_ip, NULL, true },
 #else
     { Setting_WifiMode, Group_Networking_Wifi, "WiFi Mode", NULL, Format_RadioButtons, "Off,Station", NULL, NULL, Setting_NonCore, &wifi.mode, NULL, NULL, false },
@@ -801,7 +812,10 @@ static status_code_t wifi_set_ip (setting_id_t setting, char *value)
 #if WIFI_SOFTAP
 
         case Setting_IpAddress2:
-            set_addr(wifi.ap.network.ip, &addr);
+            if(strcmp("192.168.4.1", value))
+                status = Status_SettingDisabled;
+            else
+                set_addr(wifi.ap.network.ip, &addr);
             break;
 
         case Setting_Gateway2:
@@ -851,7 +865,7 @@ static char *wifi_get_ip (setting_id_t setting)
             break;
 
         case Setting_NetMask2:
-            ip4addr_ntoa_r((const ip_addr_t *)&wifi.sta.network.mask, ip, IPADDR_STRLEN_MAX);
+            ip4addr_ntoa_r((const ip_addr_t *)&wifi.ap.network.mask, ip, IPADDR_STRLEN_MAX);
             break;
 
 #endif
@@ -925,8 +939,26 @@ static void wifi_settings_restore (void)
 
 static void wifi_settings_load (void)
 {
+    ip4_addr_t addr;
+
     if(hal.nvs.memcpy_from_nvs((uint8_t *)&wifi, nvs_address, sizeof(wifi_settings_t), true) != NVS_TransferResult_OK)
         wifi_settings_restore();
+
+// Sanity checks
+
+    // AP ip/gateway adresses are hardcoded!
+    if(ip4addr_aton("192.168.4.1", &addr) == 1) {
+        set_addr(wifi.ap.network.ip, &addr);
+        set_addr(wifi.ap.network.gateway, &addr);
+    }
+
+#if WIFI_SOFTAP
+    if(wifi.mode == WiFiMode_APSTA)
+        wifi.mode = WiFiMode_STA;
+#else
+    if(wifi.mode == WiFiMode_AP || wifi.mode == WiFiMode_APSTA)
+        wifi.mode = WiFiMode_STA;
+#endif
 
     wifi.sta.network.services.mask &= allowed_services.mask;
     wifi.ap.network.services.mask &= allowed_services.mask;

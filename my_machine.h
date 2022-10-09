@@ -94,11 +94,11 @@
 //#define NETWORK_HTTP_PORT    80
 #if WIFI_SOFTAP > 0
 //#define NETWORK_AP_SSID      "grblHAL_AP"
-//#define NETWORK_AP_PASSWORD  "grblHAL"
+//#define NETWORK_AP_PASSWORD  "grblHALap"
 //#define NETWORK_AP_HOSTNAME  "grblHAL_AP"
-//#define NETWORK_AP_IPMODE    0 // 0 = static, 1 = DHCP, 2 = AutoIP
-//#define NETWORK_AP_IP        "192.168.5.1"
-//#define NETWORK_AP_GATEWAY   "192.168.5.1"
+//#define NETWORK_AP_IPMODE    0              // Do not change!
+//#define NETWORK_AP_IP        "192.168.4.1"  // Do not change!
+//#define NETWORK_AP_GATEWAY   "192.168.4.1"  // Do not change!
 //#define NETWORK_AP_MASK      "255.255.255.0"
 #endif
 #if HTTP_ENABLE
