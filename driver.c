@@ -143,6 +143,8 @@ static spindle_pwm_t spindle_pwm;
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
 
+#elif defined(SPINDLE_PWM_PIN)
+#undef SPINDLE_PWM_PIN
 #endif
 
 static pio_steps_t pio_steps = { .delay = 20, .length = 100 };
@@ -403,10 +405,8 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnable,   .port = ENABLE_PORT,      .pin = STEPPERS_ENABLE_PIN,   .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE} },
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
-#if !VFD_SPINDLE
 #ifdef SPINDLE_PWM_PIN
     { .id = Output_SpindlePWM,      .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
-#endif
 #endif
 #ifdef RTS_PIN
     { .id = Output_RTS,             .port = GPIO_OUTPUT,      .pin = RTS_PIN,               .group = PinGroup_UART },
@@ -1935,7 +1935,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "221014";
+    hal.driver_version = "221022";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2036,7 +2036,7 @@ bool driver_init (void)
         .get_state = spindleGetState
     };
 
-#ifdef SPINDLE_PWM_TIMER_N
+#ifdef SPINDLE_PWM_PIN
     spindle_register(&spindle, "PWM");
 #else
     spindle_register(&spindle, "Basic");
