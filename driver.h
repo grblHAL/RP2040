@@ -120,8 +120,8 @@
   #include "btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
   #include "citoh_cx6000_map.h"
-#elif defined(BOARD_MY_MACHINE)
-  #include "my_machine_map.h"
+#elif defined(BOARD_MRBEAM_PICOGRBL)
+  #include "mrbeam_picogrbl_map.h"
 #else // default board
   #include "generic_map.h"
 #endif

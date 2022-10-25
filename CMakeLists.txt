@@ -15,7 +15,6 @@ endif()
 include(grbl/CMakeLists.txt)
 include(fatfs/CMakeLists.txt)
 include(trinamic/CMakeLists.txt)
-include(spindle/CMakeLists.txt)
 if(ADD_HPGL)
 include(hpgl/CMakeLists.txt)
 endif()
@@ -32,8 +31,6 @@ add_executable(grblHAL
  flash.c
  i2c.c
  PCA9654E.c
- pico_cnc.c
-#  btt_skr_pico_10.c
  mrbeam_picogrbl.c
  ioports.c
  tmc_uart.c
@@ -87,7 +84,6 @@ target_link_libraries(grblHAL PRIVATE
  grbl
  fatfs
  trinamic
- spindle
  tinyusb_device_unmarked
  pico_stdlib
  hardware_uart

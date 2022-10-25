@@ -18,8 +18,8 @@
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef MRBEAM_PICO_GRBL
-#ifdef MRBEAM_PICO_GRBL
+#ifndef __MRBEAM_PICOGRBL_MAP_H__
+#define __MRBEAM_PICOGRBL_MAP_H__
 
 #if N_ABC_MOTORS > 1
 #error "Axis configuration is not supported!"
@@ -97,7 +97,7 @@
 #if N_ABC_MOTORS == 0
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN                   16
+#define RESET_PIN                   16 //Also mapped to ESTOP pin
 #define FEED_HOLD_PIN               13
 #define CYCLE_START_PIN             14
 #if SAFETY_DOOR_ENABLE
@@ -110,4 +110,4 @@
 #define PROBE_PORT                  GPIO_INPUT
 #define PROBE_PIN                   22
 
-#endif
+#endif // __MRBEAM_PICOGRBL_MAP_H__

@@ -33,7 +33,7 @@
 // Uncomment to enable.
 
 #ifndef USB_SERIAL_CDC
-#define USB_SERIAL_CDC       1 // Serial communication via native USB.
+#define USB_SERIAL_CDC       0 // Serial communication via native USB.
 #endif
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module.
