@@ -2,9 +2,7 @@
 
 A grblHAL driver for the Raspberry Pi Pico RP2040 processor on a [Pi Pico or Pi Pico W board](https://www.raspberrypi.org/products/raspberry-pi-pico/).
 
-This driver is currently [work in progress](https://github.com/terjeio/grblHAL/discussions/206#discussioncomment-318652).
-
-__Important__ download information can be found [here](https://github.com/grblHAL/core/wiki/Compiling-GrblHAL).
+__Important__ download information can be found [here](https://github.com/grblHAL/core/wiki/Compiling-grblHAL).
 
 The default build environment is Visual Studio Code, it is surprisingly easy to set up on Raspberry Pi - see the [Getting started](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) documentation for how to for this and other platforms.
 
@@ -13,4 +11,4 @@ The broken code is in [cyw43_lwip.c](https://github.com/georgerobotics/cyw43-dri
 There are two issues with this code: first is that it is for a newer version of lwIP than is supplied with the SDK, second is that mDNS is enabled with a default hostname - not the run-time configurable hostname in from grblHAL.
 
 ---
-2022-10-07
+2022-10-28
