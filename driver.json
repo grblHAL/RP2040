@@ -1,0 +1,74 @@
+{
+  "caps":
+  {
+    "axes": 6,
+    "usb_cdc": 1,
+    "uart": 1,
+    "serial_ports": 2,
+    "eeprom": 1,
+    "ganged_axes": 1,
+    "auto_square": 1,
+    "digital_in": 8,
+    "digital_out": 8,
+    "probe": 1,
+    "safety_door": 1,
+    "estop": 1,
+    "mpg_mode": 1,
+    "sdcard": 1,
+    "wifi": 1,
+    "plugins": [
+      { "id": "motors" },
+      { "id": "spindle" },
+      { "id": "modbus" },
+      { "id": "eeprom" },
+      { "id": "sdcard" },
+      { "id": "webui" },
+      { "id": "wifi_networking" },
+      { "id": "keypad" },
+      { "id": "bluetooth_bridge" }
+    ]
+  },
+  "docker_instance": "RP2040",
+  "symbols": {
+    "OVERRIDE_MY_MACHINE": 1
+  },
+  "boards": [
+    {
+      "name": "PicoBOB",
+      "symbol": "BOARD_PICOBOB",
+      "URL": "https://github.com/Expatria-Technologies/PicoBOB",
+      "caps": {
+        "axes": 5,
+        "digital_in": 0,
+        "digital_out": 0,
+        "safety_door": 0,
+        "sdcard": 0
+      }
+    },
+    {
+      "name": "BTT SKR Pico 1.0",
+      "symbol": "BOARD_BTT_SKR_PICO_10",
+      "URL": "https://biqu.equipment/products/btt-skr-pico-v1-0",
+      "caps": {
+        "axes": 4,
+        "digital_in": 0,
+        "digital_out": 0,
+        "sdcard": 0,
+        "wifi": 0,
+        "trinamic": 2209,
+        "trinamic_uart_addr": 1
+      }
+    },
+    {
+      "name": "PicoCNC",
+      "symbol": "BOARD_PICO_CNC",
+      "URL": "",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 8,
+        "sdcard": 1
+      }
+    }
+  ]
+}
