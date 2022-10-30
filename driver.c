@@ -1791,16 +1791,15 @@ static bool driver_setup (settings_t *settings)
         z_step_pio = pio1;
     step_pulse_program_init(z_step_pio, z_step_sm, pio_offset, Z_STEP_PIN, 1);
 
-#if N_ABC_MOTORS > 1
+#if N_ABC_MOTORS > 0
 
 #if WIFI_ENABLE && N_ABC_MOTORS > 2
 #error "Max number of motors with WIFI_ENABLE is 5"
 #endif
 
-    if(++step_sm > 3) {
-        step_sm = 0;
-        pio_offset = pio_add_program(pio0, &step_pulse_program);
-    }
+    // Zero the state machine # since we are now using pio0 state machines.
+    step_sm = 0;
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
 
 #ifdef X2_STEP_PIN
     x2_step_sm = step_sm++;
