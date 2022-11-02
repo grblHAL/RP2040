@@ -1797,9 +1797,10 @@ static bool driver_setup (settings_t *settings)
 #error "Max number of motors with WIFI_ENABLE is 5"
 #endif
 
-    // Zero the state machine # since we are now using pio0 state machines.
-    step_sm = 0;
-    pio_offset = pio_add_program(pio0, &step_pulse_program);
+    if(++step_sm > 3) {
+        step_sm = 0;
+        pio_offset = pio_add_program(pio0, &step_pulse_program);
+    }
 
 #ifdef X2_STEP_PIN
     x2_step_sm = step_sm++;
