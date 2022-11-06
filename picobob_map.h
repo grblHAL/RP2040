@@ -38,7 +38,7 @@
 #define DIRECTION_PORT        GPIO_OUTPUT
 #define DIRECTION_OUTMODE     GPIO_MAP
 #define X_DIRECTION_PIN       9
-#define Y_DIRECTION_PIN       0
+#define Y_DIRECTION_PIN       10
 #define Z_DIRECTION_PIN       11
 
 // Define ganged axis or A axis step pulse and step direction output pins.
