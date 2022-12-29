@@ -675,17 +675,17 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
   #ifdef A_STEP_PIN
     pio_steps.set = step_outbits_1.a;
     pio_steps.reset = settings.steppers.step_invert.a;
-    step_pulse_generate(pio1, a_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, a_step_sm, pio_steps.value);
   #endif
   #ifdef B_STEP_PIN
     pio_steps.set = step_outbits_1.b;
     pio_steps.reset = settings.steppers.step_invert.b;
-    step_pulse_generate(pio1, b_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, b_step_sm, pio_steps.value);
   #endif
   #ifdef C_STEP_PIN
     pio_steps.set = step_outbits_1.c;
     pio_steps.reset = settings.steppers.step_invert.c;
-    step_pulse_generate(pio1, c_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, c_step_sm, pio_steps.value);
   #endif
 
 #elif STEP_PORT == GPIO_PIO
@@ -767,17 +767,17 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
   #ifdef A_STEP_PIN
     pio_steps.set = step_outbits.a;
     pio_steps.reset = settings.steppers.step_invert.a;
-    step_pulse_generate(pio1, a_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, a_step_sm, pio_steps.value);
   #endif
   #ifdef B_STEP_PIN
     pio_steps.set = step_outbits.b;
     pio_steps.reset = settings.steppers.step_invert.b;
-    step_pulse_generate(pio1, b_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, b_step_sm, pio_steps.value);
   #endif
   #ifdef C_STEP_PIN
     pio_steps.set = step_outbits.c;
     pio_steps.reset = settings.steppers.step_invert.c;
-    step_pulse_generate(pio1, c_step_sm, pio_steps.value);
+    step_pulse_generate(pio0, c_step_sm, pio_steps.value);
   #endif
 
 #elif STEP_PORT == GPIO_PIO
