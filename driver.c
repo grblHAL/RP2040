@@ -172,10 +172,12 @@ static ioexpand_t io_expander = {0};
 static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
-#if ESTOP_ENABLE
+#ifdef RESET_PIN
+  #if ESTOP_ENABLE
     { .id = Input_EStop,          .port = GPIO_INPUT, .pin = RESET_PIN,           .group = PinGroup_Control },
-#else
+  #else
     { .id = Input_Reset,          .port = GPIO_INPUT, .pin = RESET_PIN,           .group = PinGroup_Control },
+  #endif
 #endif
 #ifdef FEED_HOLD_PIN
     { .id = Input_FeedHold,       .port = GPIO_INPUT, .pin = FEED_HOLD_PIN,       .group = PinGroup_Control },
@@ -981,10 +983,12 @@ static control_signals_t __not_in_flash_func(systemGetState) (void)
 {
     control_signals_t signals = {0};
 
-  #ifdef ESTOP_ENABLE
+  #ifdef RESET_PIN
+   #ifdef ESTOP_ENABLE
     signals.e_stop = DIGITAL_IN(RESET_BIT);
-  #else                                   
+   #else                                   
     signals.reset = DIGITAL_IN(RESET_BIT);
+   #endif
   #endif
   #ifdef FEED_HOLD_PIN
     signals.feed_hold = DIGITAL_IN(FEED_HOLD_BIT);
@@ -1935,7 +1939,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "221022";
+    hal.driver_version = "221229";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
