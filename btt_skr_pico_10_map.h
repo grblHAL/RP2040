@@ -24,6 +24,7 @@
 #endif
 
 #define BOARD_NAME "BTT SKR Pico 1.0"
+#define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
 
 #undef TRINAMIC_ENABLE
 #undef TRINAMIC_UART_ENABLE

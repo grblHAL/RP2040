@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Terje Io
   Copyright (c) 2021 Volksolive
 
   Grbl is free software: you can redistribute it and/or modify
@@ -152,7 +152,6 @@ static uint step_pulse_sm, stepper_timer_sm, stepper_timer_sm_offset;
 static uint16_t pulse_length, pulse_delay;
 static bool IOInitDone = false;
 static const io_stream_t *serial_stream;
-static axes_signals_t next_step_outbits;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
 static volatile uint32_t elapsed_ticks = 0;
 static probe_state_t probe = {
@@ -1795,7 +1794,7 @@ static bool driver_setup (settings_t *settings)
         z_step_pio = pio1;
     step_pulse_program_init(z_step_pio, z_step_sm, pio_offset, Z_STEP_PIN, 1);
 
-#if N_ABC_MOTORS > 1
+#if N_ABC_MOTORS
 
 #if WIFI_ENABLE && N_ABC_MOTORS > 2
 #error "Max number of motors with WIFI_ENABLE is 5"
@@ -1870,7 +1869,7 @@ static bool driver_setup (settings_t *settings)
     fs_littlefs_mount("/littlefs", pico_littlefs_hal());
 #endif
 
-    IOInitDone = settings->version == 21;
+    IOInitDone = settings->version == 22;
 
     hal.settings_changed(settings);
     stepperSetDirOutputs((axes_signals_t){0});
@@ -1939,7 +1938,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "221229";
+    hal.driver_version = "230125";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
