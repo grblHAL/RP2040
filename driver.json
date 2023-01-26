@@ -25,6 +25,7 @@
       { "id": "webui" },
       { "id": "wifi_networking" },
       { "id": "keypad" },
+      { "id": "macros" },
       { "id": "bluetooth_bridge" }
     ]
   },
