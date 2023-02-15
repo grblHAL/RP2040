@@ -28,6 +28,7 @@
 #include <time.h>
 #include <malloc.h>
 
+#include "pico/time.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"

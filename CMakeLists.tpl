@@ -10,7 +10,7 @@ include(pico_sdk_import.cmake)
 if(ADD_WIFI)
 include(networking/CMakeLists.txt)
 include(webui/CMakeLists.txt)
-if(ADD_mDNS)
+if(ADD_mDNS OR ADD_MQTT)
 set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIR
 include(${LWIP_DIR}/src/Filelists.cmake)
 endif()
@@ -81,6 +81,12 @@ target_compile_definitions(grblHAL PUBLIC MDNS_MAX_SERVICES=8)
 target_compile_definitions(grblHAL PUBLIC MDNS_ENABLE=1)
 target_sources(grblHAL PRIVATE
  ${lwipmdns_SRCS}
+)
+endif()
+if(ADD_MQTT)
+target_compile_definitions(grblHAL PUBLIC MQTT_ENABLE=1)
+target_sources(grblHAL PRIVATE
+ ${lwipmqtt_SRCS}
 )
 endif()
 endif()
