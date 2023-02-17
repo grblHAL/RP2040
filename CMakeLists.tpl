@@ -11,7 +11,7 @@ if(ADD_WIFI)
 include(networking/CMakeLists.txt)
 include(webui/CMakeLists.txt)
 if(ADD_mDNS OR ADD_MQTT)
-set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIR
+set(LWIP_DIR /home/sdk/pico-sdk/lib/lwip) # LWIP_DIR
 include(${LWIP_DIR}/src/Filelists.cmake)
 endif()
 endif()
