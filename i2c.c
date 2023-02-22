@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,10 +28,6 @@
 #include "i2c.h"
 #include "grbl/hal.h"
 
-#if KEYPAD_ENABLE == 1
-#include "keypad/keypad.h"
-#endif
-
 //#define QI2C_PORT i2c0
 #define MAX_PAGE_SIZE 64
 
@@ -42,9 +38,11 @@
 
 #define QI2C_PORT I2CN_PORT(I2C_PORT)
 
+static uint8_t keycode = 0;
+static keycode_callback_ptr keypad_callback = NULL;
+
 void I2C_Init (void)
 {
-
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
 
@@ -68,19 +66,34 @@ void I2C_Init (void)
     hal.periph_port.register_pin(&sda);
 }
 
-void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool i2c_probe (uint_fast16_t i2cAddr)
 {
+    char buf = '\0';
 
+    return i2c_read_blocking(QI2C_PORT, i2cAddr, &buf, 1, false) != PICO_ERROR_GENERIC;
+}
+
+bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
+{
     i2c_write_blocking(QI2C_PORT, i2cAddr, buf, bytes, false);
 }
 
 uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 {
-
     i2c_write_blocking(QI2C_PORT, i2cAddr, buf, 1, true);
     i2c_read_blocking(QI2C_PORT, i2cAddr, buf, bytes, false);
 
     return buf;
+}
+
+void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
+{
+    uint8_t c;
+    keycode = 0;
+    keypad_callback = callback;
+
+    if(i2c_read_blocking(QI2C_PORT, i2cAddr, &c, 1, false) == 1)
+        keypad_callback(c);
 }
 
 #endif
@@ -89,7 +102,6 @@ uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool 
 
 nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *i2c, bool read)
 {
-
     static uint8_t txbuf[MAX_PAGE_SIZE + 2];
 
     int retval = 0;
@@ -120,20 +132,6 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *i2c, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE == 1
-
-static uint8_t keycode = 0;
-static keycode_callback_ptr keypad_callback = NULL;
-
-void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
-{
-    uint8_t c;
-    keycode = 0;
-    keypad_callback = callback;
-
-    if(i2c_read_blocking(QI2C_PORT, KEYPAD_I2CADDR, &c, 1, false) == 1)
-        keypad_callback(c);
-}
 /*
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
@@ -143,7 +141,6 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
     }
 }
 */
-#endif
 
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
 

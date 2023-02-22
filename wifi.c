@@ -42,7 +42,7 @@
 #include "grbl/nvs_buffer.h"
 #include "grbl/protocol.h"
 
-#define WIFI_DEBUG
+//#define WIFI_DEBUG
 #define USE_LWIP_POLLING 1
 
 typedef struct
