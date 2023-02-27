@@ -1261,7 +1261,7 @@ static const setting_descr_t ethernet_settings_descr[] = {
     { Setting_MQTTBrokerIpAddress, "IP address for remote MQTT broker. Set to 0.0.0.0 to disable connection." },
     { Setting_MQTTBrokerPort, "Remote MQTT broker portnumber." },
     { Setting_MQTTBrokerUserName, "Remote MQTT broker username." },
-    { Setting_MQTTBrokerPassword, "Remote MQTT broker username." },
+    { Setting_MQTTBrokerPassword, "Remote MQTT broker password." },
 #endif
 };
 

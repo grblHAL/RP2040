@@ -62,12 +62,12 @@
 #define SPINDLE_PORT            GPIO_OUTPUT
 #define SPINDLE_ENABLE_PIN      17
 
-#define AUX_INPUT0_PIN          18 // Y-
-#define AUX_INPUT1_PIN          19 // Y+
-#define AUX_INPUT2_PIN          20 // X-
-#define AUX_INPUT3_PIN          21 // X+
-#define AUX_INPUT4_PIN          26 // Pen U/D
-#define AUX_INPUT5_PIN          22 // Online
+#define AUXINPUT0_PIN           18 // Y-
+#define AUXINPUT1_PIN           19 // Y+
+#define AUXINPUT2_PIN           20 // X-
+#define AUXINPUT3_PIN           21 // X+
+#define AUXINPUT4_PIN           26 // Pen U/D
+#define AUXINPUT5_PIN           22 // Online
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
 #define AUXOUTPUT0_PIN          8  // Pen LED

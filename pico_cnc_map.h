@@ -134,17 +134,17 @@ typedef union {
 
 #if !SDCARD_ENABLE || !defined(SAFETY_DOOR_PIN)
 #if !SDCARD_ENABLE 
-#define AUX_INPUT0_PIN      AUX_IO0_PIN
-#define AUX_INPUT1_PIN      AUX_IO1_PIN
-#define AUX_INPUT2_PIN      AUX_IO2_PIN
+#define AUXINPUT0_PIN       AUX_IO0_PIN
+#define AUXINPUT1_PIN       AUX_IO1_PIN
+#define AUXINPUT2_PIN       AUX_IO2_PIN
 #if MPG_MODE != 1
-#define AUX_INPUT3_PIN      AUX_IO3_PIN
+#define AUXINPUT3_PIN       AUX_IO3_PIN
 #endif
 #ifndef SAFETY_DOOR_PIN
-#define AUX_INPUT4_PIN      9   
+#define AUXINPUT4_PIN       9   
 #endif
 #else
-#define AUX_INPUT0_PIN      9   
+#define AUXINPUT0_PIN       9   
 #endif
 #endif
 

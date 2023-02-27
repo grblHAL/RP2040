@@ -222,29 +222,29 @@ static input_signal_t inputpin[] = {
 #if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
   , { .id = Input_KeypadStrobe,   .port = GPIO_INPUT, .pin = I2C_STROBE_PIN,      .group = PinGroup_Keypad }
 #endif
-#ifdef AUX_INPUT0_PIN
-  , { .id = Input_Aux0,           .port = GPIO_INPUT, .pin = AUX_INPUT0_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT0_PIN
+  , { .id = Input_Aux0,           .port = GPIO_INPUT, .pin = AUXINPUT0_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT1_PIN
-  , { .id = Input_Aux1,           .port = GPIO_INPUT, .pin = AUX_INPUT1_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT1_PIN
+  , { .id = Input_Aux1,           .port = GPIO_INPUT, .pin = AUXINPUT1_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT2_PIN
-  , { .id = Input_Aux2,           .port = GPIO_INPUT, .pin = AUX_INPUT2_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT2_PIN
+  , { .id = Input_Aux2,           .port = GPIO_INPUT, .pin = AUXINPUT2_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT3_PIN
-  , { .id = Input_Aux3,           .port = GPIO_INPUT, .pin = AUX_INPUT3_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT3_PIN
+  , { .id = Input_Aux3,           .port = GPIO_INPUT, .pin = AUXINPUT3_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT4_PIN
-  , { .id = Input_Aux4,           .port = GPIO_INPUT, .pin = AUX_INPUT4_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT4_PIN
+  , { .id = Input_Aux4,           .port = GPIO_INPUT, .pin = AUXINPUT4_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT5_PIN
-  , { .id = Input_Aux5,           .port = GPIO_INPUT, .pin = AUX_INPUT5_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT5_PIN
+  , { .id = Input_Aux5,           .port = GPIO_INPUT, .pin = AUXINPUT5_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT6_PIN
-  , { .id = Input_Aux6,           .port = GPIO_INPUT, .pin = AUX_INPUT6_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT6_PIN
+  , { .id = Input_Aux6,           .port = GPIO_INPUT, .pin = AUXINPUT6_PIN,       .group = PinGroup_AuxInput }
 #endif
-#ifdef AUX_INPUT7_PIN
-  , { .id = Input_Aux7,           .port = GPIO_INPUT, .pin = AUX_INPUT7_PIN,      .group = PinGroup_AuxInput }
+#ifdef AUXINPUT7_PIN
+  , { .id = Input_Aux7,           .port = GPIO_INPUT, .pin = AUXINPUT7_PIN,       .group = PinGroup_AuxInput }
 #endif
 };
 
