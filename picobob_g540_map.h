@@ -46,7 +46,7 @@
 #define M3_AVAILABLE
 #define M3_STEP_PIN           3 //not the Pico pin.
 #define M3_DIRECTION_PIN      12
-#define M3_LIMIT_PIN          1
+#define M3_LIMIT_PIN          2
 #endif
 
 //Define stepper driver enable/disable output pin.  This is not used on PicoBOB.
@@ -60,9 +60,7 @@
 // Define spindle enable and spindle direction output pins.  No direction signal on the Mach3 BOB.
 //Spindle relay control is shared with B direction port, only one can be enabled at a time!
 #define SPINDLE_PORT          GPIO_OUTPUT
-#ifndef M4_DIRECTION_PIN
 #define SPINDLE_ENABLE_PIN    14
-#endif
 
 // Define spindle PWM output pin.
 #define SPINDLE_PWM_PORT      GPIO_OUTPUT
