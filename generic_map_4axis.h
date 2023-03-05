@@ -1,5 +1,5 @@
 /*
-  generic_map.h - driver code for RP2040 ARM processors
+  generic_map_4axis.h - driver code for RP2040 ARM processors
 
   Part of grblHAL
 
@@ -24,7 +24,7 @@
 #error Trinamic plugin not supported!
 #endif
 
-#if N_ABC_MOTORS
+#if N_ABC_MOTORS > 1
 #error "Axis configuration is not supported!"
 #endif
 
@@ -34,25 +34,39 @@
 
 // Define step direction output pins.
 #define DIRECTION_PORT          GPIO_OUTPUT
-#define X_DIRECTION_PIN         5
-#define Y_DIRECTION_PIN         6
-#define Z_DIRECTION_PIN         7
+#define X_DIRECTION_PIN         6
+#define Y_DIRECTION_PIN         7
+#define Z_DIRECTION_PIN         8
 #define DIRECTION_OUTMODE       GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
 #define ENABLE_PORT             GPIO_OUTPUT
-#define STEPPERS_ENABLE_PIN     8
+#define STEPPERS_ENABLE_PIN     10
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN             9
-#define Y_LIMIT_PIN             10
-#define Z_LIMIT_PIN             11
+#define X_LIMIT_PIN             11
+#define Y_LIMIT_PIN             12
+#define Z_LIMIT_PIN             13
 #define LIMIT_INMODE            GPIO_MAP
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN             (STEP_PINS_BASE + 3)
+#define M3_DIRECTION_PIN        (Z_DIRECTION_PIN + 1)
+#define M3_LIMIT_PIN            (Z_LIMIT_PIN + 1)
+#else
+#define AUXINPUT0_PIN           14
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT
+#define AUXOUTPUT0_PIN          5
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT
+#define AUXOUTPUT1_PIN          9
+#endif
 
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_PORT            GPIO_OUTPUT
-#define SPINDLE_ENABLE_PIN      13
-#define SPINDLE_DIRECTION_PIN   14
+#define SPINDLE_ENABLE_PIN      26
+#define SPINDLE_DIRECTION_PIN   27
 
 // Define spindle PWM output pin.
 #define SPINDLE_PWM_PORT        GPIO_OUTPUT
@@ -72,17 +86,8 @@
 #endif
 
 // Define probe switch input pin.
-#define PROBE_PIN               28
+#define PROBE_PIN               22
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          23
+#define I2C_STROBE_PIN          28
 #endif
-
-// Define auxillary I/O
-#define AUXINPUT0_PIN           22
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          12
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          26
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          27

@@ -49,6 +49,10 @@ static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
 static volatile enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
+#ifndef PICO_STDIO_USB_STDOUT_TIMEOUT_US
+#define PICO_STDIO_DEADLOCK_TIMEOUT_MS 1000
+#endif
+
 // PICO_CONFIG: PICO_STDIO_USB_STDOUT_TIMEOUT_US, Number of microseconds to be blocked trying to write USB output before assuming the host has disappeared and discarding data, default=500000, group=pico_stdio_usb
 #ifndef PICO_STDIO_USB_STDOUT_TIMEOUT_US
 #define PICO_STDIO_USB_STDOUT_TIMEOUT_US 500000
@@ -66,7 +70,7 @@ static volatile enqueue_realtime_command_ptr enqueue_realtime_command = protocol
 #endif
 
 static_assert(PICO_STDIO_USB_LOW_PRIORITY_IRQ > RTC_IRQ, ""); // note RTC_IRQ is currently the last one
-static mutex_t stdio_usb_mutex;
+static mutex_t usb_mutex;
 
 static void execute_realtime (uint_fast16_t state);
 
@@ -75,9 +79,9 @@ static void low_priority_worker_irq (void)
     // if the mutex is already owned, then we are in user code
     // in this file which will do a tud_task itself, so we'll just do nothing
     // until the next tick; we won't starve
-    if (mutex_try_enter(&stdio_usb_mutex, NULL)) {
+    if (mutex_try_enter(&usb_mutex, NULL)) {
         tud_task();
-        mutex_exit(&stdio_usb_mutex);
+        mutex_exit(&usb_mutex);
     }
 }
 
@@ -88,20 +92,24 @@ static int64_t timer_task (__unused alarm_id_t id, __unused void *user_data)
     return PICO_STDIO_USB_TASK_INTERVAL_US;
 }
 
-static void stdio_usb_out_chars (const char *buf, int length)
+static inline bool usb_connected (void)
+{
+  return tud_ready();
+}
+
+static void usb_out_chars (const char *buf, int length)
 {
     static uint64_t last_avail_time;
-    uint32_t owner;
- 
-    if (!mutex_try_enter(&stdio_usb_mutex, &owner)) {
-        if (owner == get_core_num()) return; // would deadlock otherwise
-        mutex_enter_blocking(&stdio_usb_mutex);
-    }
-    if (tud_cdc_connected()) {
+
+    if (!mutex_try_enter_block_until(&usb_mutex, make_timeout_time_ms(PICO_STDIO_DEADLOCK_TIMEOUT_MS)))
+        return;
+
+    if (usb_connected()) {
         for (int i = 0; i < length;) {
             int n = length - i;
             int avail = tud_cdc_write_available();
-            if (n > avail) n = avail;
+            if (n > avail)
+                n = avail;
             if (n) {
                 int n2 = tud_cdc_write(buf + i, n);
                 tud_task();
@@ -111,35 +119,36 @@ static void stdio_usb_out_chars (const char *buf, int length)
             } else {
                 tud_task();
                 tud_cdc_write_flush();
-                if (!tud_cdc_connected() ||
+                if (!usb_connected() ||
                     (!tud_cdc_write_available() && time_us_64() > last_avail_time + PICO_STDIO_USB_STDOUT_TIMEOUT_US)) {
                     break;
                 }
             }
         }
-    } else {
-        // reset our timeout
+    } else // reset our timeout
         last_avail_time = 0;
-    }
-    mutex_exit(&stdio_usb_mutex);
+
+    mutex_exit(&usb_mutex);
 }
 
-int stdio_usb_in_chars (char *buf, int length)
+static int32_t usb_in_chars (char *buf, uint32_t length)
 {
-    uint32_t owner;
-    if (!mutex_try_enter(&stdio_usb_mutex, &owner)) {
-        if (owner == get_core_num())
-            return PICO_ERROR_NO_DATA; // would deadlock otherwise
-        mutex_enter_blocking(&stdio_usb_mutex);
-    }
-    int rc = PICO_ERROR_NO_DATA;
-    if (tud_cdc_connected() && tud_cdc_available()) {
-        int count = tud_cdc_read(buf, length);
-        rc =  count ? count : PICO_ERROR_NO_DATA;
-    }
-    mutex_exit(&stdio_usb_mutex);
+    uint32_t count = 0;
 
-    return rc;
+    if (usb_connected() && tud_cdc_available()) {
+ 
+        if (!mutex_try_enter_block_until(&usb_mutex, make_timeout_time_ms(PICO_STDIO_DEADLOCK_TIMEOUT_MS)))
+            return PICO_ERROR_NO_DATA; // would deadlock otherwise
+
+        if (usb_connected() && tud_cdc_available())
+            count = tud_cdc_read(buf, length);
+        else // because our mutex use may starve out the background task, run tud_task here (we own the mutex)
+            tud_task();
+
+        mutex_exit(&usb_mutex);
+    }
+
+    return count ? count : PICO_ERROR_NO_DATA;
 }
 
 //
@@ -189,7 +198,7 @@ static bool usb_serialPutC (const char c)
     static uint8_t buf[1];
 
     *buf = c;
-    stdio_usb_out_chars(buf, 1);
+    usb_out_chars(buf, 1);
 
     return true;
 }
@@ -206,7 +215,7 @@ bool _usb_write (void)
 
             length = txfree < txbuf.length ? txfree : txbuf.length;
 
-            stdio_usb_out_chars(txbuf.s, length); //
+            usb_out_chars(txbuf.s, length); //
 
             txbuf.length -= length;
             txbuf.s += length;
@@ -233,7 +242,7 @@ static void usb_serialWrite (const char *s, uint16_t length)
     if(txbuf.length && !_usb_write())
         return;
 
-    stdio_usb_out_chars(s, length);
+    usb_out_chars(s, length);
 }
 
 //
@@ -320,7 +329,7 @@ const io_stream_t *usb_serialInit (void)
     irq_set_exclusive_handler(PICO_STDIO_USB_LOW_PRIORITY_IRQ, low_priority_worker_irq);
     irq_set_enabled(PICO_STDIO_USB_LOW_PRIORITY_IRQ, true);
 
-    mutex_init(&stdio_usb_mutex);
+    mutex_init(&usb_mutex);
     bool rc = add_alarm_in_us(PICO_STDIO_USB_TASK_INTERVAL_US, timer_task, NULL, true);
 
     txbuf.s = txbuf.data;
@@ -346,18 +355,18 @@ static void execute_realtime (uint_fast16_t state)
         return;
 
     char c, *dp;
-    int avail, free;
+    int32_t avail, free;
  
     lock = true;
  
-    if((avail = tud_cdc_available())) {
+    if(usb_connected() && (avail = (int32_t)tud_cdc_available())) {
 
         dp = tmpbuf;
-        free = usb_serialRxFree();
+        free = (int32_t)usb_serialRxFree();
         free = free > BLOCK_RX_BUFFER_SIZE ? BLOCK_RX_BUFFER_SIZE : free;
-        avail = stdio_usb_in_chars(tmpbuf, avail > free ? free : avail);
+        avail = usb_in_chars(tmpbuf, (uint32_t)(avail > free ? free : avail));
 
-        while(avail--) {
+        if(avail > 0) while(avail--) {
             c = *dp++;
             if(!enqueue_realtime_command(c)) {
                 uint_fast16_t next_head = BUFNEXT(rxbuf.head, rxbuf);   // Get next head pointer
