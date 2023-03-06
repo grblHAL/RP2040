@@ -47,6 +47,18 @@
       }
     },
     {
+      "name": "PicoBOB_G540",
+      "symbol": "BOARD_PICOBOB_G540",
+      "URL": "https://github.com/Expatria-Technologies/PicoBOB",
+      "caps": {
+        "axes": 4,
+        "digital_in": 0,
+        "digital_out": 0,
+        "safety_door": 0,
+        "sdcard": 0
+      }
+    },    
+    {
       "name": "BTT SKR Pico 1.0",
       "symbol": "BOARD_BTT_SKR_PICO_10",
       "URL": "https://biqu.equipment/products/btt-skr-pico-v1-0",
