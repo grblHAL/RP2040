@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-#define BOARD_PICO_CNC
+//#define BOARD_PICO_CNC
 //#define BOARD_PICOBOB
 //#define BOARD_PICOBOB_G540
 //#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
@@ -51,6 +51,7 @@
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
 //#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
                                  // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
+//#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
 //#define ODOMETER_ENABLE      1 // Odometer plugin.
 //#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
@@ -75,39 +76,39 @@
 //#define Z_GANGED_LIM_MAX     1
 //
 
-#if WIFI_ENABLE > 0
+#if WIFI_ENABLE || WEBUI_ENABLE
 #define TELNET_ENABLE        1 // Telnet daemon - requires WiFi streaming enabled.
 #define WEBSOCKET_ENABLE     1 // Websocket daemon - requires WiFi streaming enabled.
 //#define MDNS_ENABLE          0 // mDNS daemon. Do NOT enable here, enable in CMakeLists.txt!
 //#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
-#ifdef SDCARD_ENABLE
+#if SDCARD_ENABLE || WEBUI_ENABLE
 //#define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled.
 //#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.
 //#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
 #endif
 // The following symbols have the default values as shown, uncomment and change as needed.
-//#define NETWORK_HOSTNAME     "grblHAL"
-//#define NETWORK_IPMODE       1 // 0 = static, 1 = DHCP, 2 = AutoIP
-//#define NETWORK_IP           "192.168.5.1"
-//#define NETWORK_GATEWAY      "192.168.5.1"
-//#define NETWORK_MASK         "255.255.255.0"
+//#define NETWORK_STA_HOSTNAME    "grblHAL"
+//#define NETWORK_STA_IPMODE      1 // 0 = static, 1 = DHCP, 2 = AutoIP
+//#define NETWORK_STA_IP          "192.168.5.1"
+//#define NETWORK_STA_GATEWAY     "192.168.5.1"
+//#define NETWORK_STA_MASK        "255.255.255.0"
+#if WIFI_SOFTAP > 0
+//#define NETWORK_AP_SSID         "grblHAL_AP"
+//#define NETWORK_AP_PASSWORD     "grblHALap"
+//#define NETWORK_AP_HOSTNAME     "grblHAL_AP"
+//#define NETWORK_AP_IPMODE       0              // Do not change!
+//#define NETWORK_AP_IP           "192.168.4.1"  // Do not change!
+//#define NETWORK_AP_GATEWAY      "192.168.4.1"  // Do not change!
+//#define NETWORK_AP_MASK         "255.255.255.0"
+#endif
 //#define NETWORK_FTP_PORT     21
 //#define NETWORK_TELNET_PORT  23
 //#define NETWORK_HTTP_PORT    80
-#if WIFI_SOFTAP > 0
-//#define NETWORK_AP_SSID      "grblHAL_AP"
-//#define NETWORK_AP_PASSWORD  "grblHALap"
-//#define NETWORK_AP_HOSTNAME  "grblHAL_AP"
-//#define NETWORK_AP_IPMODE    0              // Do not change!
-//#define NETWORK_AP_IP        "192.168.4.1"  // Do not change!
-//#define NETWORK_AP_GATEWAY   "192.168.4.1"  // Do not change!
-//#define NETWORK_AP_MASK      "255.255.255.0"
-#endif
 #if HTTP_ENABLE
 //#define NETWORK_WEBSOCKET_PORT  81
 #else
 //#define NETWORK_WEBSOCKET_PORT  80
 #endif
-#endif
+#endif // WIFI_ENABLE
 
 /**/
