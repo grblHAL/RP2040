@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022 Terje Io
+  Copyright (c) 2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,14 +28,14 @@
 #include "lwip/ip_addr.h"
 
 #ifndef STREAM_POLL_INTERVAL
-#define STREAM_POLL_INTERVAL 6 // Poll interval in milliseconds
+#define STREAM_POLL_INTERVAL 2 // Poll interval in milliseconds
 #endif
 
 #define WIFI_AUTH_OPEN 0
 
 typedef struct {
     uint8_t bssid[6];   ///< access point mac address
-    ssid_t ssid;   ///< wlan access point name
+    ssid_t ssid;        ///< wlan access point name
     bool primary;
     uint32_t authmode;  ///< wifi auth mode \ref CYW43_AUTH_
     int16_t rssi;       ///< signal strength
@@ -55,15 +55,10 @@ bool wifi_init (void);
 bool wifi_start (void);
 bool wifi_stop (void);
 bool wifi_ap_connect (char *ssid, char *password);
+void wifi_ap_scan (void);
 ap_list_t *wifi_get_aplist (void);
 void wifi_release_aplist (void);
-char *wifi_get_ipaddr (void);
-char *wifi_get_mac (void);
-bool wifi_dns_running (void);
-network_settings_t *get_network_settings (void);
 char *wifi_get_authmode_name (uint32_t authmode);
-void wifi_ap_scan (void);
-char *iptoa(void *ip);
 
 #endif
 
