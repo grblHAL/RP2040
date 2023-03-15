@@ -111,6 +111,7 @@ target_link_libraries(grblHAL PRIVATE
  spindle
  tinyusb_device_unmarked
  pico_stdlib
+ hardware_dma
  hardware_uart
  hardware_pio
  hardware_i2c
