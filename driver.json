@@ -26,7 +26,8 @@
       { "id": "wifi_networking" },
       { "id": "keypad" },
       { "id": "macros" },
-      { "id": "bluetooth_bridge" }
+      { "id": "bluetooth_bridge" },
+      { "id": "embroidery" }
     ]
   },
   "docker_instance": "RP2040",

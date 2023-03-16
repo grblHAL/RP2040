@@ -46,15 +46,16 @@
 //#define WEBUI_AUTH_ENABLE    1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH        1 // Store WebUI files in flash instead of on SD card.
 //#define SDCARD_ENABLE        1 // Run gcode programs from SD card.
-//#define MPG_ENABLE           2 // Enable MPG interface. Requires serial port and one handshake pin unless
+//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
                                  // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
-//#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
+//#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
                                  // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
 //#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
 //#define ODOMETER_ENABLE      1 // Odometer plugin.
 //#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
+//#define EMBROIDERY_ENABLE    1 // Embroidery plugin. To be completed.
 //#define TRINAMIC_ENABLE      1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
 //#define TRINAMIC_I2C         1 // Trinamic I2C - SPI bridge interface.
 //#define TRINAMIC_DEV         1 // Development mode, adds a few M-codes to aid debugging. Do not enable in production code.

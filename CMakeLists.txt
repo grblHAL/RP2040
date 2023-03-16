@@ -23,6 +23,8 @@ include(grbl/CMakeLists.txt)
 include(fatfs/CMakeLists.txt)
 include(trinamic/CMakeLists.txt)
 include(spindle/CMakeLists.txt)
+include(keypad/CMakeLists.txt)
+include(embroidery/CMakeLists.txt)
 if(ADD_HPGL)
 include(hpgl/CMakeLists.txt)
 endif()
@@ -109,6 +111,8 @@ target_link_libraries(grblHAL PRIVATE
  fatfs
  trinamic
  spindle
+ keypad
+ embroidery
  tinyusb_device_unmarked
  pico_stdlib
  hardware_dma

@@ -28,3 +28,6 @@
 [submodule "webui"]
 	path = webui
 	url = https://github.com/grblHAL/Plugin_WebUI
+[submodule "embroidery"]
+	path = embroidery
+	url = https://github.com/grblHAL/Plugin_embroidery
