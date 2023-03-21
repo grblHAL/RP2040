@@ -1962,6 +1962,7 @@ bool driver_init (void)
     hal.stepper.enable = stepperEnable;
     hal.stepper.cycles_per_tick = stepperCyclesPerTick;
     hal.stepper.pulse_start = stepperPulseStart;
+    hal.stepper.motor_iterator = motor_iterator;
 #ifdef GANGING_ENABLED
     hal.stepper.get_ganged = getGangedAxes;
 #endif
