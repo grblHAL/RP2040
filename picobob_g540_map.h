@@ -1,9 +1,9 @@
 /*
-  picobob_map.h - driver code for RP2040 ARM processors
+  picobob_g540_map.h - driver code for RP2040 ARM processors
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Andrew Marles
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #error Trinamic plugin not supported!
 #endif
 
-#if N_ABC_MOTORS > 2
+#if N_ABC_MOTORS > 1
 #error "Axis configuration is not supported!"
 #endif
 
@@ -42,9 +42,8 @@
 #define Z_DIRECTION_PIN       11
 
 // Define ganged axis or A axis step pulse and step direction output pins.
-#if N_ABC_MOTORS > 0
+#if N_ABC_MOTORS == 1
 #define M3_AVAILABLE
-#define M3_STEP_PIN           3 //not the Pico pin.
 #define M3_DIRECTION_PIN      12
 #define M3_LIMIT_PIN          2
 #endif

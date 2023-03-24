@@ -248,15 +248,6 @@ static input_signal_t inputpin[] = {
 #endif
 };
 
-#if STEP_PORT == GPIO_PIO
-#define X_STEP_PIN STEP_PINS_BASE + 0
-#define Y_STEP_PIN STEP_PINS_BASE + 1
-#define Z_STEP_PIN STEP_PINS_BASE + 2
-#define A_STEP_PIN STEP_PINS_BASE + 3
-#define B_STEP_PIN STEP_PINS_BASE + 4
-#define C_STEP_PIN STEP_PINS_BASE + 5
-#endif
-
 #if STEP_PORT == GPIO_SR8
 #if N_ABC_MOTORS > 1
 #error "Axis configuration is not supported!"
@@ -1939,7 +1930,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230205";
+    hal.driver_version = "230324";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME

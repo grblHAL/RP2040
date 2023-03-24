@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Andrew Marles
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@
 // Define ganged axis or A axis step pulse and step direction output pins.
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
-#define M3_STEP_PIN           3 //not the Pico pin.
 #define M3_DIRECTION_PIN      12
 #define M3_LIMIT_PIN          5
 #endif
@@ -52,7 +51,6 @@
 //M4 pins  Note that M3 and M4 must use the same limit pin.
 #if N_ABC_MOTORS > 1
 #define M4_AVAILABLE
-#define M4_STEP_PIN           4 //not the Pico pin.
 #define M4_DIRECTION_PIN      13
 #define M4_LIMIT_PIN          5
 #endif

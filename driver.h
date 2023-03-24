@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -128,6 +128,21 @@
   #include "generic_map_4axis.h"
 #else // default board
   #include "generic_map.h"
+#endif
+
+#if STEP_PORT == GPIO_PIO
+#define X_STEP_PIN STEP_PINS_BASE + 0
+#define Y_STEP_PIN STEP_PINS_BASE + 1
+#define Z_STEP_PIN STEP_PINS_BASE + 2
+#ifdef M3_AVAILABLE
+#define M3_STEP_PIN STEP_PINS_BASE + 3
+#endif
+#ifdef M4_AVAILABLE
+#define M4_STEP_PIN STEP_PINS_BASE + 4
+#endif
+#ifdef M5_AVAILABLE
+#define M5_STEP_PIN STEP_PINS_BASE + 5
+#endif
 #endif
 
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
