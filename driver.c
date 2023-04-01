@@ -1930,7 +1930,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230324";
+    hal.driver_version = "230331";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2049,6 +2049,7 @@ bool driver_init (void)
     hal.signals_cap.e_stop = On;
     hal.signals_cap.reset = Off;
 #endif
+    hal.limits_cap = get_limits_cap();
 #if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
     hal.driver_cap.mist_control = On;
 #endif
