@@ -1216,6 +1216,8 @@ static spindle_state_t spindleGetState (void)
 
   #ifdef SPINDLE_ENABLE_PIN
     state.on = DIGITAL_IN(SPINDLE_ENABLE_BIT);
+  #else
+    state.on = pwmEnabled ^ settings.spindle.invert.mask.on;
   #endif
   #ifdef SPINDLE_DIRECTION_PIN
     state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_BIT);
@@ -1225,15 +1227,15 @@ static spindle_state_t spindleGetState (void)
 
     state.on = ioex_in(SPINDLE_ENABLE_PIN);
     state.ccw = ioex_in(SPINDLE_DIRECTION_PIN);
-    state.value ^= settings.spindle.invert.mask;
 
 #elif SPINDLE_PORT == GPIO_SR16
 
     state.on = out_sr.spindle_ena;
     state.ccw = out_sr.spindle_dir;
-    state.value ^= settings.spindle.invert.mask;
 
 #endif
+
+    state.value ^= settings.spindle.invert.mask;
 
     return state;
 }
@@ -1274,7 +1276,7 @@ static void coolantSetState (coolant_state_t mode)
 // Returns coolant state in a coolant_state_t variable
 static coolant_state_t coolantGetState (void)
 {
-    coolant_state_t state = {0};
+    coolant_state_t state = {settings.coolant_invert.mask};
 
 #if COOLANT_PORT == GPIO_OUTPUT
 
@@ -1287,21 +1289,20 @@ static coolant_state_t coolantGetState (void)
 
 #elif COOLANT_PORT == GPIO_IOEXPAND
 
-    state.value = settings.coolant_invert.mask;
     ioexpand_t val = ioexpand_in();
     state.flood = ioex_in(COOLANT_FLOOD_PIN);
   #ifdef COOLANT_MIST_PIN
     state.mist = ioex_in(COOLANT_MIST_PIN);
-    state.value ^= settings.coolant_invert.mask;
   #endif
 
 #elif COOLANT_PORT == GPIO_SR16
 
     state.flood = out_sr.flood_ena;
     state.mist = out_sr.mist_ena;
-    state.value ^= settings.coolant_invert.mask;
 
 #endif
+
+    state.value ^= settings.coolant_invert.mask;
 
     return state;
 }
@@ -1930,7 +1931,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS|M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230331";
+    hal.driver_version = "230416";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
