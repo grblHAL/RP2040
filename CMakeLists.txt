@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.13)
 
 option(ADD_HPGL "Add HPGL plugin" OFF) 
 option(ADD_WIFI "Add WiFi networking" OFF)
+option(ADD_BLUETOOTH "Add Bluetooth" OFF) # Do not enable - to be completed.
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
 option(ADD_mDNS "Add mDNS service" OFF) 
 option(ADD_MQTT "Add MQTT client API" OFF)
+option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
-if(ADD_WIFI)
+if(ADD_WIFI OR ADD_BLUETOOTH)
 set(PICO_BOARD pico_w)
 endif()
 
@@ -15,7 +17,7 @@ if(ADD_WIFI)
 include(networking/CMakeLists.txt)
 include(webui/CMakeLists.txt)
 if(ADD_mDNS OR ADD_MQTT)
-set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIRzz
+set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIR
 include(${LWIP_DIR}/src/Filelists.cmake)
 endif()
 endif()
@@ -32,6 +34,35 @@ endif()
 project(grblHAL)
 pico_sdk_init()
 
+if(AddMyPlugin)
+add_executable(grblHAL
+ main.c
+ driver.c
+ serial.c
+ usb_serial.c
+ stdio_usb_descriptors.c
+ flash.c
+ i2c.c
+ PCA9654E.c
+ pico_cnc.c
+ btt_skr_pico_10.c
+ ioports.c
+ tmc_uart.c
+ my_plugin.c
+ eeprom/eeprom_24AAxxx.c
+ eeprom/eeprom_24LC16B.c
+ keypad/keypad.c
+ sdcard/sdcard.c
+ sdcard/ymodem.c
+ sdcard/fs_fatfs.c
+ sdcard/fs_littlefs.c
+ bluetooth/hc_05.c
+ motors/trinamic.c
+ littlefs/lfs.c
+ littlefs/lfs_util.c
+ littlefs_hal.c
+)
+else()
 add_executable(grblHAL
  main.c
  driver.c
@@ -58,6 +89,7 @@ add_executable(grblHAL
  littlefs/lfs_util.c
  littlefs_hal.c
 )
+endif()
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
@@ -96,6 +128,23 @@ target_sources(grblHAL PRIVATE
 endif()
 endif()
 
+if(ADD_BLUETOOTH)
+target_compile_definitions(grblHAL PUBLIC BLUETOOTH_ENABLE=1)
+target_compile_definitions(grblHAL PUBLIC NDEBUG)
+target_sources(grblHAL PRIVATE
+ bluetooth.c
+)
+target_link_libraries(grblHAL PRIVATE
+ pico_cyw43_arch_lwip_poll
+)
+endif()
+
+if(AddMyPlugin)
+target_sources(grblHAL PRIVATE
+ my_plugin.c
+)
+endif()
+
 if(ADD_HPGL)
 target_sources(grblHAL PRIVATE
  citoh_cx6000.c
@@ -130,5 +179,7 @@ target_link_libraries(grblHAL PRIVATE
 pico_add_extra_outputs(grblHAL)
 
 unset(ADD_WIFI CACHE)
+unset(ADD_BLUETOOTH CACHE)
 unset(ADD_HPGL CACHE)
 unset(ADD_mDNS CACHE)
+unset(AddMyPlugin CACHE)
