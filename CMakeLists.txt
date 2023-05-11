@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.13)
 
 option(ADD_HPGL "Add HPGL plugin" OFF) 
 option(ADD_WIFI "Add WiFi networking" OFF)
-option(ADD_BLUETOOTH "Add Bluetooth" OFF) # Do not enable - to be completed.
+option(ADD_BLUETOOTH "Add Bluetooth" OFF)
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
 option(ADD_mDNS "Add mDNS service" OFF) 
 option(ADD_MQTT "Add MQTT client API" OFF)
+#
 option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
 if(ADD_WIFI OR ADD_BLUETOOTH)
@@ -17,7 +18,7 @@ if(ADD_WIFI)
 include(networking/CMakeLists.txt)
 include(webui/CMakeLists.txt)
 if(ADD_mDNS OR ADD_MQTT)
-set(LWIP_DIR /home/pi/pico/pico-sdk/lib/lwip) # LWIP_DIR
+set(LWIP_DIR ${PICO_SDK_PATH}/lib/lwip)
 include(${LWIP_DIR}/src/Filelists.cmake)
 endif()
 endif()
@@ -56,6 +57,7 @@ add_executable(grblHAL
  sdcard/ymodem.c
  sdcard/fs_fatfs.c
  sdcard/fs_littlefs.c
+ sdcard/macros.c
  bluetooth/hc_05.c
  motors/trinamic.c
  littlefs/lfs.c
@@ -83,6 +85,7 @@ add_executable(grblHAL
  sdcard/ymodem.c
  sdcard/fs_fatfs.c
  sdcard/fs_littlefs.c
+ sdcard/macros.c
  bluetooth/hc_05.c
  motors/trinamic.c
  littlefs/lfs.c
@@ -108,8 +111,12 @@ target_sources(grblHAL PRIVATE
 target_link_libraries(grblHAL PRIVATE
  networking
  webui
+)
+if(NOT ADD_BLUETOOTH)
+target_link_libraries(grblHAL PRIVATE
  pico_cyw43_arch_lwip_poll
 )
+endif()
 if(ADD_mDNS)
 target_compile_definitions(grblHAL PUBLIC LWIP_IGMP=1)
 target_compile_definitions(grblHAL PUBLIC LWIP_NUM_NETIF_CLIENT_DATA=1)
@@ -134,6 +141,20 @@ target_compile_definitions(grblHAL PUBLIC NDEBUG)
 target_sources(grblHAL PRIVATE
  bluetooth.c
 )
+target_include_directories(grblHAL PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
+target_link_libraries(grblHAL PRIVATE
+ pico_btstack_classic 
+ pico_btstack_ble
+ pico_btstack_cyw43
+)
+if(NOT ADD_WIFI)
+target_link_libraries(grblHAL PRIVATE
+ pico_cyw43_arch_lwip_poll
+)
+endif()
+endif()
+
+if(ADD_WIFI AND ADD_BLUETOOTH)
 target_link_libraries(grblHAL PRIVATE
  pico_cyw43_arch_lwip_poll
 )

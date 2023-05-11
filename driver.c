@@ -99,6 +99,10 @@
 #include "wifi.h"
 #endif
 
+#if BLUETOOTH_ENABLE == 1
+#include "bluetooth.h"
+#endif
+
 #ifdef GPIO_PIO_1
 static uint x_step_sm;
 static uint y_step_sm;
@@ -1473,6 +1477,13 @@ void settings_changed(settings_t *settings, settings_changed_flags_t changed)
             wifi_ok = wifi_start();
 #endif
 
+#if BLUETOOTH_ENABLE == 1
+        static bool bluetooth_ok = false;
+        if (!bluetooth_ok)
+            bluetooth_ok = bluetooth_start_local();
+#endif
+
+
 #ifdef SPINDLE_PWM_PIN
         if (changed.spindle)
         {
@@ -1830,7 +1841,7 @@ static bool driver_setup(settings_t *settings)
     // Stepper init
 
     uint32_t pio_offset;
-#if WIFI_ENABLE
+#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
     uint32_t step_sm = stepper_timer_sm = 1; //pio_claim_unused_sm(pio1, true);
 #else
     uint32_t step_sm = stepper_timer_sm = 0; //pio_claim_unused_sm(pio1, true);
@@ -2012,7 +2023,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230417";
+    hal.driver_version = "230511";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2217,6 +2228,10 @@ bool driver_init(void)
 
 #if WIFI_ENABLE
     wifi_init();
+#endif
+
+#if BLUETOOTH_ENABLE == 1
+    bluetooth_init_local();
 #endif
 
 #include "grbl/plugins_init.h"

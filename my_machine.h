@@ -37,7 +37,7 @@
 #define USB_SERIAL_CDC       1 // Serial communication via native USB.
 #endif
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
-//#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module.
+//#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 //#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
 //#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WIFI_ENABLE          0 // Do NOT enable here, enable in CMakeLists.txt!
@@ -45,7 +45,7 @@
 //#define WEBUI_ENABLE         1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE    1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH        1 // Store WebUI files in flash instead of on SD card.
-//#define SDCARD_ENABLE        1 // Run gcode programs from SD card.
+//#define SDCARD_ENABLE        1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
                                  // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
