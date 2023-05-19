@@ -15,6 +15,7 @@
 #include <stdbool.h>
 
 #include "driver.h"
+#include "spi.h"
 
 #include "ff.h"
 #include "diskio.h"
@@ -100,7 +101,7 @@ static
 void xmit_spi(BYTE dat)
 {
 #if SDCARD_ENABLE
-	spi_write_blocking(SPI_PORT, &dat, 1);
+	spi_put_byte(dat);
 #endif
 }
 
@@ -113,12 +114,7 @@ static
 BYTE rcvr_spi (void)
 {
 #if SDCARD_ENABLE
-
-	BYTE dat;
-
-	spi_read_blocking(SPI_PORT, 0xFF, &dat, 1);
-
-	return dat;
+	return spi_get_byte();
 #else
 	return 0;
 #endif
@@ -188,18 +184,15 @@ void power_on (void)
 #if SDCARD_ENABLE
 
     if(!init) {
-
-        spi_init(SPI_PORT, 400000);
-		gpio_set_function(SD_MISO_PIN, GPIO_FUNC_SPI);
-    	gpio_set_function(SD_SCK_PIN, GPIO_FUNC_SPI);
-    	gpio_set_function(SD_MOSI_PIN, GPIO_FUNC_SPI);
+        spi_start();
+        init = true;
     }
 
-    spi_set_baudrate(SPI_PORT, 400000);
+    spi_set_speed(400000);
 
 #endif
 
-    init = true;
+
     PowerFlag = 1;
 }
 
@@ -207,9 +200,8 @@ void power_on (void)
 static
 void set_max_speed(void)
 {
-	
 #if SDCARD_ENABLE
-  	spi_set_baudrate(SPI_PORT, 12000000); // 12 MHz
+  	spi_set_speed(12000000); // 12 MHz
 #endif
 }
 

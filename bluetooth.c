@@ -63,6 +63,8 @@ typedef struct {
 
 const int RFCOMM_SERVER_CHANNEL = 1;
 
+static const io_stream_t *claim_stream (uint32_t baud_rate);
+
 static bool is_up = false;
 static bluetooth_settings_t bluetooth;
 static stream_rx_buffer_t rxbuffer = {0};
@@ -71,6 +73,16 @@ static nvs_address_t nvs_address;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 static bt_session_t session;
 static uint8_t spp_service_buffer[150];
+static io_stream_properties_t bt_stream = {
+  .type = StreamType_Bluetooth,
+  .instance = 20,
+  .flags.claimable = On,
+  .flags.claimed = Off,
+  .flags.connected = Off,
+  .flags.can_set_baud = On,
+  .flags.modbus_ready = Off,
+  .claim = claim_stream
+};
 static on_report_options_ptr on_report_options;
 static on_execute_realtime_ptr on_execute_realtime;
 
@@ -235,6 +247,8 @@ static void msg_bt_open_failed (sys_state_t state)
     hal.stream.write_all("]" ASCII_EOL);
 }
 
+#if PICO_CYW43_ARCH_POLL && !WIFI_ENABLE
+
 static void bt_poll (sys_state_t state)
 {
     static uint32_t last_ms0;
@@ -249,11 +263,18 @@ static void bt_poll (sys_state_t state)
     on_execute_realtime(state);
 }
 
-static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint16_t size)
+#endif
+
+static bool is_connected (void)
 {
-    static const io_stream_t bluetooth_stream = {
+    return bt_stream.flags.connected;
+}
+
+static const io_stream_t *claim_stream (uint32_t baud_rate)
+{
+    static const io_stream_t stream = {
         .type = StreamType_Bluetooth,
-        .state.connected = true,
+        .is_connected = is_connected,
         .read = BTStreamGetC,
         .write = BTStreamWriteS,
         .write_char = BTStreamPutC,
@@ -263,8 +284,20 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
         .set_enqueue_rt_handler = BTSetRtHandler
     };
 
+    if(bt_stream.flags.claimed || bt_stream.flags.connected)
+        return NULL;
+
+    if(baud_rate != 0)
+        bt_stream.flags.claimed = On;
+
+    return &stream;
+}
+
+static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint16_t size)
+{
     static uint16_t mtu;
     static uint8_t tx_buf[TX_BUFFER_SIZE];
+    static const io_stream_t *stream = NULL;
 
     UNUSED(channel);
 
@@ -292,15 +325,22 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
                     if((session.status = rfcomm_event_channel_opened_get_status(packet)))
                         protocol_enqueue_rt_command(msg_bt_open_failed);
                     else {
- 
-                        mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
-                        session.channel = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
-                        session.connected = true;
-                    
-                        rxbuffer.tail = rxbuffer.head;  // Flush rx & tx
-                        txbuffer.tail = txbuffer.head;  // buffers.
+                        if(!bt_stream.flags.connected) {
 
-                        stream_connect(&bluetooth_stream);
+                            rxbuffer.tail = rxbuffer.head;  // Flush rx & tx
+                            txbuffer.tail = txbuffer.head;  // buffers.
+
+                            if(bt_stream.flags.claimed)
+                                bt_stream.flags.connected = On;
+                            else if(!bt_stream.flags.connected && (stream = claim_stream(0)))
+                                bt_stream.flags.connected = stream_connect(stream);
+
+                            mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
+                            session.channel = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
+                            session.connected = bt_stream.flags.connected;
+                        } // else deny connection...
+                    
+                        // if(!bt_stream.flags.connected) deny connection...
                     }
                     break;
                 
@@ -327,7 +367,11 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
                     session.channel = 0;
                     session.connected = false;
                     *session.client_mac = '\0';
-                    stream_disconnect(&bluetooth_stream);
+                    if(stream) {
+                        stream_disconnect(stream);
+                        stream = NULL;
+                    }
+                    bt_stream.flags.connected = Off;
                     break;
 
                 default:
@@ -367,6 +411,10 @@ bool bluetooth_start_local (void)
 {
     static char device_name[52];
     static btstack_packet_callback_registration_t hci_event_callback;
+    static io_stream_details_t streams = {
+        .n_streams = 1,
+        .streams = &bt_stream,
+    };
 
     if(*bluetooth.device_name == '\0')
         return false;
@@ -400,6 +448,8 @@ bool bluetooth_start_local (void)
 
     hci_power_control(HCI_POWER_ON);
 
+    stream_register_streams(&streams);
+
     is_up = true;
 
 #if PICO_CYW43_ARCH_POLL && !WIFI_ENABLE
@@ -416,7 +466,6 @@ bool bluetooth_disable (void)
 
     return true;
 }
-
 
 static const setting_group_detail_t bluetooth_groups [] = {
     { Group_Root, Group_Bluetooth, "Bluetooth"},

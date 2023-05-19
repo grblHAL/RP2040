@@ -99,6 +99,10 @@
 #include "wifi.h"
 #endif
 
+#if ETHERNET_ENABLE
+#include "networking/wiznet/enet.h"
+#endif
+
 #if BLUETOOTH_ENABLE == 1
 #include "bluetooth.h"
 #endif
@@ -179,90 +183,79 @@ static periph_signal_t *periph_pins = NULL;
 static input_signal_t inputpin[] = {
 #ifdef RESET_PIN
 #if ESTOP_ENABLE
-    {.id = Input_EStop, .port = GPIO_INPUT, .pin = RESET_PIN, .group = PinGroup_Control},
+    { .id = Input_EStop, .port = GPIO_INPUT, .pin = RESET_PIN, .group = PinGroup_Control },
 #else
-    {.id = Input_Reset, .port = GPIO_INPUT, .pin = RESET_PIN, .group = PinGroup_Control},
+    { .id = Input_Reset, .port = GPIO_INPUT, .pin = RESET_PIN, .group = PinGroup_Control },
 #endif
 #endif
 #ifdef FEED_HOLD_PIN
-    {.id = Input_FeedHold, .port = GPIO_INPUT, .pin = FEED_HOLD_PIN, .group = PinGroup_Control},
+    { .id = Input_FeedHold, .port = GPIO_INPUT, .pin = FEED_HOLD_PIN, .group = PinGroup_Control },
 #endif
 #ifdef CYCLE_START_PIN
-    {.id = Input_CycleStart, .port = GPIO_INPUT, .pin = CYCLE_START_PIN, .group = PinGroup_Control},
+    { .id = Input_CycleStart, .port = GPIO_INPUT, .pin = CYCLE_START_PIN, .group = PinGroup_Control },
 #endif
 #ifdef SAFETY_DOOR_PIN
-    {.id = Input_SafetyDoor, .port = GPIO_INPUT, .pin = SAFETY_DOOR_PIN, .group = PinGroup_Control},
+    { .id = Input_SafetyDoor, .port = GPIO_INPUT, .pin = SAFETY_DOOR_PIN, .group = PinGroup_Control },
 #endif
 #ifdef LIMITS_OVERRIDE_PIN
-    {.id = Input_LimitsOverride, .port = GPIO_INPUT, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control},
+    { .id = Input_LimitsOverride, .port = GPIO_INPUT, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control },
 #endif
 #ifdef PROBE_PIN
-    {.id = Input_Probe, .port = GPIO_INPUT, .pin = PROBE_PIN, .group = PinGroup_Probe},
+    { .id = Input_Probe, .port = GPIO_INPUT, .pin = PROBE_PIN, .group = PinGroup_Probe },
 #endif
-    {.id = Input_LimitX, .port = GPIO_INPUT, .pin = X_LIMIT_PIN, .group = PinGroup_Limit},
+    { .id = Input_LimitX, .port = GPIO_INPUT, .pin = X_LIMIT_PIN, .group = PinGroup_Limit },
 #ifdef X2_LIMIT_PIN
-    {.id = Input_LimitX_2, .port = GPIO_INPUT, .pin = X2_LIMIT_PIN, .group = PinGroup_Limit},
+    { .id = Input_LimitX_2, .port = GPIO_INPUT, .pin = X2_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
-    {.id = Input_LimitY, .port = GPIO_INPUT, .pin = Y_LIMIT_PIN, .group = PinGroup_Limit},
+    { .id = Input_LimitY, .port = GPIO_INPUT, .pin = Y_LIMIT_PIN, .group = PinGroup_Limit },
 #ifdef Y2_LIMIT_PIN
-    {.id = Input_LimitY_Max, .port = GPIO_INPUT, .pin = Y2_LIMIT_PIN, .group = PinGroup_Limit},
+    { .id = Input_LimitY_Max, .port = GPIO_INPUT, .pin = Y2_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
-    {.id = Input_LimitZ, .port = GPIO_INPUT, .pin = Z_LIMIT_PIN, .group = PinGroup_Limit}
+    { .id = Input_LimitZ, .port = GPIO_INPUT, .pin = Z_LIMIT_PIN, .group = PinGroup_Limit },
 #ifdef Z2_LIMIT_PIN
-    ,
-    {.id = Input_LimitZ_Max, .port = GPIO_INPUT, .pin = Z2_LIMIT_PIN, .group = PinGroup_Limit}
+    { .id = Input_LimitZ_Max, .port = GPIO_INPUT, .pin = Z2_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
 #ifdef A_LIMIT_PIN
-    ,
-    {.id = Input_LimitA, .port = GPIO_INPUT, .pin = A_LIMIT_PIN, .group = PinGroup_Limit}
+    { .id = Input_LimitA, .port = GPIO_INPUT, .pin = A_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
 #ifdef B_LIMIT_PIN
-    ,
-    {.id = Input_LimitB, .port = GPIO_INPUT, .pin = B_LIMIT_PIN, .group = PinGroup_Limit}
+    { .id = Input_LimitB, .port = GPIO_INPUT, .pin = B_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
 #ifdef C_LIMIT_PIN
-    ,
-    {.id = Input_LimitC, .port = GPIO_INPUT, .pin = C_LIMIT_PIN, .group = PinGroup_Limit}
+    { .id = Input_LimitC, .port = GPIO_INPUT, .pin = C_LIMIT_PIN, .group = PinGroup_Limit },
 #endif
 #if MPG_MODE_PIN
-    ,
-    {.id = Input_MPGSelect, .port = GPIO_INPUT, .pin = MPG_MODE_PIN, .group = PinGroup_MPG}
+    { .id = Input_MPGSelect, .port = GPIO_INPUT, .pin = MPG_MODE_PIN, .group = PinGroup_MPG },
 #endif
 #if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
-    ,
-    {.id = Input_KeypadStrobe, .port = GPIO_INPUT, .pin = I2C_STROBE_PIN, .group = PinGroup_Keypad}
+    { .id = Input_I2CStrobe, .port = GPIO_INPUT, .pin = I2C_STROBE_PIN, .group = PinGroup_I2C },
+#endif
+#ifdef SPI_IRQ_PIN
+    { .id = Input_SPIIRQ,    .port = GPIO_INPUT, .pin = SPI_IRQ_PIN,    .group = PinGroup_SPI },
 #endif
 #ifdef AUXINPUT0_PIN
-    ,
-    {.id = Input_Aux0, .port = GPIO_INPUT, .pin = AUXINPUT0_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux0, .port = GPIO_INPUT, .pin = AUXINPUT0_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT1_PIN
-    ,
-    {.id = Input_Aux1, .port = GPIO_INPUT, .pin = AUXINPUT1_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux1, .port = GPIO_INPUT, .pin = AUXINPUT1_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT2_PIN
-    ,
-    {.id = Input_Aux2, .port = GPIO_INPUT, .pin = AUXINPUT2_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux2, .port = GPIO_INPUT, .pin = AUXINPUT2_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT3_PIN
-    ,
-    {.id = Input_Aux3, .port = GPIO_INPUT, .pin = AUXINPUT3_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux3, .port = GPIO_INPUT, .pin = AUXINPUT3_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT4_PIN
-    ,
-    {.id = Input_Aux4, .port = GPIO_INPUT, .pin = AUXINPUT4_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux4, .port = GPIO_INPUT, .pin = AUXINPUT4_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT5_PIN
-    ,
-    {.id = Input_Aux5, .port = GPIO_INPUT, .pin = AUXINPUT5_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux5, .port = GPIO_INPUT, .pin = AUXINPUT5_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT6_PIN
-    ,
-    {.id = Input_Aux6, .port = GPIO_INPUT, .pin = AUXINPUT6_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux6, .port = GPIO_INPUT, .pin = AUXINPUT6_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT7_PIN
-    ,
-    {.id = Input_Aux7, .port = GPIO_INPUT, .pin = AUXINPUT7_PIN, .group = PinGroup_AuxInput}
+    { .id = Input_Aux7, .port = GPIO_INPUT, .pin = AUXINPUT7_PIN, .group = PinGroup_AuxInput }
 #endif
 };
 
@@ -339,6 +332,10 @@ static input_signal_t inputpin[] = {
 #undef A_ENABLE_PIN
 #define A_ENABLE_PIN 3
 #endif
+#endif
+
+#ifndef SPI_RST_PORT
+#define SPI_RST_PORT GPIO_OUTPUT
 #endif
 
 static output_signal_t outputpin[] = {
@@ -426,6 +423,12 @@ static output_signal_t outputpin[] = {
 #ifdef SD_CS_PIN
     {.id = Output_SdCardCS, .port = GPIO_OUTPUT, .pin = SD_CS_PIN, .group = PinGroup_SdCard},
 #endif
+#ifdef SPI_CS_PIN
+    { .id = Output_SPICS,     .port = GPIO_OUTPUT,            .pin = SPI_CS_PIN,              .group = PinGroup_SPI },
+#endif
+#ifdef SPI_RST_PIN
+    { .id = Output_SPIRST,    .port = SPI_RST_PORT,           .pin = SPI_RST_PIN,             .group = PinGroup_SPI },
+#endif
 #ifndef SD_SHIFT_REGISTER
 #ifdef SPINDLE_ENABLE_PIN
     {.id = Output_SpindleOn, .port = SPINDLE_PORT, .pin = SPINDLE_ENABLE_PIN, .group = PinGroup_SpindleControl},
@@ -479,8 +482,12 @@ static output_signal_t outputpin[] = {
 #endif
 };
 
-#if KEYPAD_ENABLE == 0
-#define KEYPAD_STROBE_BIT 0
+#ifndef I2C_STROBE_BIT
+#define I2C_STROBE_BIT 0
+#endif
+
+#ifndef SPI_IRQ_BIT
+#define SPI_IRQ_BIT 0
 #endif
 
 // This should be a sdk function but it doesn't exist yet
@@ -490,7 +497,7 @@ static output_signal_t outputpin[] = {
 #define NVIC_MEDIUM_LEVEL_PRIORITY 0x80
 #define NVIC_LOW_LEVEL_PRIORITY 0x40
 
-#define DRIVER_IRQMASK (LIMIT_MASK | CONTROL_MASK | KEYPAD_STROBE_BIT | SPINDLE_INDEX_BIT)
+#define DRIVER_IRQMASK (LIMIT_MASK | CONTROL_MASK | I2C_STROBE_BIT | SPI_IRQ_BIT | SPINDLE_INDEX_BIT)
 
 #define LIMIT_DEBOUNCE_TEMPO 40    // 40ms for Limit debounce
 #define SR_LATCH_DEBOUNCE_TEMPO 40 // 40ms for SR LATCH
@@ -524,20 +531,34 @@ static void gpio_int_handler(uint gpio, uint32_t events);
 static void spindle_set_speed(uint_fast16_t pwm_value);
 
 #if I2C_STROBE_ENABLE
+static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
+#endif
 
-static driver_irq_handler_t i2c_strobe = {.type = IRQ_I2C_Strobe};
+#if SPI_IRQ_BIT
+static driver_irq_handler_t spi_irq = { .type = IRQ_SPI };
+#endif
 
-static bool irq_claim(irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
+#if I2C_STROBE_BIT || SPI_IRQ_BIT
+
+static bool irq_claim (irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
 {
     bool ok;
 
-    if ((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
+#if I2C_STROBE_BIT
+    if((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
         i2c_strobe.callback = handler;
+#endif
+
+#if SPI_IRQ_BIT
+    if((ok = irq == IRQ_SPI && spi_irq.callback == NULL))
+        spi_irq.callback = handler;
+#endif
 
     return ok;
 }
 
 #endif
+
 
 static int64_t delay_callback(alarm_id_t id, void *callback)
 {
@@ -548,12 +569,10 @@ static int64_t delay_callback(alarm_id_t id, void *callback)
 
 static void driver_delay(uint32_t ms, delay_callback_ptr callback)
 {
-    if (ms > 0)
-    {
+    if (ms > 0) {
         if (callback)
             add_alarm_in_ms(ms, delay_callback, callback, false);
-        else
-        {
+        else {
             uint32_t delay = ms * 1000, start = timer_hw->timerawl;
             while (timer_hw->timerawl - start < delay)
                 grbl.on_execute_delay(state_get());
@@ -632,7 +651,7 @@ static void stepperEnable(axes_signals_t enable)
 static void stepperWakeUp(void)
 {
     stepperEnable((axes_signals_t){AXES_BITMASK});
-    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, 1000);
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, hal.f_step_timer / 500); // ~2ms delay to allow drivers time to wake up.
     irq_set_enabled(PIO1_IRQ_0, true);
 }
 
@@ -866,8 +885,7 @@ static axes_signals_t getGangedAxes(bool auto_squared)
 {
     axes_signals_t ganged = {0};
 
-    if (auto_squared)
-    {
+    if (auto_squared) {
 #if X_AUTO_SQUARE
         ganged.x = On;
 #endif
@@ -877,9 +895,7 @@ static axes_signals_t getGangedAxes(bool auto_squared)
 #if Z_AUTO_SQUARE
         ganged.z = On;
 #endif
-    }
-    else
-    {
+    } else {
 #if X_GANGED
         ganged.x = On;
 #endif
@@ -977,8 +993,7 @@ static void limitsEnable(bool on, bool homing)
 
     on = on && settings.limits.flags.hard_enabled;
 
-    do
-    {
+    do {
         i--;
         pinEnableIRQ(&limit_inputs.pins.inputs[i], on ? limit_inputs.pins.inputs[i].irq_mode : IRQ_Mode_None);
     } while (i);
@@ -1135,8 +1150,7 @@ inline static void spindle_dir(bool ccw)
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
 
-    if (hal.driver_cap.spindle_dir)
-    {
+    if (hal.driver_cap.spindle_dir) {
         ioex_out(SPINDLE_DIRECTION_PIN) = ccw ^ settings.spindle.invert.ccw;
         ioexpand_out(io_expander);
     }
@@ -1154,8 +1168,7 @@ static void spindleSetState(spindle_state_t state, float rpm)
 {
     if (!state.on)
         spindle_off();
-    else
-    {
+    else {
         spindle_dir(state.ccw);
         spindle_on();
     }
@@ -1168,8 +1181,7 @@ static void spindleSetState(spindle_state_t state, float rpm)
 // Sets spindle speed
 static void __not_in_flash_func(spindle_set_speed)(uint_fast16_t pwm_value)
 {
-    if (pwm_value == spindle_pwm.off_value)
-    {
+    if (pwm_value == spindle_pwm.off_value) {
         pwmEnabled = false;
         if (settings.spindle.flags.enable_rpm_controlled)
             spindle_off();
@@ -1177,11 +1189,8 @@ static void __not_in_flash_func(spindle_set_speed)(uint_fast16_t pwm_value)
             pwm_set_gpio_level(SPINDLE_PWM_PIN, spindle_pwm.off_value);
         else
             pwm_set_gpio_level(SPINDLE_PWM_PIN, 0);
-    }
-    else
-    {
-        if (!pwmEnabled)
-        {
+    } else {
+        if (!pwmEnabled) {
             spindle_on();
             pwmEnabled = true;
         }
@@ -1200,8 +1209,7 @@ static void spindleSetStateVariable(spindle_state_t state, float rpm)
     if (state.on)
         spindle_dir(state.ccw);
 
-    if (!settings.spindle.flags.enable_rpm_controlled)
-    {
+    if (!settings.spindle.flags.enable_rpm_controlled) {
         if (state.on)
             spindle_on();
         else
@@ -1218,8 +1226,7 @@ bool spindleConfig(spindle_ptrs_t *spindle)
 
     uint32_t prescaler = settings.spindle.pwm_freq > 2000.0f ? 1 : (settings.spindle.pwm_freq > 200.0f ? 12 : 50);
 
-    if ((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, clock_get_hz(clk_sys) / prescaler)))
-    {
+    if ((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, clock_get_hz(clk_sys) / prescaler))) {
 
         spindle->set_state = spindleSetStateVariable;
 
@@ -1239,9 +1246,7 @@ bool spindleConfig(spindle_ptrs_t *spindle)
 
         // Load the configuration into our PWM slice, and set it running.
         pwm_init(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN), &config, true);
-    }
-    else
-    {
+    } else {
         if (pwmEnabled)
             spindle->set_state((spindle_state_t){0}, 0.0f);
         spindle->set_state = spindleSetState;
@@ -1432,61 +1437,64 @@ static void debounce_alarm_pool_save_gpio (alarm_id_t id, uint pin, uint level)
 
 void pinEnableIRQ(const input_signal_t *input, pin_irq_mode_t irq_mode)
 {
-    switch (irq_mode)
-    {
+    switch (irq_mode) {
 
-    case IRQ_Mode_Rising:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_RISE, true);
-        break;
+        case IRQ_Mode_Rising:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_RISE, true);
+            break;
 
-    case IRQ_Mode_Falling:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_FALL, true);
-        break;
+        case IRQ_Mode_Falling:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_FALL, true);
+            break;
 
-    case IRQ_Mode_Change:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-        break;
+        case IRQ_Mode_Change:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+            break;
 
-    case IRQ_Mode_Low:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_LOW, true);
-        break;
+        case IRQ_Mode_Low:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_LOW, true);
+            break;
 
-    case IRQ_Mode_High:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_HIGH, true);
-        break;
+        case IRQ_Mode_High:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_LEVEL_HIGH, true);
+            break;
 
-    case IRQ_Mode_None:
-        gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
-        break;
+        case IRQ_Mode_None:
+            gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
+            break;
     }
 }
 
 // Configures peripherals when settings are initialized or changed
-void settings_changed(settings_t *settings, settings_changed_flags_t changed)
+void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
 #if USE_STEPDIR_MAP
     stepdirmap_init(settings);
 #endif
 
-    if (IOInitDone)
-    {
+    if (IOInitDone) {
 
 #if WIFI_ENABLE
         static bool wifi_ok = false;
-        if (!wifi_ok)
+        if(!wifi_ok)
             wifi_ok = wifi_start();
+#endif
+
+#if ETHERNET_ENABLE
+        static bool enet_ok = false;
+        if(!enet_ok)
+            enet_ok = enet_start();
 #endif
 
 #if BLUETOOTH_ENABLE == 1
         static bool bluetooth_ok = false;
-        if (!bluetooth_ok)
+        if(!bluetooth_ok)
             bluetooth_ok = bluetooth_start_local();
 #endif
 
 
 #ifdef SPINDLE_PWM_PIN
-        if (changed.spindle)
-        {
+        if (changed.spindle) {
             spindleConfig(spindle_get_hal(spindle_id, SpindleHAL_Configured));
             if (spindle_id == spindle_get_default())
                 spindle_select(spindle_id);
@@ -1561,8 +1569,7 @@ void settings_changed(settings_t *settings, settings_changed_flags_t changed)
         axes_signals_t limit_fei;
         limit_fei.mask = settings->limits.disable_pullup.mask ^ settings->limits.invert.mask;
 
-        do
-        {
+        do {
 
             input = &inputpin[--i];
             input->bit = 1 << input->pin;
@@ -1576,110 +1583,113 @@ void settings_changed(settings_t *settings, settings_changed_flags_t changed)
             if (!(input->group == PinGroup_Limit || input->group == PinGroup_AuxInput))
                 gpio_set_irq_enabled(input->pin, GPIO_IRQ_ALL, false);
 
-            switch (input->id)
-            {
+            switch(input->id) {
 
-            case Input_EStop:
-                pullup = !settings->control_disable_pullup.e_stop;
-                input->invert = control_fei.e_stop;
-                break;
-
-            case Input_Reset:
-                pullup = !settings->control_disable_pullup.reset;
-                input->invert = control_fei.reset;
-                break;
-
-            case Input_FeedHold:
-                pullup = !settings->control_disable_pullup.feed_hold;
-                input->invert = control_fei.feed_hold;
-                break;
-
-            case Input_CycleStart:
-                pullup = !settings->control_disable_pullup.cycle_start;
-                input->invert = control_fei.cycle_start;
-                break;
-#ifdef SAFETY_DOOR_PIN
-            case Input_SafetyDoor:
-                safety_door = input;
-                pullup = !settings->control_disable_pullup.safety_door_ajar;
-                input->invert = control_fei.safety_door_ajar;
-                input->active = DIGITAL_IN(input->bit);
-                    input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High);
+                case Input_EStop:
+                    pullup = !settings->control_disable_pullup.e_stop;
+                    input->invert = control_fei.e_stop;
                     break;
-#endif
-            case Input_Probe:
-                pullup = !settings->probe.disable_probe_pullup;
-                input->invert = settings->probe.invert_probe_pin;
-                break;
 
-            case Input_LimitX:
-            case Input_LimitX_2:
-            case Input_LimitX_Max:
-                pullup = !settings->limits.disable_pullup.x;
-                input->invert = limit_fei.x;
-                break;
+                case Input_Reset:
+                    pullup = !settings->control_disable_pullup.reset;
+                    input->invert = control_fei.reset;
+                    break;
 
-            case Input_LimitY:
-            case Input_LimitY_2:
-            case Input_LimitY_Max:
-                pullup = !settings->limits.disable_pullup.y;
-                input->invert = limit_fei.y;
-                break;
+                case Input_FeedHold:
+                    pullup = !settings->control_disable_pullup.feed_hold;
+                    input->invert = control_fei.feed_hold;
+                    break;
 
-            case Input_LimitZ:
-            case Input_LimitZ_2:
-            case Input_LimitZ_Max:
-                pullup = !settings->limits.disable_pullup.z;
-                input->invert = limit_fei.z;
-                break;
+                case Input_CycleStart:
+                    pullup = !settings->control_disable_pullup.cycle_start;
+                    input->invert = control_fei.cycle_start;
+                    break;
+    #ifdef SAFETY_DOOR_PIN
+                case Input_SafetyDoor:
+                    safety_door = input;
+                    pullup = !settings->control_disable_pullup.safety_door_ajar;
+                    input->invert = control_fei.safety_door_ajar;
+                    input->active = DIGITAL_IN(input->bit);
+                        input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High);
+                        break;
+    #endif
+                case Input_Probe:
+                    pullup = !settings->probe.disable_probe_pullup;
+                    input->invert = settings->probe.invert_probe_pin;
+                    break;
 
-            case Input_LimitA:
-            case Input_LimitA_Max:
-                pullup = !settings->limits.disable_pullup.a;
-                input->invert = limit_fei.a;
-                break;
+                case Input_LimitX:
+                case Input_LimitX_2:
+                case Input_LimitX_Max:
+                    pullup = !settings->limits.disable_pullup.x;
+                    input->invert = limit_fei.x;
+                    break;
 
-            case Input_LimitB:
-            case Input_LimitB_Max:
-                pullup = !settings->limits.disable_pullup.b;
-                input->invert = limit_fei.b;
-                break;
+                case Input_LimitY:
+                case Input_LimitY_2:
+                case Input_LimitY_Max:
+                    pullup = !settings->limits.disable_pullup.y;
+                    input->invert = limit_fei.y;
+                    break;
 
-            case Input_LimitC:
-            case Input_LimitC_Max:
-                pullup = !settings->limits.disable_pullup.c;
-                input->invert = limit_fei.c;
-                break;
-#ifdef MPG_MODE_PIN
-            case Input_MPGSelect:
-                pullup = true;
-                mpg_pin = input;
-                break;
-#endif
-            case Input_KeypadStrobe:
-                pullup = true;
-                input->irq_mode = IRQ_Mode_Change;
-                break;
+                case Input_LimitZ:
+                case Input_LimitZ_2:
+                case Input_LimitZ_Max:
+                    pullup = !settings->limits.disable_pullup.z;
+                    input->invert = limit_fei.z;
+                    break;
 
-            default:
-                break;
+                case Input_LimitA:
+                case Input_LimitA_Max:
+                    pullup = !settings->limits.disable_pullup.a;
+                    input->invert = limit_fei.a;
+                    break;
+
+                case Input_LimitB:
+                case Input_LimitB_Max:
+                    pullup = !settings->limits.disable_pullup.b;
+                    input->invert = limit_fei.b;
+                    break;
+
+                case Input_LimitC:
+                case Input_LimitC_Max:
+                    pullup = !settings->limits.disable_pullup.c;
+                    input->invert = limit_fei.c;
+                    break;
+    #ifdef MPG_MODE_PIN
+                case Input_MPGSelect:
+                    pullup = true;
+                    mpg_pin = input;
+                    break;
+    #endif
+                case Input_I2CStrobe:
+                    pullup = true;
+                    input->irq_mode = IRQ_Mode_Change;
+                    break;
+
+                case Input_SPIIRQ:
+                    pullup = true;
+                    input->irq_mode = IRQ_Mode_Falling;
+                    break;
+
+                default:
+                    break;
             }
 
-            switch (input->group)
-            {
+            switch(input->group) {
 
-            case PinGroup_Limit:
-            case PinGroup_Control:
-                input->irq_mode = input->invert ? IRQ_Mode_Falling : IRQ_Mode_Rising;
-                break;
+                case PinGroup_Limit:
+                case PinGroup_Control:
+                    input->irq_mode = input->invert ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
 
-            case PinGroup_AuxInput:
-                pullup = true;
-                input->cap.irq_mode = IRQ_Mode_All;
-                break;
+                case PinGroup_AuxInput:
+                    pullup = true;
+                    input->cap.irq_mode = IRQ_Mode_All;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
 
             gpio_set_pulls(input->pin, pullup, !pullup);
@@ -1698,27 +1708,25 @@ void settings_changed(settings_t *settings, settings_changed_flags_t changed)
          *  Output signals init  *
          *************************/
 
-        for (uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
-        {
-            if (outputpin[i].port == GPIO_OUTPUT)
-                switch (outputpin[i].id)
-                {
+        for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+            if(outputpin[i].port == GPIO_OUTPUT)
+                switch(outputpin[i].id) {
 
-                case Output_SpindleOn:
-                    gpio_set_outover(outputpin[i].pin, settings->spindle.invert.on ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
+                    case Output_SpindleOn:
+                        gpio_set_outover(outputpin[i].pin, settings->spindle.invert.on ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                        break;
 
-                case Output_SpindleDir:
-                    gpio_set_outover(outputpin[i].pin, settings->spindle.invert.ccw ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
+                    case Output_SpindleDir:
+                        gpio_set_outover(outputpin[i].pin, settings->spindle.invert.ccw ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                        break;
 
-                case Output_CoolantMist:
-                    gpio_set_outover(outputpin[i].pin, settings->coolant_invert.mist ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
+                    case Output_CoolantMist:
+                        gpio_set_outover(outputpin[i].pin, settings->coolant_invert.mist ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                        break;
 
-                case Output_CoolantFlood:
-                    gpio_set_outover(outputpin[i].pin, settings->coolant_invert.flood ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
+                    case Output_CoolantFlood:
+                        gpio_set_outover(outputpin[i].pin, settings->coolant_invert.flood ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                        break;
                 }
         }
 
@@ -1735,8 +1743,7 @@ static void enumeratePins(bool low_level, pin_info_ptr pin_info, void *data)
 
     pin.mode.input = On;
 
-    for (i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++)
-    {
+    for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         pin.pin = inputpin[i].pin;
         pin.function = inputpin[i].id;
         pin.group = inputpin[i].group;
@@ -1751,8 +1758,7 @@ static void enumeratePins(bool low_level, pin_info_ptr pin_info, void *data)
     pin.mode.mask = 0;
     pin.mode.output = On;
 
-    for (i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
-    {
+    for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         pin.pin = outputpin[i].pin;
         pin.function = outputpin[i].id;
         pin.group = outputpin[i].group;
@@ -1766,35 +1772,30 @@ static void enumeratePins(bool low_level, pin_info_ptr pin_info, void *data)
 
     pin.port = NULL;
 
-    if (ppin)
-        do
-        {
-            pin.pin = ppin->pin.pin;
-            pin.function = ppin->pin.function;
-            pin.group = ppin->pin.group;
-            pin.mode = ppin->pin.mode;
-            pin.description = ppin->pin.description;
+    if(ppin) do {
+        pin.pin = ppin->pin.pin;
+        pin.function = ppin->pin.function;
+        pin.group = ppin->pin.group;
+        pin.mode = ppin->pin.mode;
+        pin.description = ppin->pin.description;
 
-            pin_info(&pin, data);
-        } while (ppin = ppin->next);
+        pin_info(&pin, data);
+    } while(ppin = ppin->next);
 }
 
 void registerPeriphPin(const periph_pin_t *pin)
 {
     periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
 
-    if (!add_pin)
+    if(!add_pin)
         return;
 
     memcpy(&add_pin->pin, pin, sizeof(periph_pin_t));
     add_pin->next = NULL;
 
-    if (periph_pins == NULL)
-    {
+    if(periph_pins == NULL) {
         periph_pins = add_pin;
-    }
-    else
-    {
+    } else {
         periph_signal_t *last = periph_pins;
         while (last->next)
             last = last->next;
@@ -1806,17 +1807,15 @@ void setPeriphPinDescription(const pin_function_t function, const pin_group_t gr
 {
     periph_signal_t *ppin = periph_pins;
 
-    if (ppin)
-        do
+    if(ppin) do {
+        if (ppin->pin.function == function && ppin->pin.group == group)
         {
-            if (ppin->pin.function == function && ppin->pin.group == group)
-            {
-                ppin->pin.description = description;
-                ppin = NULL;
-            }
-            else
-                ppin = ppin->next;
-        } while (ppin);
+            ppin->pin.description = description;
+            ppin = NULL;
+        }
+        else
+            ppin = ppin->next;
+    } while(ppin);
 }
 
 // Initializes MCU peripherals
@@ -1826,10 +1825,8 @@ static bool driver_setup(settings_t *settings)
      *  Output signals init  *
      *************************/
 
-    for (uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
-    {
-        if (outputpin[i].port == GPIO_OUTPUT)
-        {
+    for (uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        if (outputpin[i].port == GPIO_OUTPUT) {
             outputpin[i].bit = 1 << outputpin[i].pin;
             gpio_init(outputpin[i].pin);
             gpio_set_dir_out_masked(outputpin[i].bit);
@@ -1866,8 +1863,7 @@ static bool driver_setup(settings_t *settings)
     y_step_sm = step_sm++;
     step_pulse_program_init(pio1, y_step_sm, pio_offset, Y_STEP_PIN, 1);
 
-    if ((z_step_sm = step_sm) > 3)
-    {
+    if((z_step_sm = step_sm) > 3) {
         z_step_sm = step_sm = 0;
         z_step_pio = pio0;
         pio_offset = pio_add_program(pio0, &step_pulse_program);
@@ -1882,8 +1878,7 @@ static bool driver_setup(settings_t *settings)
 #error "Max number of motors with WIFI_ENABLE is 5"
 #endif
 
-    if (++step_sm > 3)
-    {
+    if(++step_sm > 3) {
         step_sm = 0;
         pio_offset = pio_add_program(pio0, &step_pulse_program);
     }
@@ -1968,8 +1963,7 @@ static bool set_rtc_time(struct tm *time)
 {
     static bool init_ok = false;
 
-    if (!init_ok)
-    {
+    if (!init_ok) {
         init_ok = true;
         rtc_init();
     }
@@ -1990,8 +1984,7 @@ static bool get_rtc_time(struct tm *time)
     bool ok;
     datetime_t dt = {0};
 
-    if ((ok = rtc_running() && rtc_get_datetime(&dt)))
-    {
+    if((ok = rtc_running() && rtc_get_datetime(&dt))) {
         time->tm_year = dt.year - 1900;
         time->tm_mon = dt.month - 1;
         time->tm_mday = dt.day;
@@ -2023,7 +2016,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230511";
+    hal.driver_version = "230515";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2067,7 +2060,7 @@ bool driver_init(void)
 
     hal.control.get_state = systemGetState;
 
-#if I2C_STROBE_ENABLE
+#if I2C_STROBE_BIT || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
     hal.get_elapsed_ticks = getElapsedTicks;
@@ -2161,34 +2154,29 @@ bool driver_init(void)
 
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
-    for (i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++)
-    {
+    for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
-        if (input->group == PinGroup_AuxInput)
-        {
-            if (aux_inputs.pins.inputs == NULL)
+        if(input->group == PinGroup_AuxInput) {
+            if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
             input->id = Input_Aux0 + aux_inputs.n_pins++;
             input->cap.irq_mode = IRQ_Mode_All;
         }
-        if (input->group == PinGroup_Limit)
-        {
-            if (limit_inputs.pins.inputs == NULL)
+        if(input->group == PinGroup_Limit) {
+            if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
         }
 #ifdef SAFETY_DOOR_PIN
-        if (input->id == Input_SafetyDoor)
+        if(input->id == Input_SafetyDoor)
             safety_door = input;
 #endif
     }
 
-    for (i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
-    {
+    for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
-        if (output->group == PinGroup_AuxOutput)
-        {
-            if (aux_outputs.pins.outputs == NULL)
+        if(output->group == PinGroup_AuxOutput) {
+            if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
             output->id = Output_Aux0 + aux_outputs.n_pins++;
         }
@@ -2210,10 +2198,10 @@ bool driver_init(void)
 
 #if MPG_MODE == 1
 #if KEYPAD_ENABLE == 2
-    if ((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
         protocol_enqueue_rt_command(mpg_enable);
 #else
-    if ((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
         protocol_enqueue_rt_command(mpg_enable);
 #endif
 #elif MPG_MODE == 2
@@ -2228,6 +2216,10 @@ bool driver_init(void)
 
 #if WIFI_ENABLE
     wifi_init();
+#endif
+
+#if ETHERNET_ENABLE
+    enet_init();
 #endif
 
 #if BLUETOOTH_ENABLE == 1
@@ -2256,8 +2248,7 @@ void __not_in_flash_func(stepper_int_handler)(void)
 // Limit debounce callback
 static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void *input)
 {
-    if (((input_signal_t *)input)->debounce)
-    {
+    if(((input_signal_t *)input)->debounce) {
 
         ((input_signal_t *)input)->debounce = false;
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, ((input_signal_t *)input)->invert ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
@@ -2274,7 +2265,7 @@ static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void 
         */
 
         limit_signals_t state = limitsGetState();
-        if (limit_signals_merge(state).value)
+        if(limit_signals_merge(state).value)
             hal.limits.interrupt_callback(state);
     }
 
@@ -2284,9 +2275,9 @@ static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void 
 // SR Latch callback - used to delay resetting of pins after they are triggered
 static int64_t __not_in_flash_func(srLatch_debounce_callback)(alarm_id_t id, void *input)
 {
-    if (((input_signal_t *)input)->id == Input_Probe)
+    if(((input_signal_t *)input)->id == Input_Probe)
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, probe.inverted ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
-    else if (((input_signal_t *)input)->id == Input_SafetyDoor)
+    else if(((input_signal_t *)input)->id == Input_SafetyDoor)
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, ((input_signal_t *)input)->invert ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
 
     /*
@@ -2322,28 +2313,23 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
     input_signal_t *input = NULL;
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
 
-    do
-    {
-        if (inputpin[--i].pin == gpio)
+    do {
+        if(inputpin[--i].pin == gpio)
             input = &inputpin[i];
-    } while (i && !input);
+    } while(i && !input);
 
-    if (input)
-        switch (input->group)
-        {
+    if(input) switch (input->group) {
 
         case PinGroup_Control:
 
 #ifdef SAFETY_DOOR_PIN
-            if (input->id == Input_SafetyDoor)
-            {
+            if(input->id == Input_SafetyDoor) {
                 gpio_set_irq_enabled(gpio, GPIO_IRQ_ALL, false);
                 // If the input is active fire the control interrupt immediately and register an
                 // alarm to reenable the interrupt after a short delay. Only after this delay has
                 // expired can the safety door signal be set inactive. This is done to avoid stressing
                 // the main state-machine.
-                if ((input->active = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ input->invert))
-                {
+                if((input->active = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ input->invert)) {
                     hal.control.interrupt_callback(systemGetState());
                     if (!add_alarm_in_ms(SR_LATCH_DEBOUNCE_TEMPO, srLatch_debounce_callback, (void *)input, false))
                         gpio_set_irq_enabled(gpio, GPIO_IRQ_LEVEL_HIGH, true); // Reenable the IRQ in case the alarm wasn't registered.
@@ -2362,9 +2348,8 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
             // If input is active set the probe signal active immediately and register an
             // alarm to reenable the interrupt after a short delay. Only after this delay has
             // expired can the probe signal be set inactive.
-            if ((probe.triggered = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ probe.inverted))
-            {
-                if (!add_alarm_in_ms(SR_LATCH_DEBOUNCE_TEMPO, srLatch_debounce_callback, (void *)input, false))
+            if((probe.triggered = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ probe.inverted)) {
+                if(!add_alarm_in_ms(SR_LATCH_DEBOUNCE_TEMPO, srLatch_debounce_callback, (void *)input, false))
                     gpio_set_irq_enabled(gpio, probe.inverted ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true); // Reenable the IRQ in case the alarm wasn't registered.
             }
             else
@@ -2376,8 +2361,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
         {
             // If debounce is enabled register an alarm to reenable the IRQ after the debounce delay has expired.
             // If the input is still active when the delay expires the limits interrupt will be fired.
-            if (hal.driver_cap.software_debounce && add_alarm_in_ms(LIMIT_DEBOUNCE_TEMPO, limit_debounce_callback, (void *)input, true))
-            {
+            if(hal.driver_cap.software_debounce && add_alarm_in_ms(LIMIT_DEBOUNCE_TEMPO, limit_debounce_callback, (void *)input, true)) {
                 input->debounce = true;
                 gpio_set_irq_enabled(gpio, GPIO_IRQ_ALL, false); // Disable the pin IRQ for the duration of the debounce delay.
             }
@@ -2391,10 +2375,16 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
             ioports_event(input);
             break;
 #endif
-#if I2C_STROBE_ENABLE
-        case PinGroup_Keypad:
-            if (i2c_strobe.callback)
+#if I2C_STROBE_BIT
+        case PinGroup_I2C:
+            if(input->id == Input_I2CStrobe && i2c_strobe.callback)
                 i2c_strobe.callback(0, DIGITAL_IN(input->bit) == 0);
+            break;
+#endif
+#if SPI_IRQ_BIT
+        case PinGroup_SPI:
+            if(input->id == Input_SPIIRQ && spi_irq.callback)
+                spi_irq.callback(0, DIGITAL_IN(input->bit) == 0);
             break;
 #endif
 #if MPG_MODE == 1
@@ -2405,7 +2395,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 #endif
         default:
             break;
-        }
+    }
 }
 
 // Interrupt handler for 1 ms interval timer
@@ -2415,8 +2405,7 @@ void __not_in_flash_func(isr_systick)(void)
 
 #if SDCARD_ENABLE
     static uint32_t fatfs_ticks = 10;
-    if (!(--fatfs_ticks))
-    {
+    if(!(--fatfs_ticks)) {
         disk_timerproc();
         fatfs_ticks = 10;
     }

@@ -35,6 +35,17 @@
 #include "my_machine.h"
 #endif
 
+#if SDCARD_ENABLE
+#define SPI_ENABLE 1
+#endif
+
+#if ETHERNET_ENABLE
+#ifndef _WIZCHIP_
+#define _WIZCHIP_ 5105
+#endif
+#define SPI_ENABLE 1
+#endif
+
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(bit) (!!(sio_hw->gpio_in & bit))
@@ -128,6 +139,10 @@
   #include "generic_map_4axis.h"
 #else // default board
   #include "generic_map.h"
+#endif
+
+#if SPI_ENABLE
+#define SPI_DMA_ENABLE 1
 #endif
 
 #if STEP_PORT == GPIO_PIO

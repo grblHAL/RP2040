@@ -132,8 +132,8 @@ typedef union {
 #define AUX_IO2_PIN         12
 #define AUX_IO3_PIN         13
 
-#if !SDCARD_ENABLE || !defined(SAFETY_DOOR_PIN)
-#if !SDCARD_ENABLE 
+#if !(SDCARD_ENABLE || ETHERNET_ENABLE) || !defined(SAFETY_DOOR_PIN)
+#if !(SDCARD_ENABLE || ETHERNET_ENABLE) 
 #define AUXINPUT0_PIN       AUX_IO0_PIN
 #define AUXINPUT1_PIN       AUX_IO1_PIN
 #define AUXINPUT2_PIN       AUX_IO2_PIN
@@ -155,16 +155,26 @@ typedef union {
 #endif
 
 #if SDCARD_ENABLE
-#define SPI_PORT            spi1
-#define SD_SCK_PIN          AUX_IO0_PIN
-#define SD_MOSI_PIN         AUX_IO1_PIN
-#define SD_MISO_PIN         AUX_IO2_PIN
+#define SPI_PORT            1
+#define SPI_SCK_PIN         AUX_IO0_PIN
+#define SPI_MOSI_PIN        AUX_IO1_PIN
+#define SPI_MISO_PIN        AUX_IO2_PIN
 #define SD_CS_PIN           AUX_IO3_PIN
 #elif MPG_MODE == 1
 #define MPG_MODE_PIN        AUX_IO3_PIN
 #endif
 
+#if ETHERNET_ENABLE
+#define SPI_PORT            1
+#define SPI_SCK_PIN         AUX_IO0_PIN
+#define SPI_MOSI_PIN        AUX_IO1_PIN
+#define SPI_MISO_PIN        AUX_IO2_PIN
+#define SPI_CS_PIN          AUX_IO3_PIN
+#define SPI_IRQ_PIN         26
+//#define SPI_RST_PORT        GPIO_SR16
+#define SPI_RST_PIN         0 // 15
+#endif
+
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN      26
-#define I2C_STROBE_BIT      (1<<I2C_STROBE_PIN)
 #endif
