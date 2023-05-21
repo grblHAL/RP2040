@@ -41,12 +41,18 @@
 
 #if ETHERNET_ENABLE
 #ifndef _WIZCHIP_
-#define _WIZCHIP_ 5105
+#define _WIZCHIP_ 5105 // W5100S
 #endif
+#ifndef SPI_ENABLE
 #define SPI_ENABLE 1
+#endif
 #endif
 
 #include "grbl/driver_opts.h"
+
+#if ETHERNET_ENABLE && WIFI_ENABLE
+#error "WiFi and Ethernet cannot be enabled at the same time!"
+#endif
 
 #define DIGITAL_IN(bit) (!!(sio_hw->gpio_in & bit))
 #define DIGITAL_OUT(bit, on) { if(on) sio_hw->gpio_set = bit; else sio_hw->gpio_clr = bit; }
