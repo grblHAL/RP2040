@@ -339,146 +339,158 @@ static input_signal_t inputpin[] = {
 #endif
 
 static output_signal_t outputpin[] = {
-    {.id = Output_StepX, .port = STEP_PORT, .pin = X_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
-    {.id = Output_StepY, .port = STEP_PORT, .pin = Y_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
-    {.id = Output_StepZ, .port = STEP_PORT, .pin = Z_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepX,   .port = STEP_PORT,      .pin = X_STEP_PIN,       .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
+    { .id = Output_StepY,   .port = STEP_PORT,      .pin = Y_STEP_PIN,       .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE} },
+    { .id = Output_StepZ,   .port = STEP_PORT,      .pin = Z_STEP_PIN,       .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #ifdef A_STEP_PIN
-    {.id = Output_StepA, .port = STEP_PORT, .pin = A_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepA,   .port = STEP_PORT,      .pin = A_STEP_PIN,       .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #endif
 #ifdef B_STEP_PIN
-    {.id = Output_StepB, .port = STEP_PORT, .pin = B_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepB,   .port = STEP_PORT,      .pin = B_STEP_PIN,       .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #endif
 #ifdef C_STEP_PIN
-    {.id = Output_StepC, .port = STEP_PORT, .pin = C_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepC,   .port = STEP_PORT,      .pin = C_STEP_PIN,       .group = PinGroup_StepperStep,    .mode =  {STEP_PINMODE } },
 #endif
 #ifdef X2_STEP_PIN
-    {.id = Output_StepX_2, .port = STEP_PORT, .pin = X2_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepX_2, .port = STEP_PORT,      .pin = X2_STEP_PIN,      .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #endif
 #ifdef Y2_STEP_PIN
-    {.id = Output_StepY_2, .port = STEP_PORT, .pin = Y2_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepY_2, .port = STEP_PORT,      .pin = Y2_STEP_PIN,      .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #endif
 #ifdef Z2_STEP_PIN
-    {.id = Output_StepZ_2, .port = STEP_PORT, .pin = Z2_STEP_PIN, .group = PinGroup_StepperStep, .mode = {STEP_PINMODE}},
+    { .id = Output_StepZ_2, .port = STEP_PORT,      .pin = Z2_STEP_PIN,      .group = PinGroup_StepperStep,    .mode = { STEP_PINMODE } },
 #endif
-    {.id = Output_DirX, .port = DIRECTION_PORT, .pin = X_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
-    {.id = Output_DirY, .port = DIRECTION_PORT, .pin = Y_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
-    {.id = Output_DirZ, .port = DIRECTION_PORT, .pin = Z_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirX,    .port = DIRECTION_PORT, .pin = X_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
+    { .id = Output_DirY,    .port = DIRECTION_PORT, .pin = Y_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
+    { .id = Output_DirZ,    .port = DIRECTION_PORT, .pin = Z_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #ifdef A_DIRECTION_PIN
-    {.id = Output_DirA, .port = DIRECTION_PORT, .pin = A_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirA,    .port = DIRECTION_PORT, .pin = A_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #endif
 #ifdef B_DIRECTION_PIN
-    {.id = Output_DirB, .port = DIRECTION_PORT, .pin = B_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirB,    .port = DIRECTION_PORT, .pin = B_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #endif
 #ifdef C_DIRECTION_PIN
-    {.id = Output_DirC, .port = DIRECTION_PORT, .pin = C_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirC,    .port = DIRECTION_PORT, .pin = C_DIRECTION_PIN,  .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #endif
 #ifdef X2_DIRECTION_PIN
-    {.id = Output_DirX_2, .port = DIRECTION_PORT, .pin = X2_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirX_2,  .port = DIRECTION_PORT, .pin = X2_DIRECTION_PIN, .group = PinGroup_StepperDir,     .mode = {DIRECTION_PINMODE } },
 #endif
 #ifdef Y2_DIRECTION_PIN
-    {.id = Output_DirY_2, .port = DIRECTION_PORT, .pin = Y2_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirY_2,  .port = DIRECTION_PORT, .pin = Y2_DIRECTION_PIN, .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #endif
 #ifdef Z2_DIRECTION_PIN
-    {.id = Output_DirZ_2, .port = DIRECTION_PORT, .pin = Z2_DIRECTION_PIN, .group = PinGroup_StepperDir, .mode = {DIRECTION_PINMODE}},
+    { .id = Output_DirZ_2,  .port = DIRECTION_PORT, .pin = Z2_DIRECTION_PIN, .group = PinGroup_StepperDir,     .mode = { DIRECTION_PINMODE } },
 #endif
 #if !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #ifndef STEPPERS_ENABLE_PIN
 #ifdef X_ENABLE_PIN
-    {.id = Output_StepperEnableX, .port = ENABLE_PORT, .pin = X_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableX, .port = ENABLE_PORT, .pin = X_ENABLE_PIN, .group = PinGroup_StepperEnable,  .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef Y_ENABLE_PIN
-    {.id = Output_StepperEnableY, .port = ENABLE_PORT, .pin = Y_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableY, .port = ENABLE_PORT, .pin = Y_ENABLE_PIN, .group = PinGroup_StepperEnable,  .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef Z_ENABLE_PIN
-    {.id = Output_StepperEnableZ, .port = ENABLE_PORT, .pin = Z_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableZ, .port = ENABLE_PORT, .pin = Z_ENABLE_PIN, .group = PinGroup_StepperEnable,  .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef X2_ENABLE_PIN
-    {.id = Output_StepperEnableX, .port = ENABLE_PORT, .pin = X2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableX, .port = ENABLE_PORT, .pin = X2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef Y2_ENABLE_PIN
-    {.id = Output_StepperEnableY, .port = ENABLE_PORT, .pin = Y2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableY, .port = ENABLE_PORT, .pin = Y2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef Z2_ENABLE_PIN
-    {.id = Output_StepperEnableZ, .port = ENABLE_PORT, .pin = Z2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableZ, .port = ENABLE_PORT, .pin = Z2_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef A_ENABLE_PIN
-    {.id = Output_StepperEnableA, .port = ENABLE_PORT, .pin = A_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableA, .port = ENABLE_PORT, .pin = A_ENABLE_PIN,  .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef B_ENABLE_PIN
-    {.id = Output_StepperEnableB, .port = ENABLE_PORT, .pin = B_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableB, .port = ENABLE_PORT, .pin = B_ENABLE_PIN,  .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef C_ENABLE_PIN
-    {.id = Output_StepperEnableC, .port = ENABLE_PORT, .pin = C_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnableC, .port = ENABLE_PORT, .pin = C_ENABLE_PIN,  .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #else // STEPPERS_ENABLE_PIN
-    {.id = Output_StepperEnable, .port = ENABLE_PORT, .pin = STEPPERS_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = {STEPPERS_ENABLE_PINMODE}},
+    { .id = Output_StepperEnable,  .port = ENABLE_PORT, .pin = STEPPERS_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #ifdef SPINDLE_PWM_PIN
-    {.id = Output_SpindlePWM, .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN, .group = PinGroup_SpindlePWM},
+    { .id = Output_SpindlePWM,   .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #ifdef RTS_PIN
-    {.id = Output_RTS, .port = GPIO_OUTPUT, .pin = RTS_PIN, .group = PinGroup_UART},
+    { .id = Output_RTS,          .port = GPIO_OUTPUT,      .pin = RTS_PIN,               .group = PinGroup_UART },
 #endif
 #ifdef SD_CS_PIN
-    {.id = Output_SdCardCS, .port = GPIO_OUTPUT, .pin = SD_CS_PIN, .group = PinGroup_SdCard},
+    { .id = Output_SdCardCS,     .port = GPIO_OUTPUT,      .pin = SD_CS_PIN,             .group = PinGroup_SdCard },
 #endif
 #ifdef SPI_CS_PIN
-    { .id = Output_SPICS,     .port = GPIO_OUTPUT,            .pin = SPI_CS_PIN,              .group = PinGroup_SPI },
+    { .id = Output_SPICS,        .port = GPIO_OUTPUT,      .pin = SPI_CS_PIN,            .group = PinGroup_SPI },
 #endif
 #ifdef SPI_RST_PIN
-    { .id = Output_SPIRST,    .port = SPI_RST_PORT,           .pin = SPI_RST_PIN,             .group = PinGroup_SPI },
+    { .id = Output_SPIRST,       .port = SPI_RST_PORT,     .pin = SPI_RST_PIN,           .group = PinGroup_SPI },
 #endif
 #ifndef SD_SHIFT_REGISTER
 #ifdef SPINDLE_ENABLE_PIN
-    {.id = Output_SpindleOn, .port = SPINDLE_PORT, .pin = SPINDLE_ENABLE_PIN, .group = PinGroup_SpindleControl},
+    { .id = Output_SpindleOn,    .port = SPINDLE_PORT,     .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
 #endif
 #ifdef SPINDLE_DIRECTION_PIN
-    {.id = Output_SpindleDir, .port = SPINDLE_PORT, .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
+    { .id = Output_SpindleDir,   .port = SPINDLE_PORT,     .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
 #endif
 #ifdef COOLANT_FLOOD_PIN
-    {.id = Output_CoolantFlood, .port = COOLANT_PORT, .pin = COOLANT_FLOOD_PIN, .group = PinGroup_Coolant},
+    { .id = Output_CoolantFlood, .port = COOLANT_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant},
 #endif
 #ifdef COOLANT_MIST_PIN
-    {.id = Output_CoolantMist, .port = COOLANT_PORT, .pin = COOLANT_MIST_PIN, .group = PinGroup_Coolant},
+    { .id = Output_CoolantMist,  .port = COOLANT_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
 #endif
 #ifdef AUXOUTPUT0_PORT
-    {.id = Output_Aux0, .port = AUXOUTPUT0_PORT, .pin = AUXOUTPUT0_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux0,         .port = AUXOUTPUT0_PORT,  .pin = AUXOUTPUT0_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT1_PORT
-    {.id = Output_Aux1, .port = AUXOUTPUT1_PORT, .pin = AUXOUTPUT1_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux1,         .port = AUXOUTPUT1_PORT,  .pin = AUXOUTPUT1_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT2_PORT
-    {.id = Output_Aux2, .port = AUXOUTPUT2_PORT, .pin = AUXOUTPUT2_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux2,         .port = AUXOUTPUT2_PORT,  .pin = AUXOUTPUT2_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT3_PORT
-    {.id = Output_Aux3, .port = AUXOUTPUT3_PORT, .pin = AUXOUTPUT3_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux3,         .port = AUXOUTPUT3_PORT,  .pin = AUXOUTPUT3_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT4_PORT
-    {.id = Output_Aux4, .port = AUXOUTPUT4_PORT, .pin = AUXOUTPUT4_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux4,         .port = AUXOUTPUT4_PORT,  .pin = AUXOUTPUT4_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT5_PORT
-    {.id = Output_Aux5, .port = AUXOUTPUT5_PORT, .pin = AUXOUTPUT5_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux5,         .port = AUXOUTPUT5_PORT,  .pin = AUXOUTPUT5_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT6_PORT
-    {.id = Output_Aux6, .port = AUXOUTPUT6_PORT, .pin = AUXOUTPUT6_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux6,         .port = AUXOUTPUT6_PORT,  .pin = AUXOUTPUT6_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT7_PORT
-    {.id = Output_Aux7, .port = AUXOUTPUT7_PORT, .pin = AUXOUTPUT7_PIN, .group = PinGroup_AuxOutput},
+    { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT,  .pin = AUXOUTPUT7_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #else // SD_SHIFT_REGISTER pin definitions - for $pins command only
-    {.id = Output_SpindleOn, .port = GPIO_SR16, .pin = 4, .group = PinGroup_SpindleControl},
-    {.id = Output_SpindleDir, .port = GPIO_SR16, .pin = 5, .group = PinGroup_SpindleControl},
-    {.id = Output_CoolantFlood, .port = GPIO_SR16, .pin = 6, .group = PinGroup_Coolant},
-    {.id = Output_CoolantMist, .port = GPIO_SR16, .pin = 7, .group = PinGroup_Coolant},
-    {.id = Output_Aux0, .port = GPIO_SR16, .pin = 8, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux1, .port = GPIO_SR16, .pin = 9, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux2, .port = GPIO_SR16, .pin = 10, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux3, .port = GPIO_SR16, .pin = 11, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux4, .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux5, .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux6, .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput},
-    {.id = Output_Aux7, .port = GPIO_SR16, .pin = 15, .group = PinGroup_AuxOutput}
+    { .id = Output_SpindleOn,    .port = GPIO_SR16, .pin = 4,  .group = PinGroup_SpindleControl },
+    { .id = Output_SpindleDir,   .port = GPIO_SR16, .pin = 5,  .group = PinGroup_SpindleControl },
+    { .id = Output_CoolantFlood, .port = GPIO_SR16, .pin = 6,  .group = PinGroup_Coolant },
+    { .id = Output_CoolantMist,  .port = GPIO_SR16, .pin = 7,  .group = PinGroup_Coolant },
+    { .id = Output_Aux0,         .port = GPIO_SR16, .pin = 8,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux1,         .port = GPIO_SR16, .pin = 9,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux2,         .port = GPIO_SR16, .pin = 10, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux3,         .port = GPIO_SR16, .pin = 11, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux4,         .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux5,         .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux6,         .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux7,         .port = GPIO_SR16, .pin = 15, .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT0_PWM_PIN
+    { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
+#endif
+#ifdef AUXOUTPUT1_PWM_PIN
+    { .id = Output_Analog_Aux1, .port = GPIO_OUTPUT, .pin = AUXOUTPUT1_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
+#endif
+#ifdef AUXOUTPUT2_PWM_PIN
+    { .id = Output_Analog_Aux2, .port = GPIO_OUTPUT, .pin = AUXOUTPUT2_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
+#endif
+#ifdef AUXOUTPUT3_PWM_PIN
+    { .id = Output_Analog_Aux3, .port = GPIO_OUTPUT, .pin = AUXOUTPUT3_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
 };
 
@@ -1819,18 +1831,18 @@ void setPeriphPinDescription(const pin_function_t function, const pin_group_t gr
 }
 
 // Initializes MCU peripherals
-static bool driver_setup(settings_t *settings)
+static bool driver_setup (settings_t *settings)
 {
     /*************************
      *  Output signals init  *
      *************************/
 
-    for (uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
-        if (outputpin[i].port == GPIO_OUTPUT) {
+    for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        if(outputpin[i].port == GPIO_OUTPUT && outputpin[i].group != PinGroup_AuxOutputAnalog) {
             outputpin[i].bit = 1 << outputpin[i].pin;
             gpio_init(outputpin[i].pin);
             gpio_set_dir_out_masked(outputpin[i].bit);
-            if (outputpin[i].group == PinGroup_SpindlePWM)
+            if(outputpin[i].group == PinGroup_SpindlePWM)
                 gpio_set_function(outputpin[i].pin, GPIO_FUNC_PWM);
         }
     }
@@ -2016,7 +2028,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230515";
+    hal.driver_version = "230525";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2152,7 +2164,7 @@ bool driver_init(void)
     input_signal_t *input;
     output_signal_t *output;
 
-    static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
+    static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0}, aux_inputs_analog = {0}, aux_outputs_analog = {0};
 
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
@@ -2179,20 +2191,30 @@ bool driver_init(void)
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
             output->id = Output_Aux0 + aux_outputs.n_pins++;
+        } else if(output->group == PinGroup_AuxOutputAnalog) {
+            if(aux_outputs_analog.pins.outputs == NULL)
+                aux_outputs_analog.pins.outputs = output;
+            output->id = Output_Analog_Aux0 + aux_outputs_analog.n_pins++;
         }
     }
 
-#ifdef HAS_IOPORTS
-    ioports_init(&aux_inputs, &aux_outputs);
+#if !defined(HAS_BOARD_INIT) || !OUT_SHIFT_REGISTER
+    if(aux_inputs.n_pins || aux_outputs.n_pins)
+        ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
 #ifdef HAS_BOARD_INIT
 #if OUT_SHIFT_REGISTER
     board_init(&aux_inputs, &aux_outputs, &out_sr);
 #else
+    if(aux_inputs.n_pins || aux_outputs.n_pins)
+        ioports_init(&aux_inputs, &aux_outputs);
     board_init();
 #endif
 #endif
+
+    if(aux_outputs_analog.n_pins)
+        ioports_init_analog(&aux_inputs_analog, &aux_outputs_analog);
 
     serialRegisterStreams();
 
@@ -2370,11 +2392,10 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
         }
         break;
 
-#ifdef HAS_IOPORTS
         case PinGroup_AuxInput:
             ioports_event(input);
             break;
-#endif
+
 #if I2C_STROBE_BIT
         case PinGroup_I2C:
             if(input->id == Input_I2CStrobe && i2c_strobe.callback)

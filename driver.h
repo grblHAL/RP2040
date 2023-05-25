@@ -278,6 +278,7 @@ typedef struct {
     uint8_t port;
     pin_mode_t mode;
     const char *description;
+    uint8_t pwm_idx;
 } output_signal_t;
 
 typedef struct {
@@ -297,6 +298,7 @@ void board_init (void);
 #endif
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
+void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_event (input_signal_t *input);
 void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode);
 

@@ -53,6 +53,7 @@ if(AddMyPlugin)
     pico_cnc.c
     btt_skr_pico_10.c
     ioports.c
+    ioports_analog.c
     tmc_uart.c
     my_plugin.c
     eeprom/eeprom_24AAxxx.c
@@ -83,6 +84,7 @@ else()
     pico_cnc.c
     btt_skr_pico_10.c
     ioports.c
+    ioports_analog.c
     tmc_uart.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c

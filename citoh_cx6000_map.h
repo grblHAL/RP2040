@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022 Terje Io
+  Copyright (c) 2022-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 
 #define BOARD_NAME "C.ITOH CX-6000 Plotter"
 #define HAS_BOARD_INIT
-#define HAS_IOPORTS
 
 // Define step pulse output pins.
 #define STEP_PORT               GPIO_PIO_1 // Single pin PIO SM

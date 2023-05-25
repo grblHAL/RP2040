@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include "driver.h"
 
-#ifdef HAS_IOPORTS
+#if !defined(BOARD_PICO_CNC)
 
 #include <math.h>
 #include <string.h>
