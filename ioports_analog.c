@@ -60,43 +60,14 @@ static void init_pwm (xbar_t *output, pwm_config_t *config)
 
 static bool analog_out (uint8_t port, float value)
 {
-    if(port < analog.n_out) {
-        port = ioports_map_output(analog, port);
+    if(port < analog.out.n_ports) {
+        port = ioports_map(analog.out, port);
         pwm_set_gpio_level(aux_out_analog[port].pin, ioports_compute_pwm_value(&pwm_data[aux_out_analog[port].pwm_idx], value));
     }
 
-    return port < analog.n_out;
+    return port < analog.out.n_ports;
 }
 
-inline static __attribute__((always_inline)) uint8_t out_map_rev_analog (uint8_t port)
-{
-    if(analog.out_map) {
-        uint_fast8_t idx = analog.n_out;
-        do {
-            if(analog.out_map[--idx] == port) {
-                port = idx;
-                break;
-            }
-        } while(idx);
-    }
-
-    return port;
-}
-
-inline static __attribute__((always_inline)) uint8_t in_map_rev_analog (uint8_t port)
-{
-    if(analog.in_map) {
-        uint_fast8_t idx = analog.n_in;
-        do {
-            if(analog.in_map[--idx] == port) {
-                port = idx;
-                break;
-            }
-        } while(idx);
-    }
-
-    return port;
-}
 static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8_t port)
 {
     static xbar_t pin;
@@ -109,10 +80,11 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 
     else if(dir == Port_Output) {
 
-        if(dir == Port_Output && port < analog.n_out) {
-            port = ioports_map_output(analog, port);
+        if(dir == Port_Output && port < analog.out.n_ports) {
+            port = ioports_map(analog.out, port);
             pin.mode = aux_out_analog[port].mode;
             pin.mode.output = pin.mode.analog = On;
+            pin.cap = pin.mode;
             pin.function = aux_out_analog[port].id;
             pin.group = aux_out_analog[port].group;
             pin.pin = aux_out_analog[port].pin;
@@ -132,8 +104,8 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 static void set_pin_description (io_port_type_t type, io_port_direction_t dir, uint8_t port, const char *description)
 {
     if(type == Port_Analog) {
-        if(dir == Port_Output && port < analog.n_out)
-            aux_out_analog[ioports_map_output(analog, port)].description = description;
+        if(dir == Port_Output && port < analog.out.n_ports)
+            aux_out_analog[ioports_map(analog.out, port)].description = description;
     } else if(set_pin_description_digital)
         set_pin_description_digital(type, dir, port, description);
 }
@@ -147,21 +119,21 @@ static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, 
 
     else if(dir == Port_Output) {
 
-        if((ok = analog.out_map && *port < analog.n_out && !aux_out_analog[*port].mode.claimed)) {
+        if((ok = analog.out.map && *port < analog.out.n_ports && !aux_out_analog[*port].mode.claimed)) {
 
             uint8_t i;
 
             hal.port.num_analog_out--;
 
-            for(i = out_map_rev_analog(*port); i < hal.port.num_analog_out; i++) {
-                analog.out_map[i] = analog.out_map[i + 1];
-                aux_out_analog[analog.out_map[i]].description = iports_get_pnum(analog, i);
+            for(i = ioports_map_reverse(&analog.out, *port); i < hal.port.num_analog_out; i++) {
+                analog.out.map[i] = analog.out.map[i + 1];
+                aux_out_analog[analog.out.map[i]].description = iports_get_pnum(analog, i);
             }
 
             aux_out_analog[*port].mode.claimed = On;
             aux_out_analog[*port].description = description;
 
-            analog.out_map[hal.port.num_analog_out] = *port;
+            analog.out.map[hal.port.num_analog_out] = *port;
             *port = hal.port.num_analog_out;
         }
     }
@@ -174,20 +146,19 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
     aux_in_analog = aux_inputs->pins.inputs;
     aux_out_analog = aux_outputs->pins.outputs;
 
+    set_pin_description_digital = hal.port.set_pin_description;
+    hal.port.set_pin_description = set_pin_description;
+
     if(ioports_add(&analog, Port_Analog, aux_inputs->n_pins, aux_outputs->n_pins))  {
 
         uint_fast8_t i, n_pwm = 0;
 /*
         if(analog.n_in) {
-
             wait_on_input_digital = hal.port.wait_on_input;
             hal.port.wait_on_input = wait_on_input;
-
-            for(i = 0; i < analog.n_in; i++)
-                aux_in_analog[i].description = iports_get_pnum(analog, i);
         }
 */
-        if(analog.n_out) {
+        if(analog.out.n_ports) {
 
             pwm_config_t config = {
                 .freq_hz = 5000.0f,
@@ -201,7 +172,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
 
             hal.port.analog_out = analog_out;
 
-            for(i = 0; i < analog.n_out; i++) {
+            for(i = 0; i < analog.out.n_ports; i++) {
                 if(aux_out_analog[i].mode.pwm)
                     n_pwm++;
             }
@@ -209,8 +180,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
             pwm_data = calloc(n_pwm, sizeof(ioports_pwm_t));
 
             n_pwm = 0;
-            for(i = 0; i < analog.n_out; i++) {
-                aux_out_analog[i].description = iports_get_pnum(analog, i);
+            for(i = 0; i < analog.out.n_ports; i++) {
                 if(aux_out_analog[i].mode.pwm && !!pwm_data) {
                     aux_out_analog[i].pwm_idx = n_pwm++;
                     init_pwm(get_pin_info(Port_Analog, Port_Output, i), &config);
@@ -221,11 +191,9 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
         claim_digital = hal.port.claim;
         swap_pins_digital = hal.port.swap_pins;
         get_pin_info_digital = hal.port.get_pin_info;
-        set_pin_description_digital = hal.port.set_pin_description;
  
         hal.port.claim = claim;
 //        hal.port.swap_pins = swap_pins;
         hal.port.get_pin_info = get_pin_info;
-        hal.port.set_pin_description = set_pin_description;
     }
 }
