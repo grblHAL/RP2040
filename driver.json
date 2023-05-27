@@ -27,7 +27,6 @@
       { "id": "sdcard" },
       { "id": "webui" },
       { "id": "networking" },
-      { "id": "networking" },
       { "id": "keypad" },
       { "id": "macros" },
       { "id": "bluetooth" },
