@@ -97,6 +97,11 @@ static inline bool usb_connected (void)
   return tud_ready();
 }
 
+static bool usb_is_connected(void)
+{
+    return tud_cdc_n_connected(0);
+}
+
 static void usb_out_chars (const char *buf, int length)
 {
     static uint64_t last_avail_time;
@@ -310,6 +315,7 @@ const io_stream_t *usb_serialInit (void)
     static const io_stream_t stream = {
         .type = StreamType_Serial,
         .state.is_usb = On,
+        .is_connected = usb_is_connected,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
         .write_n = usb_serialWrite,
