@@ -300,6 +300,10 @@ static inline void services_poll (void)
     if(services.ftp)
         ftpd_poll();
 #endif
+
+#if MODBUS_ENABLE & MODBUS_TCP_ENABLED
+    modbus_tcp_client_poll();
+#endif
 }
 
 static void lwIPHostTimerHandler (void *arg)
@@ -369,6 +373,10 @@ static void start_services (void)
 //            mdns_resp_announce(netif_default);
         }
     }
+#endif
+
+#if MODBUS_ENABLE & MODBUS_TCP_ENABLED
+    modbus_tcp_client_start();
 #endif
 
 #if USE_LWIP_POLLING && (TELNET_ENABLE || WEBSOCKET_ENABLE || FTP_ENABLE)
@@ -1417,7 +1425,12 @@ bool wifi_init (void)
         on_client_connected = mqtt_events.on_client_connected;
         mqtt_events.on_client_connected = mqtt_connection_changed;
 #endif
+
         settings_register(&setting_details);
+
+#if MODBUS_ENABLE & MODBUS_TCP_ENABLED
+        modbus_tcp_client_init();
+#endif
 
         allowed_services.mask = networking_get_services_list((char *)netservices).mask;
     }
