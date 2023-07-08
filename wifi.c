@@ -198,10 +198,10 @@ static void reportIP (bool newopt)
     on_report_options(newopt);
 
     if(newopt) {
-#if FTP_ENABLE
-        hal.stream.write(",WIFI,FTP");
-#else
         hal.stream.write(",WIFI");
+#if FTP_ENABLE
+        if(services.ftp)
+            hal.stream.write(",FTP");
 #endif
 #if WEBDAV_ENABLE
         if(services.webdav)
