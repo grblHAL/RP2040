@@ -82,8 +82,8 @@
     {
       "name": "PicoCNC",
       "symbol": "BOARD_PICO_CNC",
+      "URL": "https://github.com/phil-barrett/PicoCNC",
       "MAP": "pico_cnc_map.h",
-      "URL": "",
       "caps": {
         "axes": 5,
         "digital_in": 4,

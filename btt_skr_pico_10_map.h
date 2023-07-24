@@ -97,3 +97,7 @@
 // Define probe switch input pin.
 #define PROBE_PORT                  GPIO_INPUT
 #define PROBE_PIN                   22
+
+#if MODBUS_ENABLE
+#define MODBUS_SERIAL_PORT          0
+#endif

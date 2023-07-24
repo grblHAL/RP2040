@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #endif
 
 #define BOARD_NAME "PicoCNC"
+#define BOARD_URL "https://github.com/phil-barrett/PicoCNC"
 #define HAS_BOARD_INIT
 
 typedef union {

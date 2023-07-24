@@ -199,7 +199,7 @@
 #include "motors/trinamic.h"
 #endif
 
-#if MODBUS_ENABLE & MODBUS_RTU_ENABLED
+#if (MODBUS_ENABLE & MODBUS_RTU_ENABLED) && !defined(MODBUS_SERIAL_PORT)
 #define MODBUS_TEST 1
 #else
 #define MODBUS_TEST 0
