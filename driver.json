@@ -88,6 +88,8 @@
         "axes": 5,
         "digital_in": 4,
         "digital_out": 8,
+        "eeprom": 0,
+        "fram": 0,
         "sdcard": 1,
         "wifi": 1,
         "wiznet": 1,

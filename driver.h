@@ -296,6 +296,9 @@ void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, ou
 #else
 void board_init (void);
 #endif
+#if SPI_RST_PORT == GPIO_SR16
+void spi_reset_out (bool on);
+#endif
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);

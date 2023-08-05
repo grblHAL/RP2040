@@ -82,10 +82,12 @@ static void digital_out (uint8_t port, bool on)
                 sr->aux6_out = on;
                 break;
 
+#ifdef AUXOUTPUT7_PIN // TX enable
             case 7:
-                sr->aux7_out = on;
+                DIGITAL_OUT(1 << AUXOUTPUT7_PIN, on);
                 break;
-                
+#endif
+
             default:
                 break;
         }

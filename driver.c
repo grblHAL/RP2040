@@ -478,8 +478,11 @@ static output_signal_t outputpin[] = {
     { .id = Output_Aux4,         .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
     { .id = Output_Aux5,         .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
     { .id = Output_Aux6,         .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
-    { .id = Output_Aux7,         .port = GPIO_SR16, .pin = 15, .group = PinGroup_AuxOutput },
+#ifdef AUXOUTPUT7_PORT
+    { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT, .pin = AUXOUTPUT7_PIN, .group = PinGroup_AuxOutput},
 #endif
+    { .id = Output_SPIRST,       .port = GPIO_SR16, .pin = 15, .group = PinGroup_SPI },
+#endif // SD_SHIFT_REGISTER
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
@@ -1383,6 +1386,16 @@ static coolant_state_t coolantGetState(void)
     return state;
 }
 
+#if SPI_RST_PORT == GPIO_SR16
+
+void spi_reset_out (bool on)
+{
+    out_sr.spi_reset = on;
+    out_sr16_write(pio1, out_sr_sm, out_sr.value);
+}
+
+#endif
+
 // Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
 static void bitsSetAtomic(volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
@@ -1748,7 +1761,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
     }
 }
 
-static void enumeratePins(bool low_level, pin_info_ptr pin_info, void *data)
+static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
 {
     static xbar_t pin = {0};
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
@@ -1795,7 +1808,7 @@ static void enumeratePins(bool low_level, pin_info_ptr pin_info, void *data)
     } while(ppin = ppin->next);
 }
 
-void registerPeriphPin(const periph_pin_t *pin)
+void registerPeriphPin (const periph_pin_t *pin)
 {
     periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
 
@@ -1815,7 +1828,7 @@ void registerPeriphPin(const periph_pin_t *pin)
     }
 }
 
-void setPeriphPinDescription(const pin_function_t function, const pin_group_t group, const char *description)
+void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
 {
     periph_signal_t *ppin = periph_pins;
 
@@ -2028,7 +2041,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230525";
+    hal.driver_version = "230805";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME

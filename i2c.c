@@ -83,6 +83,9 @@ void i2c_irq_handler(void)
         tx.port->clr_stop_det;
         tx.busy = false;
     }
+
+    if(!tx.busy)
+        irq_set_enabled(QI2C_IRQ, false);
 }
 
 void I2C_Init (void)
@@ -114,7 +117,6 @@ void I2C_Init (void)
     tx.channel = dma_claim_unused_channel(false);
 
     irq_set_exclusive_handler(QI2C_IRQ, i2c_irq_handler);
-    irq_set_enabled(QI2C_IRQ, true);
 }
 
 bool i2c_probe (uint_fast16_t i2cAddr)
@@ -137,6 +139,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
         }
 
         ok = i2c_write_blocking(QI2C_PORT, i2cAddr, buf, bytes, false) == bytes;
+
     } else {
 
         if(tx.busy)
@@ -162,6 +165,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
         channel_config_set_transfer_data_size(&cfg, DMA_SIZE_16);
         channel_config_set_dreq(&cfg, i2c_get_dreq(QI2C_PORT, true));
 
+        irq_set_enabled(QI2C_IRQ, true);
         dma_channel_configure(tx.channel, &cfg, &tx.port->data_cmd, tx.payload, tx.len, true);
 
         ok = true;

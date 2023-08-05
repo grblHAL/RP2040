@@ -91,9 +91,15 @@ static void add_pin (xbar_t *gpio, void *data)
 
 void wizchip_reset (void)
 {
+#if SPI_RST_PORT == GPIO_SR16
+    spi_reset_out(0);
+    hal.delay_ms(2, NULL);
+    spi_reset_out(1);
+#else
     DIGITAL_OUT(hw.rst, 0);
     hal.delay_ms(2, NULL);
     DIGITAL_OUT(hw.rst, 1);
+#endif
     hal.delay_ms(10, NULL);
 }
 
