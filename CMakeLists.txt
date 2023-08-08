@@ -69,6 +69,7 @@ if(AddMyPlugin)
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
+    fans/fans.c
     )
 else()
     add_executable(grblHAL
@@ -99,6 +100,7 @@ else()
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
+    fans/fans.c
     )
 endif()
 

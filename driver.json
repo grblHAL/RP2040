@@ -30,6 +30,7 @@
       { "id": "keypad" },
       { "id": "macros" },
       { "id": "bluetooth" },
+      { "id": "fans" },
       { "id": "embroidery" }
     ]
   },

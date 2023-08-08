@@ -39,7 +39,7 @@
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 //#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
-//#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define MODBUS_ENABLE        7 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WIFI_ENABLE          0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define WIFI_SOFTAP          1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
 //#define ETHERNET_ENABLE      0 // Do NOT enable here, enable in CMakeLists.txt!
@@ -48,7 +48,7 @@
 //#define WEBUI_ENABLE         1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE    1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH        1 // Store WebUI files in flash instead of on SD card.
-//#define SDCARD_ENABLE        1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+//#define SDCARD_ENABLE        2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
                                  // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
@@ -58,6 +58,7 @@
 //#define ODOMETER_ENABLE      1 // Odometer plugin.
 //#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
+//#define FANS_ENABLE          1 // Enable fan control via M106/M107. Activates fan plugin.
 //#define EMBROIDERY_ENABLE    1 // Embroidery plugin. To be completed.
 //#define TRINAMIC_ENABLE      1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
 //#define TRINAMIC_I2C         1 // Trinamic I2C - SPI bridge interface.
@@ -88,7 +89,7 @@
 //#define MDNS_ENABLE          0 // mDNS daemon. Do NOT enable here, enable in CMakeLists.txt!
 //#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
 #if SDCARD_ENABLE || WEBUI_ENABLE
-//#define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled.
+#define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled.
 //#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.
 //#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
 #endif
