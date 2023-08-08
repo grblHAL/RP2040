@@ -31,3 +31,6 @@
 [submodule "embroidery"]
 	path = embroidery
 	url = https://github.com/grblHAL/Plugin_embroidery
+[submodule "fans"]
+	path = fans
+	url = https://github.com/grblHAL/Plugin_fans/
