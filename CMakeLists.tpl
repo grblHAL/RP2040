@@ -23,15 +23,13 @@ include(trinamic/CMakeLists.txt)
 include(spindle/CMakeLists.txt)
 include(keypad/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
-if(ADD_HPGL)
-    include(hpgl/CMakeLists.txt)
-endif()
+%include_libraries%
 
 project(grblHAL)
 pico_sdk_init()
 
 if(AddMyPlugin)
-    add_executable(grblHAL
+  add_executable(grblHAL
     main.c
     driver.c
     serial.c
@@ -60,9 +58,10 @@ if(AddMyPlugin)
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
-    )
+    fans/fans.c
+  )
 else()
-    add_executable(grblHAL
+  add_executable(grblHAL
     main.c
     driver.c
     serial.c
@@ -90,7 +89,8 @@ else()
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
-    )
+    fans/fans.c
+  )
 endif()
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
@@ -176,15 +176,6 @@ if(AddMyPlugin)
     )
 endif()
 
-if(ADD_HPGL)
-    target_sources(grblHAL PRIVATE
-     citoh_cx6000.c
-    )
-    target_link_libraries(grblHAL PRIVATE
-     hpgl
-    )
-endif()
-
 target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_link_libraries(grblHAL PRIVATE
  grbl
@@ -205,6 +196,7 @@ target_link_libraries(grblHAL PRIVATE
  hardware_rtc
  hardware_clocks
  hardware_flash
+%link_libraries%
 )
 
 pico_add_extra_outputs(grblHAL)
