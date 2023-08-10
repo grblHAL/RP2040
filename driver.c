@@ -545,7 +545,9 @@ static void stepper_int_handler(void);
 static void gpio_int_handler(uint gpio, uint32_t events);
 static void spindle_set_speed(uint_fast16_t pwm_value);
 
-#if I2C_STROBE_ENABLE
+#if I2C_STROBE_BIT || SPI_IRQ_BIT
+
+#if I2C_STROBE_BIT
 static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
 #endif
 
@@ -553,27 +555,34 @@ static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
 static driver_irq_handler_t spi_irq = { .type = IRQ_SPI };
 #endif
 
-#if I2C_STROBE_BIT || SPI_IRQ_BIT
-
 static bool irq_claim (irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
 {
-    bool ok;
+    bool ok = false;
+
+    switch(irq) {
 
 #if I2C_STROBE_BIT
-    if((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
-        i2c_strobe.callback = handler;
+        case IRQ_I2C_Strobe:
+            if((ok = i2c_strobe.callback == NULL))
+                i2c_strobe.callback = handler;
+            break;
 #endif
 
 #if SPI_IRQ_BIT
-    if((ok = irq == IRQ_SPI && spi_irq.callback == NULL))
-        spi_irq.callback = handler;
+        case IRQ_SPI:
+            if((ok = spi_irq.callback == NULL))
+                spi_irq.callback = handler;
+            break;
 #endif
+
+        default:
+            break;
+    }
 
     return ok;
 }
 
-#endif
-
+#endif // I2C_STROBE_BIT || SPI_IRQ_BIT
 
 static int64_t delay_callback(alarm_id_t id, void *callback)
 {
@@ -2041,7 +2050,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230805";
+    hal.driver_version = "230810";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
