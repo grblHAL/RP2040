@@ -1091,7 +1091,7 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 // Sets up the probe pin invert mask to
 // appropriately set the pin logic according to setting for normal-high/normal-low operation
 // and the probing cycle modes for toward-workpiece/away-from-workpiece.
-static void probeConfigure(bool is_probe_away, bool probing)
+static void probeConfigure (bool is_probe_away, bool probing)
 {
     probe.triggered = false;
     probe.inverted = is_probe_away ? !settings.probe.invert_probe_pin : settings.probe.invert_probe_pin;
@@ -1105,7 +1105,7 @@ static void probeConfigure(bool is_probe_away, bool probing)
 }
 
 // Returns the probe connected and triggered pin states.
-probe_state_t probeGetState(void)
+static probe_state_t probeGetState (void)
 {
     probe_state_t state = {0};
 
@@ -1122,7 +1122,7 @@ probe_state_t probeGetState(void)
 #ifdef DRIVER_SPINDLE
 
 // Static spindle (off, on cw & on ccw)
-inline static void spindle_off(void)
+inline static void spindle_off (void)
 {
 #if SPINDLE_PORT == GPIO_OUTPUT
 
