@@ -111,7 +111,8 @@ uint32_t spi_set_speed (uint32_t freq_hz)
 {
     uint32_t cur = spi_freq;
 
-  	spi_set_baudrate(SPIPORT, spi_freq = freq_hz);
+    if(freq_hz != 0)
+  	    spi_set_baudrate(SPIPORT, spi_freq = freq_hz);
 
     return cur;
 }

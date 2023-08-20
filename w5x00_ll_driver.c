@@ -45,7 +45,7 @@ static void wizchip_deselect (void)
 {
     DIGITAL_OUT(hw.cs, 1);
 
-    if(spi_freq != WIZCHIP_SPI_FREQ)
+    if(spi_freq != WIZCHIP_SPI_FREQ && spi_freq)
         spi_set_speed(spi_freq);
 }
 

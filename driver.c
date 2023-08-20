@@ -1644,7 +1644,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     input->invert = control_fei.safety_door_ajar;
                     input->active = DIGITAL_IN(input->bit);
-                        input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High);
+                        input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High;
                         break;
     #endif
                 case Input_Probe:
@@ -1866,6 +1866,8 @@ static bool driver_setup (settings_t *settings)
             gpio_set_dir_out_masked(outputpin[i].bit);
             if(outputpin[i].group == PinGroup_SpindlePWM)
                 gpio_set_function(outputpin[i].pin, GPIO_FUNC_PWM);
+            else if(outputpin[i].id == Output_SdCardCS)
+                DIGITAL_OUT(outputpin[i].bit, 1);
         }
     }
 
@@ -1967,6 +1969,9 @@ static bool driver_setup (settings_t *settings)
     pio_offset = pio_add_program(pio1, &out_sr16_program);
     out_sr16_program_init(pio1, out_sr_sm, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
     pio_sm_claim(pio1, out_sr_sm);
+  #if SPI_RST_PORT == GPIO_SR16
+    spi_reset_out(1);
+  #endif
 #endif
 
 #if SDCARD_ENABLE
@@ -2050,7 +2055,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230810";
+    hal.driver_version = "230820";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
