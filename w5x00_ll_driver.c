@@ -22,7 +22,7 @@
 #endif
 
 #ifndef WIZCHIP_SPI_FREQ
-#define WIZCHIP_SPI_FREQ 25000000 // 25MHz
+#define WIZCHIP_SPI_FREQ 33000000 // 33MHz
 #endif
 
 static struct {
@@ -35,8 +35,11 @@ static volatile bool spin_lock = false;
 
 static void wizchip_select (void)
 {
-    if(spi_freq != WIZCHIP_SPI_FREQ)
-        spi_freq = spi_set_speed(WIZCHIP_SPI_FREQ);
+    if(spi_freq != WIZCHIP_SPI_FREQ) {
+        uint32_t freq = spi_set_speed(WIZCHIP_SPI_FREQ);
+        if(freq != WIZCHIP_SPI_FREQ)
+            spi_freq = freq;
+    }
 
     DIGITAL_OUT(hw.cs, 0);
 }
