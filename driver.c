@@ -1011,19 +1011,26 @@ static void __not_in_flash_func(stepperPulseStart)(stepper_t *stepper)
 //*************************  LIMIT  *************************//
 
 // Enable/disable limit pins interrupt
-static void limitsEnable(bool on, bool homing)
+static void limitsEnable(bool on, axes_signals_t homing_cycle)
 {
+    bool disable = !on;
     uint32_t i = limit_inputs.n_pins;
+    axes_signals_t pin;
+    limit_signals_t homing_source = xbar_get_homing_source_from_cycle(homing_cycle);
 
     on = on && settings.limits.flags.hard_enabled;
 
     do {
         i--;
-        pinEnableIRQ(&limit_inputs.pins.inputs[i], on ? limit_inputs.pins.inputs[i].irq_mode : IRQ_Mode_None);
+        if(on && homing_cycle.mask) {
+            pin = xbar_fn_to_axismask(limit_inputs.pins.inputs[i].id);
+            disable = limit_inputs.pins.inputs[i].group == PinGroup_Limit ? (pin.mask & homing_source.min.mask) : (pin.mask & homing_source.max.mask);
+        }
+        pinEnableIRQ(&limit_inputs.pins.inputs[i], disable ? IRQ_Mode_None : limit_inputs.pins.inputs[i].irq_mode);
     } while (i);
 
 #if TRINAMIC_ENABLE
-//    trinamic_homing(homing);
+//    trinamic_homing(homing_cycle.mask != 0);
 #endif
 }
 
@@ -2055,7 +2062,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230820";
+    hal.driver_version = "230828";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2175,6 +2182,7 @@ bool driver_init(void)
     hal.signals_cap.reset = Off;
 #endif
     hal.limits_cap = get_limits_cap();
+    hal.home_cap = get_home_cap();
 #if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
     hal.driver_cap.mist_control = On;
 #endif
@@ -2201,7 +2209,7 @@ bool driver_init(void)
             input->id = Input_Aux0 + aux_inputs.n_pins++;
             input->cap.irq_mode = IRQ_Mode_All;
         }
-        if(input->group == PinGroup_Limit) {
+        if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
             if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
@@ -2407,6 +2415,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 #endif
 
         case PinGroup_Limit:
+        case PinGroup_LimitMax:
         {
             // If debounce is enabled register an alarm to reenable the IRQ after the debounce delay has expired.
             // If the input is still active when the delay expires the limits interrupt will be fired.
