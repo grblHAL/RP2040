@@ -80,6 +80,31 @@ void tmc_uart_write (trinamic_motor_t driver, TMC_uart_write_datagram_t *dgr)
     while(tmc_uart.get_tx_buffer_count());
 }
 
+#if defined(BOARD_BTT_SKR_PICO_10)
+
+void driver_preinit (motor_map_t motor, trinamic_driver_config_t *config)
+{
+    static const uint8_t address_map[4] = { 0, 2, 1, 3 };
+    
+    config->address = address_map[config->address];
+}
+
+void tmc_uart_init (void)
+{
+    static trinamic_driver_if_t driver_if = {
+        .on_driver_preinit = driver_preinit
+    };
+
+    memcpy(&tmc_uart, serial2Init(230400), sizeof(io_stream_t));
+
+    tmc_uart.disable_rx(true);
+    tmc_uart.set_enqueue_rt_handler(stream_buffer_all);
+
+    trinamic_if_init(&driver_if);
+}
+
+#else
+    
 void tmc_uart_init (void)
 {
     memcpy(&tmc_uart, serial2Init(230400), sizeof(io_stream_t));
@@ -88,4 +113,5 @@ void tmc_uart_init (void)
     tmc_uart.set_enqueue_rt_handler(stream_buffer_all);
 }
 
-#endif
+#endif // BOARD_BTT_SKR_PICO_10
+#endif // TRINAMIC_UART_ENABLE
