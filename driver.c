@@ -1650,9 +1650,8 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     safety_door = input;
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     input->invert = control_fei.safety_door_ajar;
-                    input->active = DIGITAL_IN(input->bit);
-                        input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High;
-                        break;
+                    input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High;
+                    break;
     #endif
                 case Input_Probe:
                     pullup = !settings->probe.disable_probe_pullup;
@@ -1741,6 +1740,8 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
             if (input->id == Input_Probe)
                 probeConfigure(false, false);
+            else if(input->id == Input_SafetyDoor)
+                input->active = DIGITAL_IN(input->bit);
 
             gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
         } while (i);
@@ -1751,24 +1752,24 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
         for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
             if(outputpin[i].port == GPIO_OUTPUT)
-                switch(outputpin[i].id) {
+              switch(outputpin[i].id) {
 
-                    case Output_SpindleOn:
-                        gpio_set_outover(outputpin[i].pin, settings->spindle.invert.on ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                        break;
+                case Output_SpindleOn:
+                    gpio_set_outover(outputpin[i].pin, settings->spindle.invert.on ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                    break;
 
-                    case Output_SpindleDir:
-                        gpio_set_outover(outputpin[i].pin, settings->spindle.invert.ccw ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                        break;
+                case Output_SpindleDir:
+                    gpio_set_outover(outputpin[i].pin, settings->spindle.invert.ccw ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                    break;
 
-                    case Output_CoolantMist:
-                        gpio_set_outover(outputpin[i].pin, settings->coolant_invert.mist ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                        break;
+                case Output_CoolantMist:
+                    gpio_set_outover(outputpin[i].pin, settings->coolant_invert.mist ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                    break;
 
-                    case Output_CoolantFlood:
-                        gpio_set_outover(outputpin[i].pin, settings->coolant_invert.flood ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                        break;
-                }
+                case Output_CoolantFlood:
+                    gpio_set_outover(outputpin[i].pin, settings->coolant_invert.flood ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+                    break;
+            }
         }
 
         // Activate GPIO IRQ
@@ -1849,12 +1850,10 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
     periph_signal_t *ppin = periph_pins;
 
     if(ppin) do {
-        if (ppin->pin.function == function && ppin->pin.group == group)
-        {
+        if(ppin->pin.function == function && ppin->pin.group == group) {
             ppin->pin.description = description;
             ppin = NULL;
-        }
-        else
+        } else
             ppin = ppin->next;
     } while(ppin);
 }
@@ -2055,14 +2054,14 @@ bool driver_init(void)
 {
     // Enable EEPROM and serial port here for grblHAL to be able to configure itself and report any errors
 
-    //    irq_set_exclusive_handler(-1, systick_handler);
+    // irq_set_exclusive_handler(-1, systick_handler);
 
     systick_hw->rvr = 999;
     systick_hw->cvr = 0;
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230828";
+    hal.driver_version = "230915";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
