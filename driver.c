@@ -1868,12 +1868,15 @@ static bool driver_setup (settings_t *settings)
     for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         if(outputpin[i].port == GPIO_OUTPUT && outputpin[i].group != PinGroup_AuxOutputAnalog) {
             outputpin[i].bit = 1 << outputpin[i].pin;
+
             gpio_init(outputpin[i].pin);
+            if(outputpin[i].id == PinGroup_StepperEnable || outputpin[i].id == Output_SdCardCS)
+                DIGITAL_OUT(outputpin[i].bit, 1);
+
             gpio_set_dir_out_masked(outputpin[i].bit);
+
             if(outputpin[i].group == PinGroup_SpindlePWM)
                 gpio_set_function(outputpin[i].pin, GPIO_FUNC_PWM);
-            else if(outputpin[i].id == Output_SdCardCS)
-                DIGITAL_OUT(outputpin[i].bit, 1);
         }
     }
 
@@ -2061,7 +2064,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230915";
+    hal.driver_version = "230919";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
