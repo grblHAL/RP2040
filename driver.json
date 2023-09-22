@@ -40,6 +40,24 @@
   },
   "boards": [
     {
+      "name": "PicoCNC",
+      "symbol": "BOARD_PICO_CNC",
+      "URL": "https://github.com/phil-barrett/PicoCNC",
+      "MAP": "pico_cnc_map.h",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 8,
+        "eeprom": 0,
+        "fram": 0,
+        "sdcard": 1,
+        "wifi": 1,
+        "wiznet": 1,
+        "bluetooth": 1,
+        "hc05": 1
+      }
+    },
+    {
       "name": "PicoBOB",
       "symbol": "BOARD_PICOBOB",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
@@ -78,24 +96,6 @@
         "wifi": 0,
         "trinamic": 2209,
         "trinamic_uart_addr": 1
-      }
-    },
-    {
-      "name": "PicoCNC",
-      "symbol": "BOARD_PICO_CNC",
-      "URL": "https://github.com/phil-barrett/PicoCNC",
-      "MAP": "pico_cnc_map.h",
-      "caps": {
-        "axes": 5,
-        "digital_in": 4,
-        "digital_out": 8,
-        "eeprom": 0,
-        "fram": 0,
-        "sdcard": 1,
-        "wifi": 1,
-        "wiznet": 1,
-        "bluetooth": 1,
-        "hc05": 1
       }
     }
   ]
