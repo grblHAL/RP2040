@@ -95,7 +95,12 @@ void tmc_uart_init (void)
         .on_driver_preinit = driver_preinit
     };
 
-    memcpy(&tmc_uart, serial2Init(230400), sizeof(io_stream_t));
+    const io_stream_t *stream;
+
+    if((stream = stream_open_instance(TRINAMIC_STREAM, 230400, NULL)) == NULL)
+        stream = stream_null_init(230400);
+
+    memcpy(&tmc_uart, stream, sizeof(io_stream_t));
 
     tmc_uart.disable_rx(true);
     tmc_uart.set_enqueue_rt_handler(stream_buffer_all);
@@ -107,7 +112,12 @@ void tmc_uart_init (void)
     
 void tmc_uart_init (void)
 {
-    memcpy(&tmc_uart, serial2Init(230400), sizeof(io_stream_t));
+    const io_stream_t *stream;
+
+    if((stream = stream_open_instance(TRINAMIC_STREAM, 230400, NULL)) == NULL)
+        stream = stream_null_init(230400);
+
+    memcpy(&tmc_uart, stream, sizeof(io_stream_t));
 
     tmc_uart.disable_rx(true);
     tmc_uart.set_enqueue_rt_handler(stream_buffer_all);

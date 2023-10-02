@@ -199,7 +199,19 @@
 #include "motors/trinamic.h"
 #endif
 
-#if (MODBUS_ENABLE & MODBUS_RTU_ENABLED) && !defined(MODBUS_SERIAL_PORT)
+#if USB_SERIAL_CDC
+#define SP0 1
+#else
+#define SP0 0
+#endif
+
+#ifdef SERIAL1_PORT
+#define SP1 1
+#else
+#define SP1 0
+#endif
+
+#if (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
 #define MODBUS_TEST 1
 #else
 #define MODBUS_TEST 0
@@ -217,14 +229,12 @@
 #define MPG_TEST 0
 #endif
 
-#if MODBUS_TEST + KEYPAD_TEST + BLUETOOTH_ENABLE + TRINAMIC_UART_ENABLE + MPG_TEST > 1
-#error "Only one option that uses the serial port can be enabled!"
+#if (MODBUS_TEST + KEYPAD_TEST + (BLUETOOTH_ENABLE == 2 ? 1 : 0) + TRINAMIC_UART_ENABLE + MPG_TEST) > (SP0 + SP1)
+#error "Too many options that uses the serial port are enabled!"
 #endif
 
-#if MODBUS_TEST || KEYPAD_TEST || BLUETOOTH_ENABLE || TRINAMIC_UART_ENABLE || MPG_ENABLE
-#define SERIAL2_MOD
-#endif
-
+#undef SP0
+#undef SP1
 #undef MODBUS_TEST
 #undef KEYPAD_TEST
 #undef MPG_TEST

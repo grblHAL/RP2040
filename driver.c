@@ -163,7 +163,6 @@ static pio_steps_t pio_steps = {.delay = 20, .length = 100};
 static uint step_pulse_sm, stepper_timer_sm, stepper_timer_sm_offset;
 static uint16_t pulse_length, pulse_delay;
 static bool IOInitDone = false;
-static const io_stream_t *serial_stream;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
 static volatile uint32_t elapsed_ticks = 0;
 static probe_state_t probe = { .connected = On };
@@ -2122,10 +2121,13 @@ bool driver_init(void)
     hal.rtc.get_datetime = get_rtc_time;
     hal.rtc.set_datetime = set_rtc_time;
 
+    serialRegisterStreams();
+
 #if USB_SERIAL_CDC
-    stream_connect(serial_stream = usb_serialInit());
+    stream_connect(usb_serialInit());
 #else
-    stream_connect(serial_stream = serialInit(115200));
+    if(!stream_connect_instance(SERIAL_STREAM, BAUD_RATE))
+        while(true);
 #endif
 
 #ifdef I2C_PORT
@@ -2252,8 +2254,6 @@ bool driver_init(void)
 
     if(aux_outputs_analog.n_pins)
         ioports_init_analog(&aux_inputs_analog, &aux_outputs_analog);
-
-    serialRegisterStreams();
 
 #if MPG_MODE == 1
 #if KEYPAD_ENABLE == 2

@@ -35,7 +35,7 @@ uint16_t MCP3221_read (void)
 
 bool MCP3221_init (void)
 {
-    i2c_init();
+    I2C_Init();
 
-    return i2c_send(MCP3221_ADDRESS, NULL, 0, true);
+    return i2c_probe(MCP3221_ADDRESS);
 }

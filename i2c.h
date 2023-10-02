@@ -38,6 +38,7 @@ void I2C_DriverInit (TMC_io_driver_t *drv);
 
 void I2C_Init (void);
 bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t size, bool block);
+bool i2c_receive (uint_fast16_t i2cAddr, uint8_t *buf, size_t size, bool block);
 void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback);
 
 #endif

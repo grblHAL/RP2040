@@ -29,6 +29,7 @@
 
 #include "hardware/pio.h"
 
+#include "MCP3221.h"
 #include "driverPIO.pio.h"
 #include "grbl/protocol.h"
 
@@ -41,6 +42,11 @@ static io_ports_data_t digital;
 static input_signal_t *aux_in;
 static output_signal_t *aux_out;
 static ioport_bus_t invert_digital_out;
+#if MCP3221_ENABLE
+static xbar_t analog_in;
+static uint_fast8_t analog_n_in;
+static enumerate_pins_ptr on_enumerate_pins;
+#endif
 
 static void digital_out (uint8_t port, bool on)
 {
@@ -167,6 +173,11 @@ static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wai
         port = ioports_map(digital.in, port);
         value = get_input(&aux_in[port], (settings.ioport.invert_in.mask >> port) & 0x01, wait_mode, timeout);
     }
+#if MCP3221_ENABLE
+    else if(port < analog_n_in)
+        value = (int32_t)MCP3221_read();
+#endif
+
 //    else if(port == 0)
 //        value = analogRead(41);
 
@@ -235,6 +246,10 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
             info = &pin;
         }
     }
+#if MCP3221_ENABLE
+    else if(dir == Port_Input && port == 0)
+        info = &analog_in;
+#endif
 
     return info;
 }
@@ -293,6 +308,13 @@ static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, 
             *port = hal.port.num_digital_out;
         }
     }
+#if MCP3221_ENABLE
+    else if(dir == Port_Input && (ok = *port == 0 && analog_in.mode.analog && !analog_in.mode.claimed)) {
+        hal.port.num_analog_in--;
+        analog_in.mode.claimed = On;
+        analog_in.description = description;
+    }
+#endif
 
     return ok;
 }
@@ -330,6 +352,17 @@ bool swap_pins (io_port_type_t type, io_port_direction_t dir, uint8_t port_a, ui
 
     return ok;
 }
+
+#if MCP3221_ENABLE
+
+static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
+{
+    on_enumerate_pins(low_level, pin_info, data);
+
+    pin_info(&analog_in, data);
+}
+
+#endif
 
 static void on_settings_loaded (void)
 {
@@ -382,6 +415,26 @@ void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, ou
 
         ioports_add_settings(on_settings_loaded, on_setting_changed);
     }
+
+#if MCP3221_ENABLE
+
+    analog_in.function = Input_Analog_Aux0;
+    analog_in.group = PinGroup_AuxInput;
+    analog_in.pin = 0;
+    analog_in.port = "MCP3221:";
+
+    if(MCP3221_init()) {
+        analog_in.mode.analog = On;
+        hal.port.num_analog_in = analog_n_in = 1;
+        hal.port.wait_on_input = wait_on_input;
+    };
+
+    analog_in.description = analog_in.mode.analog ? "E0" : "No power";
+
+    on_enumerate_pins = hal.enumerate_pins;
+    hal.enumerate_pins = enumerate_pins;
+
+#endif
 }
 
 #endif

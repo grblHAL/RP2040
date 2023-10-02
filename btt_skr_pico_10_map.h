@@ -26,10 +26,13 @@
 #define BOARD_NAME "BTT SKR Pico 1.0"
 #define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
 
+#define SERIAL1_PORT 1
+
 #undef TRINAMIC_ENABLE
 #undef TRINAMIC_UART_ENABLE
 #define TRINAMIC_ENABLE 2209
 #define TRINAMIC_UART_ENABLE 1
+#define TRINAMIC_STREAM 1
 #define HAS_BOARD_INIT
 
 // Define step pulse output pins.

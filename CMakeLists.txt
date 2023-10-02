@@ -60,6 +60,7 @@ if(AddMyPlugin)
     ioports.c
     ioports_analog.c
     tmc_uart.c
+    MCP3221.c
     my_plugin.c
     littlefs/lfs.c
     littlefs/lfs_util.c
@@ -81,6 +82,7 @@ else()
     ioports.c
     ioports_analog.c
     tmc_uart.c
+    MCP3221.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c

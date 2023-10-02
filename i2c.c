@@ -127,6 +127,12 @@ bool i2c_probe (uint_fast16_t i2cAddr)
 }
 
 // TODO: add timeout handling
+bool i2c_receive (uint_fast16_t i2cAddr, uint8_t *buf, size_t size, bool block)
+{
+    return i2c_read_blocking(QI2C_PORT, i2cAddr, buf, size, false) != PICO_ERROR_GENERIC;
+}
+
+// TODO: add timeout handling
 bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     bool ok;
