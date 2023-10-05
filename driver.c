@@ -1437,6 +1437,11 @@ static uint_fast16_t valueSetAtomic(volatile uint_fast16_t *ptr, uint_fast16_t v
     return prev;
 }
 
+static uint32_t getElapsedMicros(void)
+{
+    return (uint32_t)to_us_since_boot(get_absolute_time());
+}
+
 static uint32_t getElapsedTicks(void)
 {
     return elapsed_ticks;
@@ -2063,7 +2068,7 @@ bool driver_init(void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "230919";
+    hal.driver_version = "231002";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2110,6 +2115,7 @@ bool driver_init(void)
 #if I2C_STROBE_BIT || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
+    hal.get_micros = getElapsedMicros;
     hal.get_elapsed_ticks = getElapsedTicks;
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
