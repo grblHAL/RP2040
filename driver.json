@@ -97,6 +97,40 @@
         "trinamic": 2209,
         "trinamic_uart_addr": 1
       }
+    },
+	{
+      "name": "Generic",
+      "symbol": "",
+      "MAP": "generic_map.h",
+      "caps": {
+        "axes": 3,
+        "digital_in": 1,
+        "digital_out": 3,
+        "eeprom": 0,
+        "fram": 0,
+        "sdcard": 0,
+        "wifi": 1,
+        "wiznet": 0,
+        "bluetooth": 1,
+        "hc05": 0
+      }
+    },
+    {
+      "name": "Generic 4 axis",
+      "symbol": "BOARD_GENERIC_4AXIS",
+      "MAP": "generic_map_4axis.h",
+      "caps": {
+        "axes": 4,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0,
+        "sdcard": 0,
+        "wifi": 1,
+        "wiznet": 0,
+        "bluetooth": 1,
+        "hc05": 0
+      }
     }
   ]
 }
