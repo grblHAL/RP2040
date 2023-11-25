@@ -37,7 +37,7 @@
 #define X_DIRECTION_PIN         6
 #define Y_DIRECTION_PIN         7
 #define Z_DIRECTION_PIN         8
-#define DIRECTION_OUTMODE       GPIO_SHIFT5
+#define DIRECTION_OUTMODE       GPIO_SHIFT6
 
 // Define stepper driver enable/disable output pin.
 #define ENABLE_PORT             GPIO_OUTPUT

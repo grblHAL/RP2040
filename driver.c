@@ -879,7 +879,6 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs(axes_sig
 
 #elif STEP_PORT == GPIO_SR8
 
-    step_outbits.mask ^= settings.steppers.step_invert.mask;
     sd_sr.set.x_step = step_outbits.x;
 #ifdef X2_STEP_PIN
     sd_sr.set.m3_step = step_outbits.x;
