@@ -4,6 +4,8 @@
     "axes": 6,
     "usb_cdc": 1,
     "uart": 1,
+    "spindle_pwm": 1,
+    "spindle_dir": 1,
     "serial_ports": 2,
     "eeprom": 1,
     "ganged_axes": 1,

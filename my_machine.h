@@ -38,7 +38,17 @@
 #endif
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
-//#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+// Spindle selection:
+// Up to four specific spindle drivers can be instantiated at a time
+// depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
+// If none are specified the default PWM spindle is instantiated.
+// Spindle definitions can be found in grbl/spindle_control.h.
+// More here https://github.com/grblHAL/Plugins_spindle
+//#define SPINDLE0_ENABLE        SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE        SPINDLE_PWM0
+//#define SPINDLE2_ENABLE        SPINDLE_NONE 
+//#define SPINDLE2_ENABLE        SPINDLE_NONE
+// **********************
 //#define MODBUS_ENABLE        7 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WIFI_ENABLE          0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define WIFI_SOFTAP          1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!

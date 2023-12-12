@@ -63,16 +63,29 @@
 #define Y_LIMIT_PIN           1
 #define Z_LIMIT_PIN           2
 
-// Define spindle enable and spindle direction output pins.  No direction signal on the Mach3 BOB.
-//Spindle relay control is shared with B direction port, only one can be enabled at a time!
-#define SPINDLE_PORT          GPIO_OUTPUT
-#ifndef M4_DIRECTION_PIN
-#define SPINDLE_ENABLE_PIN    13
+// Define driver spindle pins
+// No direction signal on the Mach3 BOB.
+// Spindle relay control is shared with B direction port, only one can be enabled at a time!
+
+#if DRIVER_SPINDLE_PWM_ENABLE
+#define SPINDLE_PWM_PORT        GPIO_OUTPUT
+#define SPINDLE_PWM_PIN         14
+#else
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT
+#define AUXOUTPUT0_PIN          14
 #endif
 
-// Define spindle PWM output pin.
-#define SPINDLE_PWM_PORT      GPIO_OUTPUT
-#define SPINDLE_PWM_PIN       14
+#ifndef M4_DIRECTION_PIN
+#if DRIVER_SPINDLE_ENABLE
+#ifndef SPINDLE_PORT
+#define SPINDLE_PORT            GPIO_OUTPUT
+#endif
+#define SPINDLE_ENABLE_PIN      13
+#else
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT
+#define AUXOUTPUT1_PIN          13   
+#endif
+#endif
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.  Only Estop is supported on the Mach3 BOB.
 #define RESET_PIN             3

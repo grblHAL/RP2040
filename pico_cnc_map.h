@@ -114,8 +114,11 @@ typedef union {
 #define COOLANT_PORT        GPIO_SR16
 
 // Define spindle PWM output pin.
+
+#if DRIVER_SPINDLE_PWM_ENABLE
 #define SPINDLE_PWM_PORT    GPIO_OUTPUT
 #define SPINDLE_PWM_PIN     27
+#endif
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN           22

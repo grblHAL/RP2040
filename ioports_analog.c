@@ -38,24 +38,28 @@ static get_pin_info_ptr get_pin_info_digital;
 static claim_port_ptr claim_digital;
 static swap_pins_ptr swap_pins_digital; 
 
-static void init_pwm (xbar_t *output, pwm_config_t *config)
+static bool init_pwm (xbar_t *output, pwm_config_t *config)
 {
+    bool ok;
     ioports_pwm_t *pwm_data = (ioports_pwm_t *)output->port;
     uint32_t prescaler = config->freq_hz > 2000.0f ? 1 : (config->freq_hz > 200.0f ? 12 : 50);
 
-    ioports_precompute_pwm_values(config, pwm_data, clock_get_hz(clk_sys) / prescaler);
+    if((ok = ioports_precompute_pwm_values(config, pwm_data, clock_get_hz(clk_sys) / prescaler))) {
 
-    pwm_config pwm_config = pwm_get_default_config();
-    pwm_config_set_clkdiv_int(&pwm_config, prescaler);
-    pwm_config_set_wrap(&pwm_config, pwm_data->period);
+        pwm_config pwm_config = pwm_get_default_config();
+        pwm_config_set_clkdiv_int(&pwm_config, prescaler);
+        pwm_config_set_wrap(&pwm_config, pwm_data->period);
 
-    gpio_set_function(output->pin, GPIO_FUNC_PWM);
-    pwm_set_gpio_level(output->pin, pwm_data->off_value);
+        gpio_set_function(output->pin, GPIO_FUNC_PWM);
+        pwm_set_gpio_level(output->pin, pwm_data->off_value);
 
-    uint channel = pwm_gpio_to_channel(output->pin);
-    pwm_config_set_output_polarity(&pwm_config, (!channel & config->invert), (channel & config->invert));
+        uint channel = pwm_gpio_to_channel(output->pin);
+        pwm_config_set_output_polarity(&pwm_config, (!channel & config->invert), (channel & config->invert));
 
-    pwm_init(pwm_gpio_to_slice_num(output->pin), &pwm_config, true);
+        pwm_init(pwm_gpio_to_slice_num(output->pin), &pwm_config, true);
+    }
+    
+    return ok;
 }
 
 static bool analog_out (uint8_t port, float value)

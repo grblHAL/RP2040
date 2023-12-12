@@ -213,8 +213,11 @@ static void serialTxFlush (void)
 
 static void serialRxFlush (void)
 {
+    volatile uint32_t tmp;
+
     while(!(UART->fr & UART_UARTFR_RXFE_BITS))
-        UART->dr;
+        tmp = UART->dr & 0xFF;
+
     rxbuf.tail = rxbuf.head;
     rxbuf.overflow = false;
 
@@ -223,11 +226,15 @@ static void serialRxFlush (void)
 #endif
 }
 
-static void serialRxCancel (void)
+static void __not_in_flash_func(serialRxCancel) (void)
 {
-    serialRxFlush();
+    rxbuf.overflow = false;
+    rxbuf.tail = rxbuf.head;
     rxbuf.data[rxbuf.head] = ASCII_CAN;
     rxbuf.head = BUFNEXT(rxbuf.head, rxbuf);
+#ifdef RTS_PIN
+    DIGITAL_OUT(RTS_BIT, (rxbuf.rts_state = Off));
+#endif
 }
 
 static bool serialPutC (const char c)
@@ -439,15 +446,19 @@ static uint16_t serial1RxFree (void)
 
 static void serial1RxFlush (void)
 {
+    volatile uint32_t tmp;
+
     while(!(UART_1->fr & UART_UARTFR_RXFE_BITS))
-        UART_1->dr;
+        tmp = UART_1->dr & 0xFF;
+ 
     rx1buf.tail = rx1buf.head;
     rx1buf.overflow = false;
 }
 
-static void serial1RxCancel (void)
+static void __not_in_flash_func(serial1RxCancel) (void)
 {
-    serial1RxFlush();
+    rx1buf.overflow = false;
+    rx1buf.tail = rx1buf.head;
     rx1buf.data[rx1buf.head] = ASCII_CAN;
     rx1buf.head = BUFNEXT(rx1buf.head, rx1buf);
 }

@@ -48,7 +48,7 @@
 #define M3_LIMIT_PIN          2
 #endif
 
-//Define stepper driver enable/disable output pin.  This is not used on PicoBOB.
+// Define stepper driver enable/disable output pin.  This is not used on PicoBOB.
 
 // Define homing/hard limit switch input pins.  Currently configured so that X, Y and Z limit pins are shared.
 #define LIMIT_PORT            GPIO_INPUT
@@ -56,21 +56,33 @@
 #define Y_LIMIT_PIN           3
 #define Z_LIMIT_PIN           3
 
-// Define spindle enable and spindle direction output pins.  No direction signal on the Mach3 BOB.
-//Spindle relay control is shared with B direction port, only one can be enabled at a time!
-#define SPINDLE_PORT          GPIO_OUTPUT
-#define SPINDLE_ENABLE_PIN    14
+// Define driver spindle pins
+// No direction signal on the Mach3 BOB.
 
-// Define spindle PWM output pin.
+#if DRIVER_SPINDLE_PWM_ENABLE
 #define SPINDLE_PWM_PORT      GPIO_OUTPUT
 #define SPINDLE_PWM_PIN       16
+#else
+#define AUXOUTPUT0_PORT       GPIO_OUTPUT
+#define AUXOUTPUT0_PIN        16
+#endif
+
+#if DRIVER_SPINDLE_ENABLE
+#ifndef SPINDLE_PORT
+#define SPINDLE_PORT          GPIO_OUTPUT
+#endif
+#define SPINDLE_ENABLE_PIN    14
+#else
+#define AUXOUTPUT1_PORT       GPIO_OUTPUT
+#define AUXOUTPUT1_PIN        14   
+#endif
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN             5
 #define FEED_HOLD_PIN         1
 
 //Stepper enable is replaced with coolant control
-#define COOLANT_PORT    GPIO_OUTPUT
+#define COOLANT_PORT          GPIO_OUTPUT
 #define COOLANT_FLOOD_PIN     13
 
 // Define probe switch input pin.
