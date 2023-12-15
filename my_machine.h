@@ -66,8 +66,8 @@
                                  // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
 //#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
 //#define ODOMETER_ENABLE      1 // Odometer plugin.
-//#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
+//#define LB_CLUSTERS_ENABLE   1 // LaserBurn cluster support.
 //#define FANS_ENABLE          1 // Enable fan control via M106/M107. Activates fan plugin.
 //#define EMBROIDERY_ENABLE    1 // Embroidery plugin. To be completed.
 //#define TRINAMIC_ENABLE      1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
