@@ -37,6 +37,7 @@ include(eeprom/CMakeLists.txt)
 include(fans/CMakeLists.txt)
 include(bluetooth/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
+include(laser/CMakeLists.txt)
 if(ADD_HPGL)
     include(hpgl/CMakeLists.txt)
 endif()
@@ -190,6 +191,7 @@ target_link_libraries(grblHAL PRIVATE
  spindle
  keypad
  fans
+ laser
  bluetooth
  eeprom
  embroidery

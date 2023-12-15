@@ -23,6 +23,7 @@ include(trinamic/CMakeLists.txt)
 include(spindle/CMakeLists.txt)
 include(keypad/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
+include(laser/CMakeLists.txt)
 %include_libraries%
 
 project(grblHAL)
@@ -183,6 +184,8 @@ target_link_libraries(grblHAL PRIVATE
  trinamic
  spindle
  keypad
+ fans
+ laser
  embroidery
  tinyusb_device_unmarked
  pico_stdlib
