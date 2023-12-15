@@ -34,3 +34,6 @@
 [submodule "fans"]
 	path = fans
 	url = https://github.com/grblHAL/Plugin_fans/
+[submodule "laser"]
+	path = laser
+	url = https://github.com/grblHAL/Plugins_laser/
