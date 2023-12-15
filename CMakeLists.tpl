@@ -184,7 +184,6 @@ target_link_libraries(grblHAL PRIVATE
  trinamic
  spindle
  keypad
- fans
  laser
  embroidery
  tinyusb_device_unmarked
