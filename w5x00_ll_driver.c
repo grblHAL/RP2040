@@ -33,7 +33,7 @@ static uint32_t spi_freq = 0;
 static void (*irq_callback)(void);
 static volatile bool spin_lock = false;
 
-static void wizchip_select (void)
+static void __not_in_flash_func(wizchip_select) (void)
 {
     if(spi_freq != WIZCHIP_SPI_FREQ) {
         uint32_t freq = spi_set_speed(WIZCHIP_SPI_FREQ);
@@ -44,7 +44,7 @@ static void wizchip_select (void)
     DIGITAL_OUT(hw.cs, 0);
 }
 
-static void wizchip_deselect (void)
+static void __not_in_flash_func(wizchip_deselect) (void)
 {
     DIGITAL_OUT(hw.cs, 1);
 
@@ -52,19 +52,19 @@ static void wizchip_deselect (void)
         spi_set_speed(spi_freq);
 }
 
-static void wizchip_critical_section_lock(void)
+static void __not_in_flash_func(wizchip_critical_section_lock) (void)
 {
     while(spin_lock);
 
     spin_lock = true;
 }
 
-static void wizchip_critical_section_unlock(void)
+static void __not_in_flash_func(wizchip_critical_section_unlock) (void)
 {
     spin_lock = false;
 }
 
-static bool wizchip_gpio_interrupt_callback (uint_fast8_t id, bool level)
+static bool __not_in_flash_func(wizchip_gpio_interrupt_callback) (uint_fast8_t id, bool level)
 {
     irq_callback();
 
