@@ -161,7 +161,7 @@ static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, 
 static volatile uint32_t elapsed_ticks = 0;
 static probe_state_t probe = { .connected = On };
 static pin_group_pins_t limit_inputs;
-#ifdef SAFETY_DOOR_PIN
+#ifdef SAFETY_DOOR_BIT
 static input_signal_t *safety_door;
 #endif
 
@@ -187,7 +187,7 @@ static input_signal_t inputpin[] = {
 #ifdef CYCLE_START_PIN
     { .id = Input_CycleStart, .port = GPIO_INPUT, .pin = CYCLE_START_PIN, .group = PinGroup_Control },
 #endif
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
     { .id = Input_SafetyDoor, .port = GPIO_INPUT, .pin = SAFETY_DOOR_PIN, .group = PinGroup_Control },
 #endif
 #ifdef LIMITS_OVERRIDE_PIN
@@ -507,8 +507,9 @@ static output_signal_t outputpin[] = {
 
 #define DRIVER_IRQMASK (LIMIT_MASK | CONTROL_MASK | I2C_STROBE_BIT | SPI_IRQ_BIT | SPINDLE_INDEX_BIT)
 
-#define LIMIT_DEBOUNCE_TEMPO 40    // 40ms for Limit debounce
-#define SR_LATCH_DEBOUNCE_TEMPO 40 // 40ms for SR LATCH
+#ifndef DEBOUNCE_DELAY
+#define DEBOUNCE_DELAY 40 // ms
+#endif
 
 /*
 #define DEBOUNCE_ALARM_HW_TIMER 0   // Hardware alarm timer 0 used for the debounce alarm pool
@@ -1151,12 +1152,93 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 #ifdef CYCLE_START_PIN
     signals.cycle_start = DIGITAL_IN(CYCLE_START_BIT);
 #endif
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
     signals.safety_door_ajar = safety_door->active;
+#endif
+
+#if AUX_CONTROLS_ENABLED
+
+    if(settings.control_invert.mask)
+        signals.value ^= settings.control_invert.mask;
+
+  #ifdef SAFETY_DOOR_PIN
+    if(aux_ctrl[AuxCtrl_SafetyDoor].debouncing)
+        signals.safety_door_ajar = !settings.control_invert.safety_door_ajar;
+    else
+        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN);
+  #endif
+  #ifdef MOTOR_FAULT_PIN
+    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN);
+  #endif
+  #ifdef MOTOR_WARNING_PIN
+    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN);
+  #endif
+
+  #if AUX_CONTROLS_SCAN
+    uint_fast8_t i;
+    for(i = AUX_CONTROLS_SCAN; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            signals.mask &= ~aux_ctrl[i].cap.mask;
+            if(hal.port.wait_on_input(Port_Digital, aux_ctrl[i].port, WaitMode_Immediate, 0.0f) == 1)
+                signals.mask |= aux_ctrl[i].cap.mask;
+        }
+    }
+  #endif
+
+    if(settings.control_invert.mask)
+        signals.value ^= settings.control_invert.mask;
+
 #endif
 
     return signals;
 }
+
+#if AUX_CONTROLS_ENABLED
+
+static int64_t __not_in_flash_func(aux_irq_latch)(alarm_id_t id, void *input)
+{
+    aux_ctrl[AuxCtrl_SafetyDoor].debouncing = false;
+
+    return 0;
+}
+
+static void __not_in_flash_func(aux_irq_handler) (uint8_t port, bool state)
+{
+    uint_fast8_t i;
+    control_signals_t signals = systemGetState();
+
+    for(i = 0; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].port == port) {
+            if(!aux_ctrl[i].debouncing) {
+                signals.mask |= aux_ctrl[i].cap.mask;
+                if(i == AuxCtrl_SafetyDoor)
+                    aux_ctrl[i].debouncing = add_alarm_in_ms(DEBOUNCE_DELAY, aux_irq_latch, NULL, false);
+            }
+        }
+    }
+
+    if(signals.mask)
+        hal.control.interrupt_callback(signals);
+}
+
+bool aux_claim (xbar_t *properties, uint8_t port, void *data)
+{
+    ((aux_ctrl_t *)data)->port = port;
+
+    return ioport_claim(Port_Digital, Port_Input, &((aux_ctrl_t *)data)->port, xbar_fn_to_pinname(((aux_ctrl_t *)data)->function));
+}
+
+static bool aux_claim_explicit (aux_ctrl_t *aux)
+{
+    if((aux->enabled = aux->port != 0xFF && ioport_claim(Port_Digital, Port_Input, &aux->port, xbar_fn_to_pinname(aux->function))))
+        hal.signals_cap.mask |= aux->cap.mask;
+    else
+        aux->port = 0xFF;
+
+    return aux->enabled;
+}
+
+#endif
 
 //*************************  PROBE  *************************//
 
@@ -1248,10 +1330,8 @@ inline static void spindle_dir (bool ccw)
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
 
-    if (hal.driver_cap.spindle_dir) {
-        ioex_out(SPINDLE_DIRECTION_PIN) = ccw ^ settings.spindle.invert.ccw;
-        ioexpand_out(io_expander);
-    }
+    ioex_out(SPINDLE_DIRECTION_PIN) = ccw ^ settings.spindle.invert.ccw;
+    ioexpand_out(io_expander);
 
 #elif SPINDLE_PORT == GPIO_SR16
 
@@ -1732,7 +1812,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     pullup = !settings->control_disable_pullup.cycle_start;
                     input->invert = control_fei.cycle_start;
                     break;
-    #ifdef SAFETY_DOOR_PIN
+    #if SAFETY_DOOR_BIT
                 case Input_SafetyDoor:
                     safety_door = input;
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
@@ -1832,6 +1912,13 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
             gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
         } while (i);
+
+#if AUX_CONTROLS_ENABLED
+        for(i = 0; i < AuxCtrl_NumEntries; i++) {
+            if(aux_ctrl[i].enabled && aux_ctrl[i].irq_mode != IRQ_Mode_None)
+                hal.port.register_interrupt_handler(aux_ctrl[i].port, (settings->control_invert.mask & aux_ctrl[i].cap.mask) ? IRQ_Mode_Falling : IRQ_Mode_Rising, aux_irq_handler);
+        }
+#endif
 
         /*************************
          *  Output signals init  *
@@ -2151,7 +2238,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "231210";
+    hal.driver_version = "231229";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2283,9 +2370,6 @@ bool driver_init (void)
 
 // driver capabilities
 
-#ifdef SAFETY_DOOR_PIN
-    hal.signals_cap.safety_door_ajar = On;
-#endif
 #if ESTOP_ENABLE
     hal.signals_cap.e_stop = On;
     hal.signals_cap.reset = Off;
@@ -2317,13 +2401,24 @@ bool driver_init (void)
                 aux_inputs.pins.inputs = input;
             input->id = Input_Aux0 + aux_inputs.n_pins++;
             input->cap.irq_mode = IRQ_Mode_All;
-        }
-        if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
+#if SAFETY_DOOR_ENABLE
+            if(input->pin == SAFETY_DOOR_PIN)
+                aux_ctrl[AuxCtrl_SafetyDoor].port = aux_inputs.n_pins - 1;
+#endif
+#if MOTOR_FAULT_ENABLE
+            if(input->pin == MOTOR_FAULT_PIN)
+                aux_ctrl[AuxCtrl_MotorFault].port = aux_inputs.n_pins - 1;
+#endif
+#if MOTOR_WARNING_ENABLE
+            if(input->pin == MOTOR_WARNING_PIN)
+                aux_control_port[AuxCtrl_MotorWarning] = aux_inputs.n_pins - 1;
+#endif
+        } else if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
             if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
         }
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
         if(input->id == Input_SafetyDoor)
             safety_door = input;
 #endif
@@ -2359,6 +2454,33 @@ bool driver_init (void)
 
     if(aux_outputs_analog.n_pins)
         ioports_init_analog(&aux_inputs_analog, &aux_outputs_analog);
+
+#if SAFETY_DOOR_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_SafetyDoor]);
+#elif defined(SAFETY_DOOR_PIN)
+    hal.signals_cap.safety_door = On;
+#endif
+
+#if MOTOR_FAULT_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorFault]);
+#elif defined(MOTOR_FAULT_PIN)
+    hal.signals_cap.motor_fault = On;
+#endif
+
+#if MOTOR_WARNING_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorWarning]);
+#elif defined(MOTOR_WARNING_PIN)
+    hal.signals_cap.motor_warning = On;
+#endif
+
+#if AUX_CONTROLS_ENABLED
+    for(i = AuxCtrl_ProbeDisconnect; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            if((aux_ctrl[i].enabled = ioports_enumerate(Port_Digital, Port_Input, (pin_mode_t){ .irq_mode = aux_ctrl[i].irq_mode }, true, aux_claim, (void *)&aux_ctrl[i])))
+                hal.signals_cap.mask |= aux_ctrl[i].cap.mask;
+        }
+    }
+#endif
 
 #if MPG_MODE == 1
 #if KEYPAD_ENABLE == 2
@@ -2416,17 +2538,6 @@ static int64_t __not_in_flash_func(limit_debounce_callback)(alarm_id_t id, void 
 
         ((input_signal_t *)input)->debounce = false;
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, ((input_signal_t *)input)->invert ? GPIO_IRQ_EDGE_FALL : GPIO_IRQ_EDGE_RISE, true);
-        /*
-        debounce_pool_t * pool = (debounce_pool_t *)array;
-
-        // Find which pin set this callback and re-enable its IRQ
-        for(int i=0; i<DEBOUNCE_ALARM_MAX_TIMER; i++) {
-            if(pool[i].id == id) {
-                gpio_set_irq_enabled(pool[i].pin, GPIO_IRQ_EDGE_RISE, true);
-                break;
-            }
-        }
-        */
 
         limit_signals_t state = limitsGetState();
         if(limit_signals_merge(state).value)
@@ -2444,17 +2555,6 @@ static int64_t __not_in_flash_func(srLatch_debounce_callback)(alarm_id_t id, voi
     else if(((input_signal_t *)input)->id == Input_SafetyDoor)
         gpio_set_irq_enabled(((input_signal_t *)input)->pin, ((input_signal_t *)input)->invert ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
 
-    /*
-    debounce_pool_t * pool = (debounce_pool_t *)array;
-
-    // Find which pin set this callback and re-enable its IRQ
-    for(int i=0; i<DEBOUNCE_ALARM_MAX_TIMER; i++) {
-        if(pool[i].id == id) {
-            gpio_set_irq_enabled(pool[i].pin, pool[i].level, true);
-            return 0;;
-        }
-    }
-*/
     return 0;
 }
 
@@ -2486,7 +2586,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 
         case PinGroup_Control:
 
-#ifdef SAFETY_DOOR_PIN
+#ifdef SAFETY_DOOR_BIT
             if(input->id == Input_SafetyDoor) {
                 gpio_set_irq_enabled(gpio, GPIO_IRQ_ALL, false);
                 // If the input is active fire the control interrupt immediately and register an
@@ -2495,13 +2595,11 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
                 // the main state-machine.
                 if((input->active = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ input->invert)) {
                     hal.control.interrupt_callback(systemGetState());
-                    if (!add_alarm_in_ms(SR_LATCH_DEBOUNCE_TEMPO, srLatch_debounce_callback, (void *)input, false))
+                    if (!add_alarm_in_ms(DEBOUNCE_DELAY, srLatch_debounce_callback, (void *)input, false))
                         gpio_set_irq_enabled(gpio, GPIO_IRQ_LEVEL_HIGH, true); // Reenable the IRQ in case the alarm wasn't registered.
-                }
-                else
+                } else
                     gpio_set_irq_enabled(gpio, !input->invert ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true);
-            }
-            else
+            } else
 #endif
                 hal.control.interrupt_callback(systemGetState());
             break;
@@ -2513,10 +2611,9 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
             // alarm to reenable the interrupt after a short delay. Only after this delay has
             // expired can the probe signal be set inactive.
             if((probe.triggered = !!(events & GPIO_IRQ_LEVEL_HIGH) ^ probe.inverted)) {
-                if(!add_alarm_in_ms(SR_LATCH_DEBOUNCE_TEMPO, srLatch_debounce_callback, (void *)input, false))
+                if(!add_alarm_in_ms(DEBOUNCE_DELAY, srLatch_debounce_callback, (void *)input, false))
                     gpio_set_irq_enabled(gpio, probe.inverted ? GPIO_IRQ_LEVEL_HIGH : GPIO_IRQ_LEVEL_LOW, true); // Reenable the IRQ in case the alarm wasn't registered.
-            }
-            else
+            } else
                 gpio_set_irq_enabled(gpio, probe.inverted ? GPIO_IRQ_LEVEL_LOW : GPIO_IRQ_LEVEL_HIGH, true);
             break;
 #endif
@@ -2526,11 +2623,10 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
         {
             // If debounce is enabled register an alarm to reenable the IRQ after the debounce delay has expired.
             // If the input is still active when the delay expires the limits interrupt will be fired.
-            if(hal.driver_cap.software_debounce && add_alarm_in_ms(LIMIT_DEBOUNCE_TEMPO, limit_debounce_callback, (void *)input, true)) {
+            if(hal.driver_cap.software_debounce && add_alarm_in_ms(DEBOUNCE_DELAY, limit_debounce_callback, (void *)input, true)) {
                 input->debounce = true;
                 gpio_set_irq_enabled(gpio, GPIO_IRQ_ALL, false); // Disable the pin IRQ for the duration of the debounce delay.
-            }
-            else
+            } else
                 hal.limits.interrupt_callback(limitsGetState());
         }
         break;

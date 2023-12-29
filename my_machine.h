@@ -34,47 +34,58 @@
 // Uncomment to enable.
 
 #ifndef USB_SERIAL_CDC
-#define USB_SERIAL_CDC       1 // Serial communication via native USB.
+#define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
-//#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
-//#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
+//#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
 // depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
 // If none are specified the default PWM spindle is instantiated.
 // Spindle definitions can be found in grbl/spindle_control.h.
 // More here https://github.com/grblHAL/Plugins_spindle
-//#define SPINDLE0_ENABLE        SPINDLE_HUANYANG1
-//#define SPINDLE1_ENABLE        SPINDLE_PWM0
-//#define SPINDLE2_ENABLE        SPINDLE_NONE 
-//#define SPINDLE2_ENABLE        SPINDLE_NONE
+//#define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE         SPINDLE_PWM0
+//#define SPINDLE2_ENABLE         SPINDLE_NONE 
+//#define SPINDLE2_ENABLE         SPINDLE_NONE
 // **********************
-//#define MODBUS_ENABLE        7 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-//#define WIFI_ENABLE          0 // Do NOT enable here, enable in CMakeLists.txt!
-//#define WIFI_SOFTAP          1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
-//#define ETHERNET_ENABLE      0 // Do NOT enable here, enable in CMakeLists.txt!
-//#define _WIZCHIP_         5500 // Selects WIZnet ethernet breakout connected via SPI.
-                                 // Uncomment to enable W5500 chip, default is W5100S. Requires ethernet enabled in CMakeLists.txt.
-//#define WEBUI_ENABLE         1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
-//#define WEBUI_AUTH_ENABLE    1 // Enable ESP3D-WEBUI authentication.
-//#define WEBUI_INFLASH        1 // Store WebUI files in flash instead of on SD card.
-//#define SDCARD_ENABLE        2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
-//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
-                                 // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
-                                 // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
-//#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
-                                 // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
-//#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
-//#define ODOMETER_ENABLE      1 // Odometer plugin.
-//#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
-//#define LB_CLUSTERS_ENABLE   1 // LaserBurn cluster support.
-//#define FANS_ENABLE          1 // Enable fan control via M106/M107. Activates fan plugin.
-//#define EMBROIDERY_ENABLE    1 // Embroidery plugin. To be completed.
-//#define TRINAMIC_ENABLE      1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
-//#define TRINAMIC_I2C         1 // Trinamic I2C - SPI bridge interface.
-//#define TRINAMIC_DEV         1 // Development mode, adds a few M-codes to aid debugging. Do not enable in production code.
-//#define EEPROM_ENABLE       16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
-//#define EEPROM_IS_FRAM       1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define WIFI_ENABLE             0 // Do NOT enable here, enable in CMakeLists.txt!
+//#define WIFI_SOFTAP             1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
+//#define ETHERNET_ENABLE         0 // Do NOT enable here, enable in CMakeLists.txt!
+//#define _WIZCHIP_            5500 // Selects WIZnet ethernet breakout connected via SPI.
+                                    // Uncomment to enable W5500 chip, default is W5100S. Requires ethernet enabled in CMakeLists.txt.
+//#define WEBUI_ENABLE            1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
+//#define WEBUI_AUTH_ENABLE       1 // Enable ESP3D-WEBUI authentication.
+//#define WEBUI_INFLASH           1 // Store WebUI files in flash instead of on SD card.
+//#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+//#define MPG_ENABLE              1 // Enable MPG interface. Requires serial port and one handshake pin unless
+                                    // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
+                                    // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
+//#define KEYPAD_ENABLE           1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
+                                    // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
+//#define DISPLAY_ENABLE          1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
+//#define ODOMETER_ENABLE         1 // Odometer plugin.
+//#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
+//#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
+//#define FANS_ENABLE             1 // Enable fan control via M106/M107. Activates fan plugin.
+//#define EMBROIDERY_ENABLE       1 // Embroidery plugin. To be completed.
+//#define TRINAMIC_ENABLE         1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
+//#define TRINAMIC_I2C            1 // Trinamic I2C - SPI bridge interface.
+//#define TRINAMIC_DEV            1 // Development mode, adds a few M-codes to aid debugging. Do not enable in production code.
+//#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
+//#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+//#define STEP_INJECT_ENABLE      1
+// Optional control signals:
+// These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
+// NOTE: If not enough pins are available assignment will silently fail.
+//#define SAFETY_DOOR_ENABLE      1
+//#define MOTOR_FAULT_ENABLE      1
+//#define MOTOR_WARNING_ENABLE    1
+//#define PROBE_DISCONNECT_ENABLE 1
+//#define STOP_DISABLE_ENABLE     1
+//#define BLOCK_DELETE_ENABLE     1
+//#define SINGLE_BLOCK_ENABLE     1
+//#define LIMITS_OVERRIDE_ENABLE  1
 
 // If the selected board map supports more than three motors ganging and/or auto-squaring
 // of axes can be enabled here.

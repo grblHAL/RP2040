@@ -34,11 +34,8 @@
 
 #undef EEPROM_ENABLE
 #define EEPROM_ENABLE 1
-
-#if EEPROM_ENABLE
 #undef I2C_ENABLE
 #define I2C_ENABLE 1
-#endif
 
 // Define step pulse output pins.
 #define STEP_PORT                   GPIO_PIO  // N_AXIS pin PIO SM
@@ -66,7 +63,7 @@
 // Define driver spindle pins
 
 #if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PORT_BASE       GPIO_OUTPUT
+#define SPINDLE_PWM_PORT            GPIO_OUTPUT
 #define SPINDLE_PWM_PIN             11
 #else
 #define AUXOUTPUT0_PORT             GPIO_OUTPUT
@@ -106,11 +103,9 @@
 #define I2C_STROBE_PIN              17
 #endif
 
-#if I2C_ENABLE
 #define I2C_PORT                    1
 #define I2C_SDA                     10
 #define I2C_SCL                     11
-#endif
 
 #if SDCARD_ENABLE
 #define SPI_PORT spi0

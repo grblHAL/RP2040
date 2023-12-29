@@ -82,12 +82,27 @@
 #define COOLANT_FLOOD_PIN       16
 #define COOLANT_MIST_PIN        17
 
+// Define auxillary I/O
+#define AUXINPUT0_PIN           22
+#define AUXINPUT1_PIN           21
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT
+#define AUXOUTPUT0_PIN          12
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT
+#define AUXOUTPUT1_PIN          26
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT
+#define AUXOUTPUT2_PIN          27
+
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN               18
 #define FEED_HOLD_PIN           19
 #define CYCLE_START_PIN         20
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN         21
+#define SAFETY_DOOR_PIN         AUXINPUT1_PIN
+#endif
+
+#if MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN         AUXINPUT0_PIN
 #endif
 
 // Define probe switch input pin.
@@ -96,12 +111,3 @@
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN          23
 #endif
-
-// Define auxillary I/O
-#define AUXINPUT0_PIN           22
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          12
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          26
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          27

@@ -120,16 +120,7 @@ typedef union {
 #define SPINDLE_PWM_PIN     27
 #endif
 
-// Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN           22
-#define FEED_HOLD_PIN       7
-#define CYCLE_START_PIN     8
-#if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     9
-#endif
-
-// Define probe switch input pin.
-#define PROBE_PIN           28
+// Define aux I/O
 
 #define AUX_IO0_PIN         10
 #define AUX_IO1_PIN         11
@@ -137,24 +128,29 @@ typedef union {
 #define AUX_IO3_PIN         13
 #define AUX_IO4_PIN         2 // Modbus direction or ethernet CS
 
-#if !(SDCARD_ENABLE || ETHERNET_ENABLE) || !defined(SAFETY_DOOR_PIN)
 #if !(SDCARD_ENABLE || ETHERNET_ENABLE) 
 #define AUXINPUT0_PIN       AUX_IO0_PIN
 #define AUXINPUT1_PIN       AUX_IO1_PIN
 #define AUXINPUT2_PIN       AUX_IO2_PIN
 #if MPG_MODE != 1
-//#define AUXINPUT3_PIN       AUX_IO3_PIN
-#define AUXOUTPUT0_PWM_PIN AUX_IO3_PIN
+#define AUXOUTPUT0_PWM_PIN  AUX_IO3_PIN
+#endif 
 #endif
-#ifndef SAFETY_DOOR_PIN
-#define AUXINPUT4_PIN       9   
-#endif
-#else
-#define AUXINPUT0_PIN       9   
-#endif
+#define AUXINPUT3_PIN       9
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#define RESET_PIN           22
+#define FEED_HOLD_PIN       7
+#define CYCLE_START_PIN     8
+
+#if SAFETY_DOOR_ENABLE
+#define SAFETY_DOOR_PIN     AUXINPUT3_PIN
+#elif MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN     AUXINPUT3_PIN
 #endif
 
-#define AUXOUTPUT0_PWM_PIN AUX_IO3_PIN
+// Define probe switch input pin.
+#define PROBE_PIN           28
 
 #if I2C_ENABLE
 #define I2C_PORT            0

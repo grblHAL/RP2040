@@ -91,6 +91,8 @@
 #define AUXOUTPUT2_PIN          26   
 #endif
 
+#define AUXINPUT1_PIN           21
+
 // Define flood and mist coolant enable output pins.
 #define COOLANT_PORT            GPIO_OUTPUT
 #define COOLANT_FLOOD_PIN       16
@@ -100,8 +102,11 @@
 #define RESET_PIN               18
 #define FEED_HOLD_PIN           19
 #define CYCLE_START_PIN         20
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN         21
+#define SAFETY_DOOR_PIN         AUXINPUT1_PIN
+#elif MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN         AUXINPUT1_PIN
 #endif
 
 // Define probe switch input pin.
