@@ -24,7 +24,7 @@
 //#define BOARD_PICO_CNC
 //#define BOARD_PICOBOB
 //#define BOARD_PICOBOB_G540
-#define BOARD_PICOBOB_DLX
+//#define BOARD_PICOBOB_DLX
 //#define BOARD_PICOBOB_DLX_G540
 //#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
 //#define BOARD_CNC_BOOSTERPACK
