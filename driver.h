@@ -135,6 +135,10 @@
   #include "picobob_map.h"
 #elif defined(BOARD_PICOBOB_G540)
   #include "picobob_g540_map.h"  
+#elif defined(BOARD_PICOBOB_DLX)
+  #include "picobob_dlx_map.h" 
+#elif defined(BOARD_PICOBOB_DLX_G540)
+  #include "picobob_dlx_g540_map.h"      
 #elif defined(BOARD_BTT_SKR_PICO_10)
   #include "btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
