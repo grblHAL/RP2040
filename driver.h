@@ -281,6 +281,7 @@ typedef struct {
     volatile bool debounce;
     pin_mode_t cap;
     ioport_interrupt_callback_ptr interrupt_callback;
+    aux_ctrl_t *aux_ctrl;
     const char *description;
 } input_signal_t;
 

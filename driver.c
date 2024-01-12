@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2023 Terje Io
+  Copyright (c) 2021-2024 Terje Io
   Copyright (c) 2021 Volksolive
 
   Grbl is free software: you can redistribute it and/or modify
@@ -1158,20 +1158,17 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 
 #if AUX_CONTROLS_ENABLED
 
-    if(settings.control_invert.mask)
-        signals.value ^= settings.control_invert.mask;
-
   #ifdef SAFETY_DOOR_PIN
     if(aux_ctrl[AuxCtrl_SafetyDoor].debouncing)
         signals.safety_door_ajar = !settings.control_invert.safety_door_ajar;
     else
-        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN);
+        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN) ^ settings.control_invert.safety_door_ajar;
   #endif
   #ifdef MOTOR_FAULT_PIN
-    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN);
+    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN) ^ settings.control_invert.motor_fault;
   #endif
   #ifdef MOTOR_WARNING_PIN
-    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN);
+    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN) ^ settings.control_invert.motor_warning;
   #endif
 
   #if AUX_CONTROLS_SCAN
@@ -1185,10 +1182,7 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
     }
   #endif
 
-    if(settings.control_invert.mask)
-        signals.value ^= settings.control_invert.mask;
-
-#endif
+#endif // AUX_CONTROLS_ENABLED
 
     return signals;
 }
@@ -1197,7 +1191,12 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 
 static int64_t __not_in_flash_func(aux_irq_latch)(alarm_id_t id, void *input)
 {
+    control_signals_t signals;
+
     aux_ctrl[AuxCtrl_SafetyDoor].debouncing = false;
+
+    if((signals = systemGetState()).safety_door_ajar)
+        hal.control.interrupt_callback(signals);
 
     return 0;
 }
@@ -1205,40 +1204,73 @@ static int64_t __not_in_flash_func(aux_irq_latch)(alarm_id_t id, void *input)
 static void __not_in_flash_func(aux_irq_handler) (uint8_t port, bool state)
 {
     uint_fast8_t i;
-    control_signals_t signals = systemGetState();
+    control_signals_t signals = {0};
 
     for(i = 0; i < AuxCtrl_NumEntries; i++) {
         if(aux_ctrl[i].port == port) {
             if(!aux_ctrl[i].debouncing) {
+                if(i == AuxCtrl_SafetyDoor && (aux_ctrl[i].debouncing = add_alarm_in_ms(DEBOUNCE_DELAY, aux_irq_latch, NULL, false)))
+                    break;
                 signals.mask |= aux_ctrl[i].cap.mask;
-                if(i == AuxCtrl_SafetyDoor)
-                    aux_ctrl[i].debouncing = add_alarm_in_ms(DEBOUNCE_DELAY, aux_irq_latch, NULL, false);
+                if(aux_ctrl[i].irq_mode == IRQ_Mode_Change)
+                    signals.deasserted = hal.port.wait_on_input(Port_Digital, aux_ctrl[i].port, WaitMode_Immediate, 0.0f) == 0;
             }
+            break;
         }
     }
 
-    if(signals.mask)
+    if(signals.mask) {
+        if(!signals.deasserted)
+            signals.mask |= systemGetState().mask;
         hal.control.interrupt_callback(signals);
+    }
 }
 
-bool aux_claim (xbar_t *properties, uint8_t port, void *data)
+static bool aux_attach (xbar_t *properties, aux_ctrl_t *aux_ctrl)
 {
+    bool ok;
+    uint_fast8_t i = sizeof(inputpin) / sizeof(input_signal_t);
+
+    do {
+        i--;
+        if((ok = inputpin[i].pin == properties->pin)) {
+            inputpin[i].aux_ctrl = aux_ctrl;
+            break;
+        }
+    } while(i);
+
+    return ok;
+}
+
+
+static bool aux_claim (xbar_t *properties, uint8_t port, void *data)
+{
+    bool ok;
+
     ((aux_ctrl_t *)data)->port = port;
 
-    return ioport_claim(Port_Digital, Port_Input, &((aux_ctrl_t *)data)->port, xbar_fn_to_pinname(((aux_ctrl_t *)data)->function));
+    if((ok = ioport_claim(Port_Digital, Port_Input, &((aux_ctrl_t *)data)->port, xbar_fn_to_pinname(((aux_ctrl_t *)data)->function))))
+        aux_attach(properties, (aux_ctrl_t *)data);
+
+    return ok;
 }
 
-static bool aux_claim_explicit (aux_ctrl_t *aux)
-{
-    if((aux->enabled = aux->port != 0xFF && ioport_claim(Port_Digital, Port_Input, &aux->port, xbar_fn_to_pinname(aux->function))))
-        hal.signals_cap.mask |= aux->cap.mask;
-    else
-        aux->port = 0xFF;
+#if AUX_CONTROLS_XMAP
 
-    return aux->enabled;
+static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
+{
+    if((aux_ctrl->enabled = aux_ctrl->port != 0xFF && ioport_claim(Port_Digital, Port_Input, &aux_ctrl->port, xbar_fn_to_pinname(aux_ctrl->function)))) {
+        hal.signals_cap.mask |= aux_ctrl->cap.mask;
+        aux_attach(hal.port.get_pin_info(Port_Digital, Port_Input, aux_ctrl->port), aux_ctrl);
+    } else
+        aux_ctrl->port = 0xFF;
+
+    return aux_ctrl->enabled;
 }
 
 #endif
+
+#endif // AUX_CONTROLS_ENABLED
 
 //*************************  PROBE  *************************//
 
@@ -1915,8 +1947,11 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
 #if AUX_CONTROLS_ENABLED
         for(i = 0; i < AuxCtrl_NumEntries; i++) {
-            if(aux_ctrl[i].enabled && aux_ctrl[i].irq_mode != IRQ_Mode_None)
-                hal.port.register_interrupt_handler(aux_ctrl[i].port, (settings->control_invert.mask & aux_ctrl[i].cap.mask) ? IRQ_Mode_Falling : IRQ_Mode_Rising, aux_irq_handler);
+            if(aux_ctrl[i].enabled && aux_ctrl[i].irq_mode != IRQ_Mode_None) {
+                if(aux_ctrl[i].irq_mode & (IRQ_Mode_Falling|IRQ_Mode_Rising))
+                    aux_ctrl[i].irq_mode = (settings->control_invert.mask & aux_ctrl[i].cap.mask) ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                hal.port.register_interrupt_handler(aux_ctrl[i].port, aux_ctrl[i].irq_mode, aux_irq_handler);
+            }
         }
 #endif
 
@@ -2238,7 +2273,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "231229";
+    hal.driver_version = "240110";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2411,7 +2446,7 @@ bool driver_init (void)
 #endif
 #if MOTOR_WARNING_ENABLE
             if(input->pin == MOTOR_WARNING_PIN)
-                aux_control_port[AuxCtrl_MotorWarning] = aux_inputs.n_pins - 1;
+                aux_ctrl[AuxCtrl_MotorWarning].port = aux_inputs.n_pins - 1;
 #endif
         } else if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
             if(limit_inputs.pins.inputs == NULL)

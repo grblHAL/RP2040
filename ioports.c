@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -317,6 +317,7 @@ static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
 
 static void on_settings_loaded (void)
 {
+    bool write = false;
     uint_fast8_t port = digital.out.n_ports;
 
     invert_digital_out = settings.ioport.invert_out;
@@ -324,22 +325,76 @@ static void on_settings_loaded (void)
     if(digital.out.n_ports) do {
         hal.port.digital_out(--port, 0);
     } while(port);
+
+    port = digital.in.n_ports;
+    do {
+        if(aux_in[--port].aux_ctrl &&
+            !!(settings.control_invert.mask & aux_in[port].aux_ctrl->cap.mask) !=
+             !!(settings.ioport.invert_in.mask & (1 << port))) {
+            write = true;
+            if(settings.control_invert.mask & aux_in[port].aux_ctrl->cap.mask)
+                settings.ioport.invert_in.mask |= (1 << port);
+            else
+                settings.ioport.invert_in.mask &= ~(1 << port);
+        }
+    } while(port);
+
+    if(write)
+        settings_write_global();
 }
 
 static void on_setting_changed (setting_id_t id)
 {
-    if(id == Settings_IoPort_InvertOut && invert_digital_out.mask != settings.ioport.invert_out.mask) {
+    bool write = false;
+    uint_fast8_t port;
 
-        uint_fast8_t port = digital.out.n_ports;
+    switch(id) {
 
-        do {
-            port--;
-            if(((settings.ioport.invert_out.mask >> port) & 0x01) != ((invert_digital_out.mask >> port) & 0x01))
-                DIGITAL_OUT(port, !DIGITAL_IN(port));
-        } while(port);
+        case Settings_IoPort_InvertIn:
+            port = digital.in.n_ports;
+            do {
+                if(aux_in[--port].aux_ctrl) {
+                    write = true;
+                    if(settings.ioport.invert_in.mask & (1 << port))
+                        settings.control_invert.mask |= aux_in[port].aux_ctrl->cap.mask;
+                    else
+                        settings.control_invert.mask &= ~aux_in[port].aux_ctrl->cap.mask;
+                }
+            } while(port);
+            break;
 
-        invert_digital_out = settings.ioport.invert_out;
+        case Settings_IoPort_InvertOut:
+            if(invert_digital_out.mask != settings.ioport.invert_out.mask) {
+                port = digital.out.n_ports;
+                do {
+                    port--;
+                    if(((settings.ioport.invert_out.mask >> port) & 0x01) != ((invert_digital_out.mask >> port) & 0x01))
+                        DIGITAL_OUT(port, !DIGITAL_IN(port));
+                } while(port);
+
+                invert_digital_out = settings.ioport.invert_out;
+            }
+            break;
+
+        case Setting_ControlInvertMask:
+            port = digital.in.n_ports;
+            do {
+                if(aux_in[--port].aux_ctrl) {
+                    write = true;
+                    if(settings.control_invert.mask & aux_in[port].aux_ctrl->cap.mask)
+                        settings.ioport.invert_in.mask |= (1 << port);
+                    else
+                        settings.ioport.invert_in.mask &= ~(1 << port);
+                }
+            } while(port);
+            break;
+
+        default:
+            break;
     }
+
+    if(write)
+        settings_write_global();
 }
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)

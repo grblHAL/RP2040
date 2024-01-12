@@ -147,6 +147,8 @@ typedef union {
 #define SAFETY_DOOR_PIN     AUXINPUT3_PIN
 #elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN     AUXINPUT3_PIN
+#elif MOTOR_WARNING_ENABLE
+#define MOTOR_WARNING_PIN   AUXINPUT3_PIN
 #endif
 
 // Define probe switch input pin.
