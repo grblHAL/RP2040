@@ -4,8 +4,8 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
   Copyright (c) 2021 Volksolive
+  Copyright (c) 2021-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "driver.h"
 #include "serial.h"
 #include "driverPIO.pio.h"
+#include "ws2812.pio.h"
 
 #include "grbl/crossbar.h"
 #include "grbl/machine_limits.h"
@@ -130,6 +131,17 @@ static uint b_step_sm;
 #ifdef C_STEP_PIN
 static uint c_step_sm;
 #endif
+#endif
+
+#ifdef NEOPIXELS_PIN
+
+#ifndef NEOPIXELS_NUM
+#define NEOPIXELS_NUM 1
+#endif
+
+static PIO neop_pio;
+static uint neop_sm;
+
 #endif
 
 typedef union
@@ -1094,7 +1106,7 @@ static void limitsEnable (bool on, axes_signals_t homing_cycle)
             pin = xbar_fn_to_axismask(limit_inputs.pins.inputs[i].id);
             disable = limit_inputs.pins.inputs[i].group == PinGroup_Limit ? (pin.mask & homing_source.min.mask) : (pin.mask & homing_source.max.mask);
         }
-        pinEnableIRQ(&limit_inputs.pins.inputs[i], disable ? IRQ_Mode_None : limit_inputs.pins.inputs[i].irq_mode);
+        pinEnableIRQ(&limit_inputs.pins.inputs[i], disable ? IRQ_Mode_None : limit_inputs.pins.inputs[i].mode.irq_mode);
     } while (i);
 
 #if TRINAMIC_ENABLE
@@ -1651,7 +1663,7 @@ static void mpg_select (sys_state_t state)
 {
     stream_mpg_enable(DIGITAL_IN(mpg_pin->bit) == 0);
 
-    pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+    pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
 static void mpg_enable (sys_state_t state)
@@ -1659,7 +1671,7 @@ static void mpg_enable (sys_state_t state)
     if (sys.mpg_mode != (DIGITAL_IN(mpg_pin->bit) == 0))
         mpg_select(state);
     else
-        pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+        pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
 #endif
@@ -1816,7 +1828,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
             input->debounce = false;
             input->invert = false;
 
-            input->irq_mode = IRQ_Mode_None;
+            input->mode.irq_mode = IRQ_Mode_None;
             pullup = input->group == PinGroup_AuxInput;
 
             gpio_init(input->pin);
@@ -1849,7 +1861,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     safety_door = input;
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     input->invert = control_fei.safety_door_ajar;
-                    input->irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High;
+                    input->mode.irq_mode = safety_door->invert ? IRQ_Mode_Low : IRQ_Mode_High;
                     break;
     #endif
                 case Input_Probe:
@@ -1903,12 +1915,12 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
     #endif
                 case Input_I2CStrobe:
                     pullup = true;
-                    input->irq_mode = IRQ_Mode_Change;
+                    input->mode.irq_mode = IRQ_Mode_Change;
                     break;
 
                 case Input_SPIIRQ:
                     pullup = true;
-                    input->irq_mode = IRQ_Mode_Falling;
+                    input->mode.irq_mode = IRQ_Mode_Falling;
                     break;
 
                 default:
@@ -1919,7 +1931,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
                 case PinGroup_Limit:
                 case PinGroup_Control:
-                    input->irq_mode = input->invert ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.irq_mode = input->invert ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
                 case PinGroup_AuxInput:
@@ -1935,7 +1947,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
             gpio_set_inover(input->pin, input->invert ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
 
             if (!(input->group == PinGroup_Limit || input->group == PinGroup_AuxInput))
-                pinEnableIRQ(input, input->irq_mode);
+                pinEnableIRQ(input, input->mode.irq_mode);
 
             if (input->id == Input_Probe)
                 probeConfigure(false, false);
@@ -2067,6 +2079,29 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
     } while(ppin);
 }
 
+#ifdef NEOPIXELS_PIN
+
+static void rgb_out (uint8_t device, rgb_color_t color)
+{
+    static uint8_t pixels[NEOPIXELS_NUM * 4] = {0};
+
+    if(device < NEOPIXELS_NUM) {
+
+        device *= 4;
+        pixels[device++] = color.G;
+        pixels[device++] = color.R;
+        pixels[device] = color.B;
+
+        uint_fast16_t i = NEOPIXELS_NUM;
+
+        for(i = 0; i < NEOPIXELS_NUM; i++) {
+            pio_sm_put_blocking(neop_pio, neop_sm, (uint32_t *)pixels[idx]);
+        }
+    }
+}
+
+#endif
+
 // Initializes MCU peripherals
 static bool driver_setup (settings_t *settings)
 {
@@ -2192,6 +2227,28 @@ static bool driver_setup (settings_t *settings)
   #endif
 #endif
 
+#ifdef NEOPIXELS_PIN
+
+    int nsm;
+#ifdef GPIO_PIO_1
+    neop_pio = pio0;
+#else
+    neop_pio = pio1;
+#endif
+
+    if((nsm = pio_claim_unused_sm(neop_pio, true)) != -1) {
+ 
+        neop_sm = (uint)nsm;
+        hal.rgb.out = rgb_out;
+        hal.rgb.num_devices = NEOPIXELS_NUM;
+        hal.rgb.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+
+        pio_offset = pio_add_program(neop_pio, &ws2812_program);
+        ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
+    }
+
+#endif
+
 #if SDCARD_ENABLE
     sdcard_init();
 #endif
@@ -2273,7 +2330,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240110";
+    hal.driver_version = "240119";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2431,6 +2488,7 @@ bool driver_init (void)
 
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
+        input->mode.input = input->cap.input = On;
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
@@ -2461,6 +2519,7 @@ bool driver_init (void)
 
     for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
+        output->mode.output = On;
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
@@ -2468,6 +2527,7 @@ bool driver_init (void)
         } else if(output->group == PinGroup_AuxOutputAnalog) {
             if(aux_outputs_analog.pins.outputs == NULL)
                 aux_outputs_analog.pins.outputs = output;
+            output->mode.analog = On;
             output->id = Output_Analog_Aux0 + aux_outputs_analog.n_pins++;
         }
     }
@@ -2511,7 +2571,7 @@ bool driver_init (void)
 #if AUX_CONTROLS_ENABLED
     for(i = AuxCtrl_ProbeDisconnect; i < AuxCtrl_NumEntries; i++) {
         if(aux_ctrl[i].enabled) {
-            if((aux_ctrl[i].enabled = ioports_enumerate(Port_Digital, Port_Input, (pin_mode_t){ .irq_mode = aux_ctrl[i].irq_mode }, true, aux_claim, (void *)&aux_ctrl[i])))
+            if((aux_ctrl[i].enabled = ioports_enumerate(Port_Digital, Port_Input, (pin_cap_t){ .irq_mode = aux_ctrl[i].irq_mode, .claimable = On }, aux_claim, (void *)&aux_ctrl[i])))
                 hal.signals_cap.mask |= aux_ctrl[i].cap.mask;
         }
     }

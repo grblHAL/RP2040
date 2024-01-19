@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2023 Terje Io
+  Copyright (c) 2023-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,6 +38,20 @@ static get_pin_info_ptr get_pin_info_digital;
 static claim_port_ptr claim_digital;
 static swap_pins_ptr swap_pins_digital; 
 
+static void set_pwm_cap (xbar_t *output, bool servo_pwm)
+{
+    uint_fast8_t i = analog.out.n_ports;
+
+    if(output) do {
+        i--;
+        if(aux_out_analog[i].pin == output->pin) {
+            aux_out_analog[i].mode.pwm = !servo_pwm;
+            aux_out_analog[i].mode.servo_pwm = servo_pwm;
+            break;
+        }
+    } while(i);
+}
+
 static bool init_pwm (xbar_t *output, pwm_config_t *config)
 {
     bool ok;
@@ -57,6 +71,8 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config)
         pwm_config_set_output_polarity(&pwm_config, (!channel & config->invert), (channel & config->invert));
 
         pwm_init(pwm_gpio_to_slice_num(output->pin), &pwm_config, true);
+
+        set_pwm_cap(output, config->servo_mode);
     }
     
     return ok;
@@ -87,8 +103,8 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
         if(dir == Port_Output && port < analog.out.n_ports) {
             port = ioports_map(analog.out, port);
             pin.mode = aux_out_analog[port].mode;
-            pin.mode.output = pin.mode.analog = On;
-            pin.cap = pin.mode;
+            pin.mode.pwm = !pin.mode.servo_pwm; //?? for easy filtering
+            XBAR_SET_CAP(pin.cap, pin.mode);
             pin.function = aux_out_analog[port].id;
             pin.group = aux_out_analog[port].group;
             pin.pin = aux_out_analog[port].pin;
