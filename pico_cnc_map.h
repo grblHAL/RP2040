@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2023 Terje Io
+  Copyright (c) 2021-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -177,6 +177,11 @@ typedef union {
 #else
   #define AUXOUTPUT7_PORT   GPIO_OUTPUT
   #define AUXOUTPUT7_PIN    AUX_IO4_PIN
+#endif
+
+#if !(WIFI_ENABLE || BLUETOOTH_ENABLE == 1)
+//#define LED_PIN           25
+#define LED_G_PIN           25
 #endif
 
 #if SDCARD_ENABLE || ETHERNET_ENABLE

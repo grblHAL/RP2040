@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022-2023 Terje Io
+  Copyright (c) 2022-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,10 @@
 #error "Axis configuration is not supported!"
 #endif
 
+#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+#error "Wireless networking is not supported!"
+#endif
+
 #define BOARD_NAME "BTT SKR Pico 1.0"
 #define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
 
@@ -33,6 +37,8 @@
 #define TRINAMIC_ENABLE 2209
 #define TRINAMIC_UART_ENABLE 1
 #define TRINAMIC_STREAM 1
+#undef TRINAMIC_MIXED_DRIVERS
+#define TRINAMIC_MIXED_DRIVERS 0
 #define HAS_BOARD_INIT
 
 // Define step pulse output pins.
@@ -106,12 +112,17 @@
 
 #if N_ABC_MOTORS == 0
 
+#define AUXINPUT0_PIN               15
+
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN                   16
 #define FEED_HOLD_PIN               13
 #define CYCLE_START_PIN             14
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN             15
+#define SAFETY_DOOR_PIN             AUXINPUT0_PIN
+#elif MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN             AUXINPUT0_PIN
 #endif
 
 #endif

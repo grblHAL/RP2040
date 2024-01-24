@@ -98,6 +98,7 @@
 
 #if WIFI_ENABLE
 #include "wifi.h"
+#include "pico/cyw43_arch.h"
 #endif
 
 #if ETHERNET_ENABLE
@@ -166,7 +167,7 @@ static spindle_pwm_t spindle_pwm;
 #endif
 
 static pio_steps_t pio_steps = {.delay = 20, .length = 100};
-static uint step_pulse_sm, stepper_timer_sm, stepper_timer_sm_offset;
+static uint stepper_timer_sm, stepper_timer_sm_offset;
 static uint16_t pulse_length, pulse_delay;
 static bool IOInitDone = false;
 static status_code_t (*on_unknown_sys_command)(uint_fast16_t state, char *line, char *lcline);
@@ -446,6 +447,21 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef COOLANT_MIST_PIN
     { .id = Output_CoolantMist,  .port = COOLANT_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
+#endif
+#ifdef LED_PIN
+    { .id = Output_LED,          .port = GPIO_OUTPUT,      .pin = LED_PIN,               .group = PinGroup_LED },
+#endif
+#ifdef LED_R_PIN
+    { .id = Output_LED_R,        .port = GPIO_OUTPUT,      .pin = LED_R_PIN,             .group = PinGroup_LED },
+#endif
+#ifdef LED_G_PIN
+    { .id = Output_LED_G,        .port = GPIO_OUTPUT,      .pin = LED_G_PIN,             .group = PinGroup_LED },
+#endif
+#ifdef LED_B_PIN
+    { .id = Output_LED_B,        .port = GPIO_OUTPUT,      .pin = LED_B_PIN,             .group = PinGroup_LED },
+#endif
+#ifdef LED_W_PIN
+    { .id = Output_LED_W,        .port = GPIO_OUTPUT,      .pin = LED_W_PIN,             .group = PinGroup_LED },
 #endif
 #ifdef AUXOUTPUT0_PORT
     { .id = Output_Aux0,         .port = AUXOUTPUT0_PORT,  .pin = AUXOUTPUT0_PIN,        .group = PinGroup_AuxOutput},
@@ -2081,26 +2097,63 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
 
 #ifdef NEOPIXELS_PIN
 
-static void rgb_out (uint8_t device, rgb_color_t color)
+static uint32_t leds[NEOPIXELS_NUM * 4] = {0};
+
+static void neopixels_write (void)
 {
-    static uint8_t pixels[NEOPIXELS_NUM * 4] = {0};
-
-    if(device < NEOPIXELS_NUM) {
-
-        device *= 4;
-        pixels[device++] = color.G;
-        pixels[device++] = color.R;
-        pixels[device] = color.B;
-
-        uint_fast16_t i = NEOPIXELS_NUM;
-
-        for(i = 0; i < NEOPIXELS_NUM; i++) {
-            pio_sm_put_blocking(neop_pio, neop_sm, (uint32_t *)pixels[idx]);
-        }
+    // 50 us delay if busy? DMA?
+    for(uint_fast16_t i = 0; i < NEOPIXELS_NUM; i++) {
+        pio_sm_put_blocking(neop_pio, neop_sm, leds[i]);
     }
 }
 
+static void neopixel_out_masked (uint16_t device, rgb_color_t color, rgb_color_mask_t mask)
+{
+    if(device < NEOPIXELS_NUM) {
+
+        uint8_t *led = (uint8_t *)&leds[device] + 1;
+        
+        if(mask.B)
+            *led++ = color.B;
+        else
+            led++;     
+
+        if(mask.R)
+            *led++ = color.R;
+        else
+            led++;
+
+        if(mask.G)
+            *led = color.G;
+
+#if NEOPIXELS_NUM == 1
+        neopixels_write();
 #endif
+    }
+}
+
+static void neopixel_out (uint16_t device, rgb_color_t color)
+{
+    neopixel_out_masked(device, color, (rgb_color_mask_t){ .mask = 0xFF });
+}
+
+#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+/*
+static void cyw43_led_out (uint16_t device, rgb_color_t color)
+{
+    if(device == 0)
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, color.G != 0);
+}
+*/
+#elif defined(LED_G_PIN)
+
+static void board_led_out (uint16_t device, rgb_color_t color)
+{
+    if(device == 0)
+        DIGITAL_OUT(1 << LED_G_PIN, color.G != 0);
+}
+
+#endif // NEOPIXELS_PIN
 
 // Initializes MCU peripherals
 static bool driver_setup (settings_t *settings)
@@ -2123,131 +2176,6 @@ static bool driver_setup (settings_t *settings)
                 gpio_set_function(outputpin[i].pin, GPIO_FUNC_PWM);
         }
     }
-
-    // Stepper init
-
-    uint32_t pio_offset;
-#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
-    uint32_t step_sm = stepper_timer_sm = 1; //pio_claim_unused_sm(pio1, true);
-#else
-    uint32_t step_sm = stepper_timer_sm = 0; //pio_claim_unused_sm(pio1, true);
-#endif
-
-    stepper_timer_sm_offset = pio_add_program(pio1, &stepper_timer_program);
-    stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, 12.5f); // 10MHz
-                                                                                        //    pio_sm_claim(pio1, stepper_timer_sm);
-
-    //    irq_add_shared_handler(PIO1_IRQ_0, stepper_int_handler, 0);
-    irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
-    //    irq_set_priority(PIO1_IRQ_0, 0);
-
-#if STEP_PORT == GPIO_PIO_1
-
-    step_sm++;
-    pio_offset = pio_add_program(pio1, &step_pulse_program);
-
-    x_step_sm = step_sm++;
-    step_pulse_program_init(pio1, x_step_sm, pio_offset, X_STEP_PIN, 1);
-
-    y_step_sm = step_sm++;
-    step_pulse_program_init(pio1, y_step_sm, pio_offset, Y_STEP_PIN, 1);
-
-    if((z_step_sm = step_sm) > 3) {
-        z_step_sm = step_sm = 0;
-        z_step_pio = pio0;
-        pio_offset = pio_add_program(pio0, &step_pulse_program);
-    }
-    else
-        z_step_pio = pio1;
-    step_pulse_program_init(z_step_pio, z_step_sm, pio_offset, Z_STEP_PIN, 1);
-
-#if N_ABC_MOTORS
-
-#if WIFI_ENABLE && N_ABC_MOTORS > 2
-#error "Max number of motors with WIFI_ENABLE is 5"
-#endif
-
-    if(++step_sm > 3) {
-        step_sm = 0;
-        pio_offset = pio_add_program(pio0, &step_pulse_program);
-    }
-
-#ifdef X2_STEP_PIN
-    x2_step_sm = step_sm++;
-    step_pulse_program_init(pio0, x2_step_sm, pio_offset, X2_STEP_PIN, 1);
-#endif
-#ifdef Y2_STEP_PIN
-    y2_step_sm = step_sm++;
-    step_pulse_program_init(pio0, y2_step_sm, pio_offset, Y2_STEP_PIN, 1);
-#endif
-#ifdef Z2_STEP_PIN
-    z2_step_sm = step_sm++;
-    step_pulse_program_init(pio0, z2_step_sm, pio_offset, Z2_STEP_PIN, 1);
-#endif
-#ifdef A_STEP_PIN
-    a_step_sm = step_sm++;
-    step_pulse_program_init(pio0, a_step_sm, pio_offset, A_STEP_PIN, 1);
-#endif
-#ifdef B_STEP_PIN
-    b_step_sm = step_sm++;
-    step_pulse_program_init(pio0, b_step_sm, pio_offset, B_STEP_PIN, 1);
-#endif
-#ifdef C_STEP_PIN
-    c_step_sm = step_sm++;
-    step_pulse_program_init(pio0, c_step_sm, pio_offset, C_STEP_PIN, 1);
-#endif
-
-#endif // N_ABC_MOTORS
-
-#elif STEP_PORT == GPIO_PIO
-
-    step_pulse_sm = pio_add_program(pio0, &step_pulse_program);
-    step_pulse_program_init(pio0, 0, step_pulse_sm, STEP_PINS_BASE, N_AXIS + N_GANGED);
-
-#elif STEP_PORT == GPIO_SR8
-
-    pio_offset = pio_add_program(pio0, &step_dir_sr4_program);
-    step_dir_sr4_program_init(pio0, 0, pio_offset, SD_SR_DATA_PIN, SD_SR_SCK_PIN);
-
-    pio_offset = pio_add_program(pio0, &sr_delay_program);
-    sr_delay_program_init(pio0, 1, pio_offset, 11.65f);
-
-    pio_offset = pio_add_program(pio0, &sr_hold_program);
-    sr_hold_program_init(pio0, 2, pio_offset, 11.65f);
-
-#endif
-
-#if OUT_SHIFT_REGISTER
-    out_sr_sm = step_sm + 1;
-    pio_offset = pio_add_program(pio1, &out_sr16_program);
-    out_sr16_program_init(pio1, out_sr_sm, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
-    pio_sm_claim(pio1, out_sr_sm);
-  #if SPI_RST_PORT == GPIO_SR16
-    spi_reset_out(1);
-  #endif
-#endif
-
-#ifdef NEOPIXELS_PIN
-
-    int nsm;
-#ifdef GPIO_PIO_1
-    neop_pio = pio0;
-#else
-    neop_pio = pio1;
-#endif
-
-    if((nsm = pio_claim_unused_sm(neop_pio, true)) != -1) {
- 
-        neop_sm = (uint)nsm;
-        hal.rgb.out = rgb_out;
-        hal.rgb.num_devices = NEOPIXELS_NUM;
-        hal.rgb.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
-
-        pio_offset = pio_add_program(neop_pio, &ws2812_program);
-        ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
-    }
-
-#endif
 
 #if SDCARD_ENABLE
     sdcard_init();
@@ -2317,6 +2245,33 @@ uint32_t get_free_mem (void)
     return &__StackLimit - &__bss_end__ - mallinfo().uordblks;
 }
 
+#if STEP_PORT == GPIO_PIO_1
+
+static bool assign_step_sm (PIO *pio, uint *sm, uint32_t pin)
+{
+    static uint offset = 0xFFFF;
+
+    int32_t step_sm;
+
+    if(offset == 0xFFFF)
+        offset = pio_add_program(*pio, &step_pulse_program);
+
+    if((step_sm = pio_claim_unused_sm(*pio, false)) == -1 && *pio == pio1) {
+        *pio = pio0;
+        step_sm = pio_claim_unused_sm(pio0, false);
+        offset = pio_add_program(pio0, &step_pulse_program);
+    }
+
+    if(step_sm != -1) {
+        *sm = (uint)step_sm;
+        step_pulse_program_init(*pio, *sm, offset, pin, 1);
+    }
+
+    return step_sm != -1;
+}
+
+#endif
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
@@ -2330,7 +2285,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240119";
+    hal.driver_version = "240124";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2489,6 +2444,7 @@ bool driver_init (void)
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
         input->mode.input = input->cap.input = On;
+        input->mode.pull_mode = input->cap.pull_mode = PullMode_Up;
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
@@ -2607,7 +2563,125 @@ bool driver_init (void)
     bluetooth_init_local();
 #endif
 
+// Stepper init
+
+    uint32_t pio_offset;
+#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+    pio_sm_claim(pio1, 0); // Reserve PIO state machine for cyw43 driver.
+#endif
+
+    stepper_timer_sm = pio_claim_unused_sm(pio1, false);
+    stepper_timer_sm_offset = pio_add_program(pio1, &stepper_timer_program);
+    stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, 12.5f); // 10MHz
+
+    //    irq_add_shared_handler(PIO1_IRQ_0, stepper_int_handler, 0);
+    irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
+    //    irq_set_priority(PIO1_IRQ_0, 0);
+
+#if STEP_PORT == GPIO_PIO_1
+
+    z_step_pio = pio1;
+
+    assign_step_sm(&z_step_pio, &x_step_sm, X_STEP_PIN);
+    assign_step_sm(&z_step_pio, &y_step_sm, Y_STEP_PIN);
+    assign_step_sm(&z_step_pio, &z_step_sm, Z_STEP_PIN);
+
+#if N_ABC_MOTORS
+
+#if WIFI_ENABLE && N_ABC_MOTORS > 2
+#error "Max number of motors with WIFI_ENABLE is 5"
+#endif
+
+#ifdef X2_STEP_PIN
+    assign_step_sm(&z_step_pio, &x2_step_sm, X2_STEP_PIN);
+#endif
+#ifdef Y2_STEP_PIN
+    assign_step_sm(&z_step_pio, &y2_step_sm, Y2_STEP_PIN);
+#endif
+#ifdef Z2_STEP_PIN
+    assign_step_sm(&z_step_pio, &z2_step_sm, Z2_STEP_PIN);
+#endif
+#ifdef A_STEP_PIN
+    assign_step_sm(&z_step_pio, &a_step_sm, A_STEP_PIN);
+#endif
+#ifdef B_STEP_PIN
+    assign_step_sm(&z_step_pio, &b_step_sm, B_STEP_PIN);
+#endif
+#ifdef C_STEP_PIN
+    assign_step_sm(&z_step_pio, &c_step_sm, C_STEP_PIN);
+#endif
+
+#endif // N_ABC_MOTORS
+
+#elif STEP_PORT == GPIO_PIO
+
+    pio_offset = pio_add_program(pio0, &step_pulse_program);
+    step_pulse_program_init(pio0, 0, pio_offset, STEP_PINS_BASE, N_AXIS + N_GANGED);
+    pio_sm_claim(pio0, 0);
+
+#elif STEP_PORT == GPIO_SR8
+
+    pio_offset = pio_add_program(pio0, &step_dir_sr4_program);
+    step_dir_sr4_program_init(pio0, 0, pio_offset, SD_SR_DATA_PIN, SD_SR_SCK_PIN);
+
+    pio_offset = pio_add_program(pio0, &sr_delay_program);
+    sr_delay_program_init(pio0, 1, pio_offset, 11.65f);
+
+    pio_offset = pio_add_program(pio0, &sr_hold_program);
+    sr_hold_program_init(pio0, 2, pio_offset, 11.65f);
+
+    pio_claim_sm_mask(pio0, 0b1111); // claim all state machines, no room for more programs
+
+#endif
+
+#if OUT_SHIFT_REGISTER
+    out_sr_sm = (uint32_t)(pio_claim_unused_sm(pio1, false));
+    pio_offset = pio_add_program(pio1, &out_sr16_program);
+    out_sr16_program_init(pio1, out_sr_sm, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
+  #if SPI_RST_PORT == GPIO_SR16
+    spi_reset_out(1);
+  #endif
+#endif
+
+#ifdef NEOPIXELS_PIN
+
+    int nsm;
+    if((nsm = pio_claim_unused_sm((neop_pio = pio0), false)) == -1)
+        nsm = pio_claim_unused_sm((neop_pio = pio1), false);
+
+    if(nsm != -1 && pio_can_add_program(neop_pio, &ws2812_program)) {
+        neop_sm = (uint)nsm;
+        hal.rgb.out = neopixel_out;
+        hal.rgb.out_masked = neopixel_out_masked;
+#if NEOPIXELS_NUM > 1
+        hal.rgb.write = neopixels_write;
+#endif
+        hal.rgb.num_devices = NEOPIXELS_NUM;
+        hal.rgb.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+
+        pio_offset = pio_add_program(neop_pio, &ws2812_program);
+        ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
+    } // else report unavailable?
+
+#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+/*
+    hal.rgb.out = cyw43_led_out;  TODO: fix, cannot call before wifi is started!
+    hal.rgb.num_devices = 1;
+    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+*/
+#elif defined(LED_G_PIN)
+
+    hal.rgb.out = board_led_out;
+    hal.rgb.num_devices = 1;
+    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+
+#endif // NEOPIXELS_PIN
+
 #include "grbl/plugins_init.h"
+
+#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+    pio_sm_unclaim(pio1, 0);  // Release PIO state machine for cyw43 driver.
+#endif
 
     //  debounceAlarmPool = alarm_pool_create(DEBOUNCE_ALARM_HW_TIMER, DEBOUNCE_ALARM_MAX_TIMER);
 

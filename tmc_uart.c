@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -99,6 +99,8 @@ void tmc_uart_init (void)
 
     if((stream = stream_open_instance(TRINAMIC_STREAM, 230400, NULL)) == NULL)
         stream = stream_null_init(230400);
+    else
+        stream_set_description(stream, "Trinamic UART");
 
     memcpy(&tmc_uart, stream, sizeof(io_stream_t));
 
@@ -109,13 +111,15 @@ void tmc_uart_init (void)
 }
 
 #else
-    
+
 void tmc_uart_init (void)
 {
     const io_stream_t *stream;
 
     if((stream = stream_open_instance(TRINAMIC_STREAM, 230400, NULL)) == NULL)
         stream = stream_null_init(230400);
+    else
+        stream_set_description(stream, "Trinamic UART");
 
     memcpy(&tmc_uart, stream, sizeof(io_stream_t));
 
