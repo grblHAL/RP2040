@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022 Terje Io
+  Copyright (c) 2022-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -101,9 +101,9 @@ static void jog_irq_handler (uint8_t port, bool state)
     }
 }
 
-static void set_pen_status (sys_state_t state)
+static void set_pen_status (void *data)
 {
-    if(state == STATE_IDLE)
+    if(state_get() == STATE_IDLE)
         pen_control(pen_status);
 }
 
@@ -113,7 +113,7 @@ static int64_t pen_changed (alarm_id_t id, void *map)
     pen_status = (online && hal.port.wait_on_input(Port_Digital, pen_down_port, WaitMode_Immediate, 0.0f) != 1) ? Pen_Down : Pen_Up;
     debouncing = false;
     if(pen_status != get_pen_status())
-        protocol_enqueue_rt_command(set_pen_status);
+        protocol_enqueue_foreground_task(set_pen_status, NULL);
     
     return 0;
 }
@@ -131,12 +131,12 @@ static void online_irq_handler (uint8_t port, bool state)
     if(!debouncing) {
         debouncing = true;
         pen_status = Pen_Up;
-        protocol_enqueue_rt_command(set_pen_status);
+        protocol_enqueue_foreground_task(set_pen_status, NULL);
         add_alarm_in_ms(40, pen_changed, NULL, true);
     }
 }
 
-static void register_handlers (sys_state_t state)
+static void register_handlers (void *data)
 {
     hal.port.digital_out(panel_reset_port, 0);
 
@@ -168,7 +168,7 @@ void board_init (void)
     hal.port.claim(Port_Digital, Port_Input, &pen_down_port, "Pen up/down");
     hal.port.claim(Port_Digital, Port_Input, &online_port, "Online"); // active low
 
-    protocol_enqueue_rt_command(register_handlers); // delay interrupt enable until startup comple
+    protocol_enqueue_foreground_task(register_handlers, NULL); // delay interrupt enable until startup comple
 }
 
 // Implementation of weak HPGL interface functions 

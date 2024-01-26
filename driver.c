@@ -157,6 +157,24 @@ typedef union
     };
 } pio_steps_t;
 
+#if ETHERNET_ENABLE || WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+
+typedef union
+{
+    uint8_t value;
+    struct
+    {
+        uint8_t wifi      :1,
+                bluetooth :1,
+                ethernet  :1,
+                unused    :5;
+    };
+} net_types_t;
+
+static net_types_t net = {0};
+
+#endif
+
 #if DRIVER_SPINDLE_ENABLE
 static spindle_id_t spindle_id = -1;
 #endif
@@ -1675,17 +1693,17 @@ static uint32_t getElapsedTicks (void)
 
 static input_signal_t *mpg_pin = NULL;
 
-static void mpg_select (sys_state_t state)
+static void mpg_select (void *data)
 {
     stream_mpg_enable(DIGITAL_IN(mpg_pin->bit) == 0);
 
     pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
-static void mpg_enable (sys_state_t state)
+static void mpg_enable (void *data)
 {
     if (sys.mpg_mode != (DIGITAL_IN(mpg_pin->bit) == 0))
-        mpg_select(state);
+        mpg_select(data);
     else
         pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
@@ -1744,21 +1762,18 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
     if (IOInitDone) {
 
 #if WIFI_ENABLE
-        static bool wifi_ok = false;
-        if(!wifi_ok)
-            wifi_ok = wifi_start();
+        if(!net.wifi)
+            net.wifi = wifi_start();
 #endif
 
 #if ETHERNET_ENABLE
-        static bool enet_ok = false;
-        if(!enet_ok)
-            enet_ok = enet_start();
+        if(!net.ethernet)
+            net.ethernet = enet_start();
 #endif
 
 #if BLUETOOTH_ENABLE == 1
-        static bool bluetooth_ok = false;
-        if(!bluetooth_ok)
-            bluetooth_ok = bluetooth_start_local();
+        if(!net.bluetooth)
+            net.bluetooth = bluetooth_start_local();
 #endif
 
 #if DRIVER_SPINDLE_PWM_ENABLE
@@ -2137,20 +2152,30 @@ static void neopixel_out (uint16_t device, rgb_color_t color)
     neopixel_out_masked(device, color, (rgb_color_mask_t){ .mask = 0xFF });
 }
 
-#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
-/*
-static void cyw43_led_out (uint16_t device, rgb_color_t color)
-{
-    if(device == 0)
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, color.G != 0);
-}
-*/
 #elif defined(LED_G_PIN)
 
 static void board_led_out (uint16_t device, rgb_color_t color)
 {
     if(device == 0)
         DIGITAL_OUT(1 << LED_G_PIN, color.G != 0);
+}
+
+#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+
+static void cyw43_led_on (void *data)
+{
+    if(net.value)
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, data != NULL);
+}
+
+static void cyw43_led_out (uint16_t device, rgb_color_t color)
+{
+    if(device == 0) {
+        if(net.value) // Network stack is up?
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, color.G != 0);
+        else
+            protocol_enqueue_foreground_task(cyw43_led_on, color.G ? (void *)1 : NULL);
+    }
 }
 
 #endif // NEOPIXELS_PIN
@@ -2285,7 +2310,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240124";
+    hal.driver_version = "240125";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2536,10 +2561,10 @@ bool driver_init (void)
 #if MPG_MODE == 1
 #if KEYPAD_ENABLE == 2
     if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
-        protocol_enqueue_rt_command(mpg_enable);
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
 #else
     if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
-        protocol_enqueue_rt_command(mpg_enable);
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
 #endif
 #elif MPG_MODE == 2
     hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode);
@@ -2663,17 +2688,19 @@ bool driver_init (void)
         ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
     } // else report unavailable?
 
-#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
-/*
-    hal.rgb.out = cyw43_led_out;  TODO: fix, cannot call before wifi is started!
-    hal.rgb.num_devices = 1;
-    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
-*/
 #elif defined(LED_G_PIN)
 
     hal.rgb.out = board_led_out;
     hal.rgb.num_devices = 1;
     hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+
+#elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
+
+    hal.rgb.out = cyw43_led_out;
+    hal.rgb.num_devices = 1;
+    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+
+    hal.rgb.out(0, hal.rgb.cap);
 
 #endif // NEOPIXELS_PIN
 
@@ -2819,7 +2846,7 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
 #if MPG_MODE == 1
         case PinGroup_MPG:
             pinEnableIRQ(input, IRQ_Mode_None);
-            protocol_enqueue_rt_command(mpg_select);
+            protocol_enqueue_foreground_task(mpg_select, NULL);
             break;
 #endif
         default:
