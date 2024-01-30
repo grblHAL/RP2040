@@ -72,6 +72,7 @@
         "digital_in": 0,
         "digital_out": 0,
         "safety_door": 0,
+        "eeprom": 0,
         "sdcard": 0
       }
     },
@@ -85,6 +86,7 @@
         "digital_in": 0,
         "digital_out": 0,
         "safety_door": 0,
+        "eeprom": 0,
         "sdcard": 0
       }
     },
@@ -99,6 +101,7 @@
         "digital_out": 3,
         "safety_door": 0,
         "sdcard": 0,
+        "eeprom": 0,
         "wiznet": 1
       }
     },
@@ -112,6 +115,7 @@
         "digital_in": 2,
         "digital_out": 3,
         "safety_door": 0,
+        "eeprom": 0,
         "sdcard": 0,
         "wiznet": 1
       }
