@@ -70,7 +70,9 @@
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
       "MAP": "picobob_map.h",
       "caps": {
-        "axes": 5
+        "axes": 5,
+        "safety_door": 0,
+        "serial_ports": 0
       }
     },
     {
@@ -79,7 +81,9 @@
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
       "MAP": "picobob_g540_map.h",
       "caps": {
-        "axes": 4
+        "axes": 4,
+        "safety_door": 0,
+        "serial_ports": 0
       }
     },
     {
@@ -93,6 +97,7 @@
         "digital_out": 3,
         "i2c_strobe": 1,
         "safety_door": 0,
+        "serial_ports": 0,
         "wiznet": 1
       }
     },
@@ -107,6 +112,7 @@
         "digital_out": 3,
         "i2c_strobe": 1,
         "safety_door": 0,
+        "serial_ports": 0,
         "wiznet": 1
       }
     },    
