@@ -1,7 +1,7 @@
 {
   "caps":
   {
-    "informal": 1
+    "informal": 1,
     "axes": 6,
     "usb_cdc": 1,
     "uart": 1,
