@@ -4,20 +4,20 @@
 
   Part of grblHAL
 
-  Some parts are copyright (c) 2021-2022 Terje Io
+  Some parts are copyright (c) 2021-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 
 ***
 
@@ -47,6 +47,7 @@
 
 static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
+static on_execute_realtime_ptr on_execute_realtime;
 static volatile enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 #ifndef PICO_STDIO_USB_STDOUT_TIMEOUT_US
@@ -341,6 +342,8 @@ const io_stream_t *usb_serialInit (void)
     txbuf.s = txbuf.data;
     txbuf.max_length = CFG_TUD_CDC_TX_BUFSIZE;
     txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
+
+    on_execute_realtime = grbl.on_execute_realtime;
     grbl.on_execute_realtime = execute_realtime;
 
     return &stream;
@@ -356,6 +359,8 @@ static void execute_realtime (uint_fast16_t state)
 {
     static volatile bool lock = false;
     static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
+
+    on_execute_realtime(state);
 
     if(lock)
         return;

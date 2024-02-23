@@ -5,18 +5,18 @@
 
   Copyright (c) 2021-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdint.h>
@@ -126,7 +126,7 @@ typedef union {
 #define AUX_IO1_PIN         11
 #define AUX_IO2_PIN         12
 #define AUX_IO3_PIN         13
-#define AUX_IO4_PIN         2 // Modbus direction or ethernet CS
+#define AUX_IO4_PIN         2 // Modbus direction or Ethernet CS
 
 #if !(SDCARD_ENABLE || ETHERNET_ENABLE) 
 #define AUXINPUT0_PIN       AUX_IO0_PIN
@@ -137,11 +137,16 @@ typedef union {
 #endif 
 #endif
 #define AUXINPUT3_PIN       9
+#define AUXINPUT4_PIN       28
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN           22
 #define FEED_HOLD_PIN       7
 #define CYCLE_START_PIN     8
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT4_PIN
+#endif
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     AUXINPUT3_PIN
@@ -150,9 +155,6 @@ typedef union {
 #elif MOTOR_WARNING_ENABLE
 #define MOTOR_WARNING_PIN   AUXINPUT3_PIN
 #endif
-
-// Define probe switch input pin.
-#define PROBE_PIN           28
 
 #if I2C_ENABLE
 #define I2C_PORT            0
@@ -175,6 +177,7 @@ typedef union {
   #define SPI_IRQ_PIN       26
   #define SPI_RST_PORT      GPIO_SR16
 #else
+  #define AUXINPUT5_PIN     26
   #define AUXOUTPUT7_PORT   GPIO_OUTPUT
   #define AUXOUTPUT7_PIN    AUX_IO4_PIN
 #endif
@@ -208,9 +211,9 @@ typedef union {
 #endif
 
 #if I2C_STROBE_ENABLE
-  #if defined(SPI_IRQ_PIN) && SPI_IRQ_PIN == 26
-    #error "I2C strobe pin not available, is assigned as ethernet IRQ!" 
-  #else
-    #define I2C_STROBE_PIN  26
-  #endif
+#ifdef AUXINPUT5_PIN
+#define I2C_STROBE_PIN    AUXINPUT5_PIN
+#else
+#error "I2C strobe pin not available, is assigned as Ethernet IRQ!" 
+#endif
 #endif

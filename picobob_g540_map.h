@@ -5,18 +5,18 @@
 
   Copyright (c) 2021-2023 Andrew Marles
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if TRINAMIC_ENABLE
@@ -51,7 +51,6 @@
 // Define stepper driver enable/disable output pin.  This is not used on PicoBOB.
 
 // Define homing/hard limit switch input pins.  Currently configured so that X, Y and Z limit pins are shared.
-#define LIMIT_PORT            GPIO_INPUT
 #define X_LIMIT_PIN           3
 #define Y_LIMIT_PIN           3
 #define Z_LIMIT_PIN           3
@@ -77,14 +76,16 @@
 #define AUXOUTPUT1_PIN        14   
 #endif
 
+#define AUXINPUT0_PIN         4
+
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN             5
 #define FEED_HOLD_PIN         1
 
+#if PROBE_ENABLE
+#define PROBE_PIN             AUXINPUT0_PIN
+#endif
+
 //Stepper enable is replaced with coolant control
 #define COOLANT_PORT          GPIO_OUTPUT
 #define COOLANT_FLOOD_PIN     13
-
-// Define probe switch input pin.
-#define PROBE_PIN             4
-#define PROBE_PORT            GPIO_INPUT

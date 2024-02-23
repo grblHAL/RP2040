@@ -3,21 +3,21 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2023 Terje Io
+  Copyright (c) 2021-2024 Terje Io
   Copyright (c) 2021 Volksolive
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if TRINAMIC_ENABLE
@@ -92,6 +92,8 @@
 #endif
 
 #define AUXINPUT1_PIN           21
+#define AUXINPUT2_PIN           28
+#define AUXINPUT3_PIN           22 // Probe
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_PORT            GPIO_OUTPUT
@@ -103,15 +105,16 @@
 #define FEED_HOLD_PIN           19
 #define CYCLE_START_PIN         20
 
+#if PROBE_ENABLE
+#define PROBE_PIN               AUXINPUT3_PIN
+#endif
+
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN          AUXINPUT2_PIN
+#endif
+
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN         AUXINPUT1_PIN
 #elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN         AUXINPUT1_PIN
-#endif
-
-// Define probe switch input pin.
-#define PROBE_PIN               22
-
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          28
 #endif

@@ -81,7 +81,7 @@ static void add_pin (xbar_t *gpio, void *data)
             break;
 
         case Output_SPIRST:
-            hw.rst = gpio->bit;
+            hw.rst = 1 << gpio->pin;
 //            hal.periph_port.set_pin_description(gpio->function, gpio->group, "WizNet W5x00 Reset");
             break;
 
