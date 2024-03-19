@@ -206,6 +206,7 @@ neopixel_cfg_t neopixel = { .intensity = 255 };
 
 #include "grbl/stepdir_map.h"
 
+static input_signal_t *irq_pins[32] = {0};
 static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
@@ -1788,25 +1789,25 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
 #ifdef NEOPIXELS_PIN
 
-    if(neopixel.leds == NULL || hal.rgb.num_devices != settings->rgb_strip0_length) {
+    if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip0_length) {
 
         if(settings->rgb_strip0_length == 0)
-            settings->rgb_strip0_length = hal.rgb.num_devices;
+            settings->rgb_strip0_length = hal.rgb0.num_devices;
         else
-            hal.rgb.num_devices = settings->rgb_strip0_length;
+            hal.rgb0.num_devices = settings->rgb_strip0_length;
 
         if(neopixel.leds) {
             free(neopixel.leds);
             neopixel.leds = NULL;
         }
 
-        if(hal.rgb.num_devices) {
-            neopixel.num_bytes = hal.rgb.num_devices * sizeof(uint32_t);
+        if(hal.rgb0.num_devices) {
+            neopixel.num_bytes = hal.rgb0.num_devices * sizeof(uint32_t);
             if((neopixel.leds = calloc(neopixel.num_bytes, sizeof(uint8_t))) == NULL)
-                hal.rgb.num_devices = 0;
+                hal.rgb0.num_devices = 0;
         }
 
-        neopixel.num_leds = hal.rgb.num_devices;
+        neopixel.num_leds = hal.rgb0.num_devices;
     }
 
 #endif
@@ -1990,11 +1991,14 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
             if(!(input->group & (PinGroup_Limit|PinGroup_LimitMax|PinGroup_AuxInput)))
                 pinEnableIRQ(input, input->mode.irq_mode);
 
+#if PROBE_ENABLE
             if(input->id == Input_Probe)
                 probeConfigure(false, false);
-            else if(input->id == Input_SafetyDoor)
+#endif
+#if SAFETY_DOOR_BIT
+            if(input->id == Input_SafetyDoor)
                 input->active = DIGITAL_IN(input->bit);
-
+#endif
             gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
 
         } while(i);
@@ -2374,7 +2378,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240221";
+    hal.driver_version = "240314";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2535,6 +2539,7 @@ bool driver_init (void)
         input->bit = 1 << input->pin;
         input->mode.input = input->cap.input = On;
         input->mode.pull_mode = input->cap.pull_mode = PullMode_Up;
+        irq_pins[input->pin] = input;
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
@@ -2722,12 +2727,12 @@ bool driver_init (void)
 
     if(nsm != -1 && pio_can_add_program(neop_pio, &ws2812_program)) {
         neop_sm = (uint)nsm;
-        hal.rgb.out = neopixel_out;
-        hal.rgb.out_masked = neopixel_out_masked;
-        hal.rgb.write = neopixels_write;
-        hal.rgb.set_intensity = neopixels_set_intensity;
-        hal.rgb.num_devices = NEOPIXELS_NUM;
-        hal.rgb.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+        hal.rgb0.out = neopixel_out;
+        hal.rgb0.out_masked = neopixel_out_masked;
+        hal.rgb0.write = neopixels_write;
+        hal.rgb0.set_intensity = neopixels_set_intensity;
+        hal.rgb0.num_devices = NEOPIXELS_NUM;
+        hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
 
         pio_offset = pio_add_program(neop_pio, &ws2812_program);
         ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
@@ -2735,17 +2740,17 @@ bool driver_init (void)
 
 #elif defined(LED_G_PIN)
 
-    hal.rgb.out = board_led_out;
-    hal.rgb.num_devices = 1;
-    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+    hal.rgb0.out = board_led_out;
+    hal.rgb0.num_devices = 1;
+    hal.rgb0.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
 
 #elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
 
-    hal.rgb.out = cyw43_led_out;
-    hal.rgb.num_devices = 1;
-    hal.rgb.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
+    hal.rgb0.out = cyw43_led_out;
+    hal.rgb0.num_devices = 1;
+    hal.rgb0.cap = (rgb_color_t){ .R = 0, .G = 1, .B = 0 };
 
-    hal.rgb.out(0, hal.rgb.cap);
+    hal.rgb0.out(0, hal.rgb0.cap);
 
 #endif // NEOPIXELS_PIN
 
@@ -2825,20 +2830,19 @@ void pin_debounce (void *pin)
 
 // GPIO Interrupt handler
 // TODO: bypass the Pico library interrupt handler.
-void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
+void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
 {
-    input_signal_t *input = NULL;
-    uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
+    input_signal_t *input;
 
-    do {
-        if(inputpin[--i].pin == gpio)
-            input = &inputpin[i];
-    } while(i && !input);
+    if((input = irq_pins[pin])) {
 
-    if(input) {
-
+    #if SPI_IRQ_BIT
+        if(input->id == Input_SPIIRQ && spi_irq.callback)
+            spi_irq.callback(0, DIGITAL_IN(input->bit) == 0);
+        else
+    #endif
         if(input->mode.debounce && task_add_delayed(pin_debounce, input, 40)) {
-            gpio_set_irq_enabled(gpio, GPIO_IRQ_ALL, false);
+            gpio_set_irq_enabled(pin, GPIO_IRQ_ALL, false);
 #if SAFETY_DOOR_ENABLE
             if(input->id == Input_SafetyDoor)
                 debounce.safety_door = input->mode.debounce;
@@ -2867,13 +2871,6 @@ void __not_in_flash_func(gpio_int_handler)(uint gpio, uint32_t events)
             case PinGroup_LimitMax:
                 hal.limits.interrupt_callback(limitsGetState());
                 break;
-
-    #if SPI_IRQ_BIT
-            case PinGroup_SPI:
-                if(input->id == Input_SPIIRQ && spi_irq.callback)
-                    spi_irq.callback(0, DIGITAL_IN(input->bit) == 0);
-                break;
-    #endif
 
             case PinGroup_AuxInput:
                 ioports_event(input);
