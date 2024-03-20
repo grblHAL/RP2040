@@ -29,6 +29,7 @@
 #if !defined(TINYUSB_HOST_LINKED) && !defined(TINYUSB_DEVICE_LINKED)
 
 #include "tusb.h"
+#include "pico/unique_id.h"
 
 #define USBD_VID (0x2E8A) // Raspberry Pi
 #define USBD_PID (0x000a) // Pico SDK CDC
@@ -78,10 +79,12 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
         USBD_CDC_CMD_MAX_SIZE, USBD_CDC_EP_OUT, USBD_CDC_EP_IN, USBD_CDC_IN_OUT_MAX_SIZE),
 };
 
+static char serial_no[PICO_UNIQUE_BOARD_ID_SIZE_BYTES*2];
+
 static const char *const usbd_desc_str[] = {
     [USBD_STR_MANUF] = "Raspberry Pi",
     [USBD_STR_PRODUCT] = "Pico",
-    [USBD_STR_SERIAL] = "000000000000", // TODO
+    [USBD_STR_SERIAL] = serial_no,
     [USBD_STR_CDC] = "Board CDC",
 };
 
@@ -105,6 +108,11 @@ const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     } else {
         if (index >= sizeof(usbd_desc_str) / sizeof(usbd_desc_str[0])) {
             return NULL;
+        }
+        // iSerial string requested?
+        if (index == USBD_STR_SERIAL) {
+            // create serial number on the fly and copy to usb_desc_str[USBD_STR_SERIAL]
+            pico_get_unique_board_id_string(serial_no, sizeof(serial_no));
         }
         const char *str = usbd_desc_str[index];
         for (len = 0; len < DESC_STR_MAX - 1 && str[len]; ++len) {
