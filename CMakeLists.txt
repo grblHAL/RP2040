@@ -197,6 +197,7 @@ target_link_libraries(grblHAL PRIVATE
  embroidery
  tinyusb_device_unmarked
  pico_stdlib
+ pico_unique_id
  hardware_dma
  hardware_uart
  hardware_pio
