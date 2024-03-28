@@ -358,6 +358,12 @@ static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
+    static bool init_ok = false;
+
+    if(init_ok)
+        return;
+
+    init_ok = true;
     aux_in = aux_inputs->pins.inputs;
     aux_out = aux_outputs->pins.outputs;
 

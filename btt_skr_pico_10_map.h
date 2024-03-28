@@ -112,16 +112,11 @@
 #if N_ABC_MOTORS == 0
 
 #define AUXINPUT0_PIN               15
-#define AUXINPUT1_PIN               22 // Probe
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN                   16
 #define FEED_HOLD_PIN               13
 #define CYCLE_START_PIN             14
-
-#if PROBE_ENABLE
-#define PROBE_PIN                   AUXINPUT1_PIN
-#endif
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN             AUXINPUT0_PIN
@@ -129,6 +124,12 @@
 #define MOTOR_FAULT_PIN             AUXINPUT0_PIN
 #endif
 
+#endif // N_ABC_MOTORS == 0
+
+#define AUXINPUT1_PIN               22 // Probe
+
+#if PROBE_ENABLE
+#define PROBE_PIN                   AUXINPUT1_PIN
 #endif
 
 #if MODBUS_ENABLE

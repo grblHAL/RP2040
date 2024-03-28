@@ -116,21 +116,27 @@ static uint y_step_sm;
 static uint z_step_sm;
 static PIO z_step_pio;
 #ifdef X2_STEP_PIN
+static PIO x2_step_pio;
 static uint x2_step_sm;
 #endif
 #ifdef Y2_STEP_PIN
+static PIO y2_step_pio;
 static uint y2_step_sm;
 #endif
 #ifdef Z2_STEP_PIN
+static PIO z2_step_pio;
 static uint z2_step_sm;
 #endif
 #ifdef A_STEP_PIN
+static PIO a_step_pio;
 static uint a_step_sm;
 #endif
 #ifdef B_STEP_PIN
+static PIO b_step_pio;
 static uint b_step_sm;
 #endif
 #ifdef C_STEP_PIN
+static PIO c_step_pio;
 static uint c_step_sm;
 #endif
 #endif
@@ -750,36 +756,36 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     step_pulse_generate(pio1, x_step_sm, pio_steps.value);
 #ifdef X2_STEP_PIN
     pio_steps.set = step_outbits_2.x;
-    step_pulse_generate(pio0, x2_step_sm, pio_steps.value);
+    step_pulse_generate(x2_step_pio, x2_step_sm, pio_steps.value);
 #endif
     pio_steps.set = step_outbits_1.y;
     pio_steps.reset = settings.steppers.step_invert.y;
     step_pulse_generate(pio1, y_step_sm, pio_steps.value);
 #ifdef Y2_STEP_PIN
     pio_steps.set = step_outbits_2.y;
-    step_pulse_generate(pio0, y2_step_sm, pio_steps.value);
+    step_pulse_generate(y2_step_pio, y2_step_sm, pio_steps.value);
 #endif
     pio_steps.set = step_outbits_1.z;
     pio_steps.reset = settings.steppers.step_invert.z;
     step_pulse_generate(z_step_pio, z_step_sm, pio_steps.value);
 #ifdef Z2_STEP_PIN
     pio_steps.set = step_outbits_2.z;
-    step_pulse_generate(pio0, z2_step_sm, pio_steps.value);
+    step_pulse_generate(z2_step_pio, z2_step_sm, pio_steps.value);
 #endif
 #ifdef A_STEP_PIN
     pio_steps.set = step_outbits_1.a;
     pio_steps.reset = settings.steppers.step_invert.a;
-    step_pulse_generate(pio0, a_step_sm, pio_steps.value);
+    step_pulse_generate(a_step_pio, a_step_sm, pio_steps.value);
 #endif
 #ifdef B_STEP_PIN
     pio_steps.set = step_outbits_1.b;
     pio_steps.reset = settings.steppers.step_invert.b;
-    step_pulse_generate(pio0, b_step_sm, pio_steps.value);
+    step_pulse_generate(b_step_pio, b_step_sm, pio_steps.value);
 #endif
 #ifdef C_STEP_PIN
     pio_steps.set = step_outbits_1.c;
     pio_steps.reset = settings.steppers.step_invert.c;
-    step_pulse_generate(pio0, c_step_sm, pio_steps.value);
+    step_pulse_generate(c_step_pio, c_step_sm, pio_steps.value);
 #endif
 
 #elif STEP_PORT == GPIO_PIO
@@ -856,34 +862,34 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     pio_steps.reset = settings.steppers.step_invert.x;
     step_pulse_generate(pio1, x_step_sm, pio_steps.value);
 #ifdef X2_STEP_PIN
-    step_pulse_generate(pio0, x2_step_sm, pio_steps.value);
+    step_pulse_generate(x2_step_pio, x2_step_sm, pio_steps.value);
 #endif
     pio_steps.set = step_outbits.y;
     pio_steps.reset = settings.steppers.step_invert.y;
     step_pulse_generate(pio1, y_step_sm, pio_steps.value);
 #ifdef Y2_STEP_PIN
-    step_pulse_generate(pio0, y2_step_sm, pio_steps.value);
+    step_pulse_generate(y2_step_pio, y2_step_sm, pio_steps.value);
 #endif
     pio_steps.set = step_outbits.z;
     pio_steps.reset = settings.steppers.step_invert.z;
     step_pulse_generate(z_step_pio, z_step_sm, pio_steps.value);
 #ifdef Z2_STEP_PIN
-    step_pulse_generate(pio0, z2_step_sm, pio_steps.value);
+    step_pulse_generate(z2_step_pio, z2_step_sm, pio_steps.value);
 #endif
 #ifdef A_STEP_PIN
     pio_steps.set = step_outbits.a;
     pio_steps.reset = settings.steppers.step_invert.a;
-    step_pulse_generate(pio0, a_step_sm, pio_steps.value);
+    step_pulse_generate(a_step_pio, a_step_sm, pio_steps.value);
 #endif
 #ifdef B_STEP_PIN
     pio_steps.set = step_outbits.b;
     pio_steps.reset = settings.steppers.step_invert.b;
-    step_pulse_generate(pio0, b_step_sm, pio_steps.value);
+    step_pulse_generate(b_step_pio, b_step_sm, pio_steps.value);
 #endif
 #ifdef C_STEP_PIN
     pio_steps.set = step_outbits.c;
     pio_steps.reset = settings.steppers.step_invert.c;
-    step_pulse_generate(pio0, c_step_sm, pio_steps.value);
+    step_pulse_generate(c_step_pio, c_step_sm, pio_steps.value);
 #endif
 
 #elif STEP_PORT == GPIO_PIO
@@ -2378,7 +2384,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240314";
+    hal.driver_version = "240327";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2669,22 +2675,28 @@ bool driver_init (void)
 #endif
 
 #ifdef X2_STEP_PIN
-    assign_step_sm(&z_step_pio, &x2_step_sm, X2_STEP_PIN);
+    x2_step_pio = z_step_pio;
+    assign_step_sm(&x2_step_pio, &x2_step_sm, X2_STEP_PIN);
 #endif
 #ifdef Y2_STEP_PIN
-    assign_step_sm(&z_step_pio, &y2_step_sm, Y2_STEP_PIN);
+    y2_step_pio = z_step_pio;
+    assign_step_sm(&y2_step_pio, &y2_step_sm, Y2_STEP_PIN);
 #endif
 #ifdef Z2_STEP_PIN
-    assign_step_sm(&z_step_pio, &z2_step_sm, Z2_STEP_PIN);
+    z2_step_pio = z_step_pio;
+    assign_step_sm(&z2_step_pio, &z2_step_sm, Z2_STEP_PIN);
 #endif
 #ifdef A_STEP_PIN
-    assign_step_sm(&z_step_pio, &a_step_sm, A_STEP_PIN);
+    a_step_pio = z_step_pio;
+    assign_step_sm(&a_step_pio, &a_step_sm, A_STEP_PIN);
 #endif
 #ifdef B_STEP_PIN
-    assign_step_sm(&z_step_pio, &b_step_sm, B_STEP_PIN);
+    b_step_pio = z_step_pio;
+    assign_step_sm(&b_step_pio, &b_step_sm, B_STEP_PIN);
 #endif
 #ifdef C_STEP_PIN
-    assign_step_sm(&z_step_pio, &c_step_sm, C_STEP_PIN);
+    c_step_pio = z_step_pio;
+    assign_step_sm(&c_step_pio, &c_step_sm, C_STEP_PIN);
 #endif
 
 #endif // N_ABC_MOTORS
