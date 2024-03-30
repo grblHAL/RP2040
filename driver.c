@@ -2384,7 +2384,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240327";
+    hal.driver_version = "240330";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2522,8 +2522,11 @@ bool driver_init (void)
 #endif
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
+#if defined(COOLANT_FLOOD_PIN) || OUT_SHIFT_REGISTER
+    hal.coolant_cap.flood = On;
+#endif
 #if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
-    hal.driver_cap.mist_control = On;
+    hal.coolant_cap.mist = On;
 #endif
     hal.driver_cap.software_debounce = On;
     hal.driver_cap.step_pulse_delay = On;
@@ -2748,6 +2751,14 @@ bool driver_init (void)
 
         pio_offset = pio_add_program(neop_pio, &ws2812_program);
         ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
+
+        const periph_pin_t neopin = {
+            .group = PinGroup_LED,
+            .function = Output_LED_Adressable,
+            .pin = NEOPIXELS_PIN
+        };
+
+        registerPeriphPin(&neopin);
     } // else report unavailable?
 
 #elif defined(LED_G_PIN)
