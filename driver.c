@@ -718,7 +718,7 @@ static void stepperEnable (axes_signals_t enable)
 // Starts stepper driver ISR timer and forces a stepper driver interrupt callback
 static void stepperWakeUp (void)
 {
-    stepperEnable((axes_signals_t){AXES_BITMASK});
+    hal.stepper.enable((axes_signals_t){AXES_BITMASK});
     stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, hal.f_step_timer / 500); // ~2ms delay to allow drivers time to wake up.
     irq_set_enabled(PIO1_IRQ_0, true);
 }
@@ -1211,15 +1211,15 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 
   #ifdef SAFETY_DOOR_PIN
     if(debounce.safety_door)
-        signals.safety_door_ajar = !settings.control_invert.safety_door_ajar;
+        signals.safety_door_ajar = Off;
     else
-        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN) ^ settings.control_invert.safety_door_ajar;
+        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN);
   #endif
   #ifdef MOTOR_FAULT_PIN
-    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN) ^ settings.control_invert.motor_fault;
+    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN);
   #endif
   #ifdef MOTOR_WARNING_PIN
-    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN) ^ settings.control_invert.motor_warning;
+    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN);
   #endif
 
   #if AUX_CONTROLS_SCAN
@@ -2384,7 +2384,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240330";
+    hal.driver_version = "240408";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
