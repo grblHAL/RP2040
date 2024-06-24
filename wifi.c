@@ -7,18 +7,18 @@
 
   Copyright (c) 2022-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "driver.h"
@@ -894,37 +894,12 @@ static char *wifi_get_country (setting_id_t setting)
 
 static status_code_t wifi_set_bssid (setting_id_t setting, char *value)
 {
-    if(*value) {
-
-        uint32_t bssid[6];
-        if(sscanf(value,"%2X:%2X:%2X:%2X:%2X:%2X", &bssid[5], &bssid[4], &bssid[3],
-                                                    &bssid[2], &bssid[1], &bssid[0]) == 6) {
- 
-            char c = LCAPS(value[strlen(value) - 1]);
-            if(!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
-                return Status_InvalidStatement;
- 
-            uint_fast8_t idx;
-            for(idx = 0; idx < 6; idx++)
-                wifi.ap.bssid[idx] = bssid[idx];
-        } else
-            return Status_InvalidStatement;
-    } else
-        memset(wifi.ap.bssid, 0, sizeof(bssid_t));
-
-    return Status_OK;
+    return networking_string_to_mac(value, wifi.ap.bssid) ? Status_OK : Status_InvalidStatement;
 }
 
 static char *wifi_get_bssid (setting_id_t setting)
 {
-    static char bssid[18];
-
-    if(networking_ismemnull(wifi.ap.bssid, sizeof(bssid_t)))
-        *bssid = '\0';
-    else
-        sprintf(bssid, MAC_FORMAT_STRING, wifi.ap.bssid[5], wifi.ap.bssid[4], wifi.ap.bssid[3],
-                                           wifi.ap.bssid[2], wifi.ap.bssid[1], wifi.ap.bssid[0]);
-    return bssid;
+    return networking_mac_to_string(wifi.ap.bssid);
 }
 
 static status_code_t wifi_set_int (setting_id_t setting, uint_fast16_t value)

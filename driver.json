@@ -23,6 +23,7 @@
     "wiznet": 1,
     "littlefs": 1,
     "bluetooth": 1,
+    "mcp3221_adc": 1,
     "plugins": [
       { "id": "motors" },
       { "id": "spindle" },
