@@ -77,10 +77,6 @@
 #include "eeprom/eeprom.h"
 #endif
 
-#if KEYPAD_ENABLE == 2
-#include "keypad/keypad.h"
-#endif
-
 #if ODOMETER_ENABLE
 #include "odometer/odometer.h"
 #endif
@@ -1281,7 +1277,7 @@ static probe_state_t probeGetState (void)
 
 #endif // PROBE_PIN
 
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
 
 static input_signal_t *mpg_pin = NULL;
 
@@ -1300,7 +1296,7 @@ static void mpg_enable (void *data)
         pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
-#endif // MPG_MODE == 1
+#endif // MPG_ENABLE == 1
 
 #if AUX_CONTROLS_ENABLED
 
@@ -2280,7 +2276,7 @@ static bool driver_setup (settings_t *settings)
     sdcard_init();
 #endif
 
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
     gpio_init(MPG_MODE_PIN);
 #endif
 
@@ -2384,7 +2380,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240408";
+    hal.driver_version = "240817";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2616,22 +2612,6 @@ bool driver_init (void)
     hal.signals_cap.safety_door = On;
 #endif
 
-#if MPG_MODE == 1
-  #if KEYPAD_ENABLE == 2
-    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, keypad_enqueue_keycode)))
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
-  #else
-    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL)))
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
-  #endif
-#elif MPG_MODE == 2
-    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, keypad_enqueue_keycode);
-#elif MPG_MODE == 3
-    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
-#elif KEYPAD_ENABLE == 2
-    stream_open_instance(KEYPAD_STREAM, 115200, keypad_enqueue_keycode, "Keypad");
-#endif
-
 #if IOEXPAND_ENABLE
     ioexpand_init();
 #endif
@@ -2779,6 +2759,16 @@ bool driver_init (void)
 
 #include "grbl/plugins_init.h"
 
+#if MPG_ENABLE == 1
+    if(!hal.driver_cap.mpg_mode)
+        hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
+    if(hal.driver_cap.mpg_mode)
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
+#elif MPG_ENABLE == 2
+    if(!hal.driver_cap.mpg_mode)
+        hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
+#endif
+
 #if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
     pio_sm_unclaim(pio1, 0);  // Release PIO state machine for cyw43 driver.
 #endif
@@ -2906,7 +2896,7 @@ void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
                     i2c_strobe.callback(0, DIGITAL_IN(input->bit) == 0);
                 break;
       #endif
-      #if MPG_MODE == 1
+      #if MPG_ENABLE == 1
             case PinGroup_MPG:
                 protocol_enqueue_foreground_task(mpg_select, NULL);
                 break;

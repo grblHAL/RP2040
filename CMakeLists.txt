@@ -56,13 +56,13 @@ if(AddMyPlugin)
     i2c.c
     spi.c
     PCA9654E.c
-    pico_cnc.c
-    btt_skr_pico_10.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
     MCP3221.c
     my_plugin.c
+    boards/pico_cnc.c
+    boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -78,12 +78,12 @@ else()
     i2c.c
     spi.c
     PCA9654E.c
-    pico_cnc.c
-    btt_skr_pico_10.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
     MCP3221.c
+    boards/pico_cnc.c
+    boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -174,7 +174,7 @@ endif()
 
 if(ADD_HPGL)
     target_sources(grblHAL PRIVATE
-     citoh_cx6000.c
+     boards/citoh_cx6000.c
     )
     target_link_libraries(grblHAL PRIVATE
      hpgl

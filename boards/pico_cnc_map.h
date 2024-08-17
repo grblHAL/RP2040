@@ -132,7 +132,7 @@ typedef union {
 #define AUXINPUT0_PIN       AUX_IO0_PIN
 #define AUXINPUT1_PIN       AUX_IO1_PIN
 #define AUXINPUT2_PIN       AUX_IO2_PIN
-#if MPG_MODE != 1
+#if MPG_ENABLE != 1
 #define AUXOUTPUT0_PWM_PIN  AUX_IO3_PIN
 #endif 
 #endif
@@ -194,7 +194,7 @@ typedef union {
 #define SPI_MISO_PIN        AUX_IO2_PIN
 #endif
 
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
     #if defined(SPI_CS_PIN) && SPI_CS_PIN == AUX_IO3_PIN
       #error "MPG mode select pin not available, is assigned as SPI CS!"
     #else

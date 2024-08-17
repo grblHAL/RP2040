@@ -129,25 +129,25 @@
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)
-  #include "pico_cnc_map.h"
+  #include "boards/pico_cnc_map.h"
 #elif defined(BOARD_PICOBOB)
-  #include "picobob_map.h"
+  #include "boards/picobob_map.h"
 #elif defined(BOARD_PICOBOB_G540)
-  #include "picobob_g540_map.h"  
+  #include "boards/picobob_g540_map.h"  
 #elif defined(BOARD_PICOBOB_DLX)
-  #include "picobob_dlx_map.h" 
+  #include "boards/picobob_dlx_map.h" 
 #elif defined(BOARD_PICOBOB_DLX_G540)
-  #include "picobob_dlx_g540_map.h"      
+  #include "boards/picobob_dlx_g540_map.h"      
 #elif defined(BOARD_BTT_SKR_PICO_10)
-  #include "btt_skr_pico_10_map.h"
+  #include "boards/btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
-  #include "citoh_cx6000_map.h"
+  #include "boards/citoh_cx6000_map.h"
 #elif defined(BOARD_MY_MACHINE)
-  #include "my_machine_map.h"
+  #include "boards/boards/my_machine_map.h"
 #elif defined(BOARD_GENERIC_4AXIS)
   #include "generic_map_4axis.h"
 #else // default board
-  #include "generic_map.h"
+  #include "boards/generic_map.h"
 #endif
 
 #if SPI_ENABLE
@@ -244,7 +244,7 @@
 
 // End configuration
 
-#if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
+#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
 #error "MPG_MODE_PIN must be defined!"
 #endif
 

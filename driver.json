@@ -50,7 +50,7 @@
       "name": "PicoCNC",
       "symbol": "BOARD_PICO_CNC",
       "URL": "https://github.com/phil-barrett/PicoCNC",
-      "MAP": "pico_cnc_map.h",
+      "MAP": "boards/pico_cnc_map.h",
       "caps": {
         "axes": 5,
         "digital_in": 4,
@@ -69,7 +69,7 @@
       "name": "PicoBOB",
       "symbol": "BOARD_PICOBOB",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
-      "MAP": "picobob_map.h",
+      "MAP": "boards/picobob_map.h",
       "caps": {
         "axes": 5,
         "safety_door": 0,
@@ -80,7 +80,7 @@
       "name": "PicoBOB_G540",
       "symbol": "BOARD_PICOBOB_G540",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
-      "MAP": "picobob_g540_map.h",
+      "MAP": "boards/picobob_g540_map.h",
       "caps": {
         "axes": 4,
         "safety_door": 0,
@@ -91,7 +91,7 @@
       "name": "PicoBOB_DLX",
       "symbol": "BOARD_PICOBOB_DLX",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB-DLX",
-      "MAP": "picobob_dlx_map.h",
+      "MAP": "boards/picobob_dlx_map.h",
       "caps": {
         "axes": 5,
         "digital_in": 2,
@@ -106,7 +106,7 @@
       "name": "PicoBOB_DLX_G540",
       "symbol": "BOARD_PICOBOB_DLX",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB-DLX",
-      "MAP": "picobob_dlx_g540_map.h",
+      "MAP": "boards/picobob_dlx_g540_map.h",
       "caps": {
         "axes": 4,
         "digital_in": 2,
@@ -121,7 +121,7 @@
       "name": "BTT SKR Pico 1.0",
       "symbol": "BOARD_BTT_SKR_PICO_10",
       "URL": "https://github.com/bigtreetech/SKR-Pico",
-      "MAP": "btt_skr_pico_10_map.h",
+      "MAP": "boards/btt_skr_pico_10_map.h",
       "caps": {
         "axes": 4,
         "trinamic": 2209,
@@ -131,7 +131,7 @@
 	{
       "name": "Generic",
       "symbol": "",
-      "MAP": "generic_map.h",
+      "MAP": "boards/generic_map.h",
       "caps": {
         "axes": 3,
         "digital_in": 1,
@@ -144,7 +144,7 @@
     {
       "name": "Generic 4 axis",
       "symbol": "BOARD_GENERIC_4AXIS",
-      "MAP": "generic_map_4axis.h",
+      "MAP": "boards/generic_map_4axis.h",
       "caps": {
         "axes": 4,
         "i2c_strobe": 1,
