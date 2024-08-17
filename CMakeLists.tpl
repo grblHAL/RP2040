@@ -40,12 +40,12 @@ if(AddMyPlugin)
     i2c.c
     spi.c
     PCA9654E.c
-    pico_cnc.c
-    btt_skr_pico_10.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
     my_plugin.c
+    boards/pico_cnc.c
+    boards/btt_skr_pico_10.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -72,11 +72,11 @@ else()
     i2c.c
     spi.c
     PCA9654E.c
-    pico_cnc.c
-    btt_skr_pico_10.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
+    boards/pico_cnc.c
+    boards/btt_skr_pico_10.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
