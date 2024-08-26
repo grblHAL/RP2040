@@ -143,9 +143,9 @@
 #elif defined BOARD_CITOH_CX6000
   #include "boards/citoh_cx6000_map.h"
 #elif defined(BOARD_MY_MACHINE)
-  #include "boards/boards/my_machine_map.h"
+  #include "boards/my_machine_map.h"
 #elif defined(BOARD_GENERIC_4AXIS)
-  #include "generic_map_4axis.h"
+  #include "boards/generic_map_4axis.h"
 #else // default board
   #include "boards/generic_map.h"
 #endif
