@@ -49,6 +49,7 @@
 //#define SPINDLE1_ENABLE         SPINDLE_PWM0
 //#define SPINDLE2_ENABLE         SPINDLE_NONE 
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
+//#define SPINDLE_OFFSET          1 // Set to 1 to add offset move when switching between laser and spindle
 // **********************
 //#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WIFI_ENABLE             0 // Do NOT enable here, enable in CMakeLists.txt!

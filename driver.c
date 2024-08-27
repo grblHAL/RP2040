@@ -95,15 +95,18 @@
 
 #if WIFI_ENABLE
 #include "wifi.h"
+#endif
+
+#if BLUETOOTH_ENABLE == 1
+#include "bluetooth.h"
+#endif
+
+#if WIFI_ENABLE || BLUETOOTH_ENABLE == 1
 #include "pico/cyw43_arch.h"
 #endif
 
 #if ETHERNET_ENABLE
 #include "networking/wiznet/enet.h"
-#endif
-
-#if BLUETOOTH_ENABLE == 1
-#include "bluetooth.h"
 #endif
 
 #ifdef GPIO_PIO_1
@@ -2380,7 +2383,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240817";
+    hal.driver_version = "240827";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME

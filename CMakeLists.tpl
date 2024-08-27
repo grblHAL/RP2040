@@ -165,6 +165,7 @@ if(ADD_BLUETOOTH)
      pico_btstack_cyw43
     )
     if(NOT ADD_WIFI)
+        target_compile_definitions(grblHAL PUBLIC CYW43_LWIP=0)
         target_link_libraries(grblHAL PRIVATE
          pico_cyw43_arch_poll
         )
