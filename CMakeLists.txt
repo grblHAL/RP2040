@@ -151,7 +151,7 @@ if(ADD_BLUETOOTH)
     target_compile_definitions(grblHAL PUBLIC BLUETOOTH_ENABLE=1)
     target_compile_definitions(grblHAL PUBLIC NDEBUG)
     target_sources(grblHAL PRIVATE
-     bluetooth.c
+     bt_native.c
     )
     target_include_directories(grblHAL PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
     target_link_libraries(grblHAL PRIVATE

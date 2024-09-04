@@ -98,7 +98,7 @@
 #endif
 
 #if BLUETOOTH_ENABLE == 1
-#include "bluetooth.h"
+#include "bt_native.h"
 #endif
 
 #if WIFI_ENABLE || BLUETOOTH_ENABLE == 1

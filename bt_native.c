@@ -1,5 +1,5 @@
 /*
-  bluetooth.c - An embedded CNC Controller with rs274/ngc (g-code) support
+  bt_native.c - An embedded CNC Controller with rs274/ngc (g-code) support
 
   Bluetooth comms
 
@@ -37,7 +37,7 @@
 
 #include "grbl/nvs.h"
 
-#include "bluetooth.h"
+#include "bt_native.h"
 #include "grbl/grbl.h"
 #include "grbl/report.h"
 #include "grbl/nvs_buffer.h"

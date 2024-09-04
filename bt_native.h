@@ -1,5 +1,5 @@
 /*
-  bluetooth.h - An embedded CNC Controller with rs274/ngc (g-code) support
+  bt_native.h - An embedded CNC Controller with rs274/ngc (g-code) support
 
   Bluetooth comms
 
