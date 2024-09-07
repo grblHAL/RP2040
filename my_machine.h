@@ -78,6 +78,13 @@
 //#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
 //#define STEP_INJECT_ENABLE      1
+//#define MCP3221_ENABLE       0x4D // Enable MCP3221 I2C ADC input with address 0x4D (0b01001101).
+//#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
+//#define PWM_SERVO_ENABLE        1 // Enable PWM servo support, requires at least one PWM capable auxillary output.
+//#define BLTOUCH_ENABLE          1 // Enable BLTouch support. Requires and claims one PWM servo output.
+//#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxillary outputs.
+
+
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
 // NOTE: If not enough pins are available assignment will silently fail.

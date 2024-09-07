@@ -59,6 +59,8 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
         pwm_config_set_clkdiv_int(&pwm_config, prescaler);
         pwm_config_set_wrap(&pwm_config, pwm_data->period);
 
+        gpio_init(output->pin);
+        gpio_set_dir_out_masked(1 << output->pin);
         gpio_set_function(output->pin, GPIO_FUNC_PWM);
         pwm_set_gpio_level(output->pin, pwm_data->off_value);
 

@@ -38,6 +38,7 @@ include(fans/CMakeLists.txt)
 include(bluetooth/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
 include(laser/CMakeLists.txt)
+include(plugins/CMakeLists.txt)
 if(ADD_HPGL)
     include(hpgl/CMakeLists.txt)
 endif()
@@ -195,6 +196,7 @@ target_link_libraries(grblHAL PRIVATE
  laser
  bluetooth
  eeprom
+ misc_plugins
  embroidery
  tinyusb_device_unmarked
  pico_stdlib

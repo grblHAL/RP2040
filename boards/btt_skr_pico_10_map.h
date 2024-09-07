@@ -27,6 +27,8 @@
 #error "Wireless networking is not supported!"
 #endif
 
+#define AUX_CONTROLS_OUT
+
 #define BOARD_NAME "BTT SKR Pico 1.0"
 #define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
 
@@ -67,6 +69,8 @@
 #define M3_DIRECTION_PIN            13
 #define M3_ENABLE_PIN               15
 #define M3_LIMIT_PIN                16
+#else
+#define RESET_PIN                   16  // E0 limit
 #endif
 
 // Define homing/hard limit switch input pins.
@@ -74,64 +78,51 @@
 #define Y_LIMIT_PIN                 3
 #define Z_LIMIT_PIN                 25
 
+#define AUXOUTPUT0_PORT             GPIO_OUTPUT
+#define AUXOUTPUT0_PIN              20
+#define AUXOUTPUT1_PORT             GPIO_OUTPUT
+#define AUXOUTPUT1_PIN              18
+#define AUXOUTPUT2_PORT             GPIO_OUTPUT
+#define AUXOUTPUT2_PIN              17   
+
 // Define driver spindle pins
 
 #if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PORT            GPIO_OUTPUT
-#define SPINDLE_PWM_PIN             20
-#else
-#define AUXOUTPUT0_PORT             GPIO_OUTPUT
-#define AUXOUTPUT0_PIN              20
+#define SPINDLE_PWM_PORT            AUXOUTPUT0_PORT
+#define SPINDLE_PWM_PIN             AUXOUTPUT0_PIN
 #endif
 
 #if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_PORT                GPIO_OUTPUT
-#define SPINDLE_DIRECTION_PIN       18
-#else
-#define AUXOUTPUT1_PORT             GPIO_OUTPUT
-#define AUXOUTPUT1_PIN              18
+#define SPINDLE_PORT                AUXOUTPUT1_PORT
+#define SPINDLE_DIRECTION_PORT      AUXOUTPUT1_PORT
+#define SPINDLE_DIRECTION_PIN       AUXOUTPUT1_PIN
 #endif
 
 #if DRIVER_SPINDLE_ENABLE
 #ifndef SPINDLE_PORT
-#define SPINDLE_PORT                GPIO_OUTPUT
+#define SPINDLE_PORT                AUXOUTPUT2_PORT
 #endif
-#define SPINDLE_ENABLE_PIN          17
-#else
-#define AUXOUTPUT2_PORT             GPIO_OUTPUT
-#define AUXOUTPUT2_PIN              17   
+#define SPINDLE_ENABLE_PORT         AUXOUTPUT2_PORT
+#define SPINDLE_ENABLE_PIN          AUXOUTPUT2_PIN 
 #endif
 
 // Define flood and mist coolant enable output pins.
-/*
+
 #define COOLANT_PORT                GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN           2
-#define COOLANT_MIST_PIN            3
-*/
+#define COOLANT_FLOOD_PIN           21 // HB PWM
+#define COOLANT_MIST_PIN            23 // HE PWM
 
-#if N_ABC_MOTORS == 0
-
-#define AUXINPUT0_PIN               15
-
-// Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN                   16
-#define FEED_HOLD_PIN               13
-#define CYCLE_START_PIN             14
-
-#if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN             AUXINPUT0_PIN
-#elif MOTOR_FAULT_ENABLE
-#define MOTOR_FAULT_PIN             AUXINPUT0_PIN
-#endif
-
-#endif // N_ABC_MOTORS == 0
-
-#define AUXINPUT1_PIN               22 // Probe
+#define AUXINPUT0_PIN               22 // Probe
+#define AUXOUTPUT0_PWM_PIN          29 // Servo
 
 #if PROBE_ENABLE
-#define PROBE_PIN                   AUXINPUT1_PIN
+#define PROBE_PIN                   AUXINPUT0_PIN
+#endif
+
+#if RGB_LED_ENABLE
+#define NEOPIXELS_PIN               24
 #endif
 
 #if MODBUS_ENABLE
-#define MODBUS_SERIAL_PORT          0
+#define MODBUS_RTU_STREAM           0
 #endif

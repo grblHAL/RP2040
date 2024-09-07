@@ -143,7 +143,7 @@ static uint c_step_sm;
 #ifdef NEOPIXELS_PIN
 
 #ifndef NEOPIXELS_NUM
-#define NEOPIXELS_NUM 1
+#define NEOPIXELS_NUM 0
 #endif
 
 static PIO neop_pio;
@@ -450,7 +450,7 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnable,  .port = ENABLE_PORT, .pin = STEPPERS_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
-#ifdef SPINDLE_PWM_PIN
+#if defined(SPINDLE_PWM_PORT) && !defined(AUX_CONTROLS_OUT)
     { .id = Output_SpindlePWM,   .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #ifdef RTS_PIN
@@ -465,13 +465,31 @@ static output_signal_t outputpin[] = {
 #ifdef SPI_RST_PIN
     { .id = Output_SPIRST,       .port = SPI_RST_PORT,     .pin = SPI_RST_PIN,           .group = PinGroup_SPI },
 #endif
-#ifndef SD_SHIFT_REGISTER
+#ifdef SD_SHIFT_REGISTER // SD_SHIFT_REGISTER pin definitions - for $pins command only
+    { .id = Output_SpindleOn,    .port = GPIO_SR16, .pin = 4,  .group = PinGroup_SpindleControl },
+    { .id = Output_SpindleDir,   .port = GPIO_SR16, .pin = 5,  .group = PinGroup_SpindleControl },
+    { .id = Output_CoolantFlood, .port = GPIO_SR16, .pin = 6,  .group = PinGroup_Coolant },
+    { .id = Output_CoolantMist,  .port = GPIO_SR16, .pin = 7,  .group = PinGroup_Coolant },
+    { .id = Output_Aux0,         .port = GPIO_SR16, .pin = 8,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux1,         .port = GPIO_SR16, .pin = 9,  .group = PinGroup_AuxOutput },
+    { .id = Output_Aux2,         .port = GPIO_SR16, .pin = 10, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux3,         .port = GPIO_SR16, .pin = 11, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux4,         .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux5,         .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
+    { .id = Output_Aux6,         .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
+#ifdef AUXOUTPUT7_PORT
+    { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT, .pin = AUXOUTPUT7_PIN, .group = PinGroup_AuxOutput},
+#endif
+    { .id = Output_SPIRST,       .port = GPIO_SR16, .pin = 15, .group = PinGroup_SPI },
+#else // !SD_SHIFT_REGISTER
+#ifndef AUX_CONTROLS_OUT
 #ifdef SPINDLE_ENABLE_PIN
     { .id = Output_SpindleOn,    .port = SPINDLE_PORT,     .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
 #endif
 #ifdef SPINDLE_DIRECTION_PIN
     { .id = Output_SpindleDir,   .port = SPINDLE_PORT,     .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
 #endif
+#endif // AUX_CONTROLS_OUT
 #ifdef COOLANT_FLOOD_PIN
     { .id = Output_CoolantFlood, .port = COOLANT_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant},
 #endif
@@ -517,23 +535,7 @@ static output_signal_t outputpin[] = {
 #ifdef AUXOUTPUT7_PORT
     { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT,  .pin = AUXOUTPUT7_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#else // SD_SHIFT_REGISTER pin definitions - for $pins command only
-    { .id = Output_SpindleOn,    .port = GPIO_SR16, .pin = 4,  .group = PinGroup_SpindleControl },
-    { .id = Output_SpindleDir,   .port = GPIO_SR16, .pin = 5,  .group = PinGroup_SpindleControl },
-    { .id = Output_CoolantFlood, .port = GPIO_SR16, .pin = 6,  .group = PinGroup_Coolant },
-    { .id = Output_CoolantMist,  .port = GPIO_SR16, .pin = 7,  .group = PinGroup_Coolant },
-    { .id = Output_Aux0,         .port = GPIO_SR16, .pin = 8,  .group = PinGroup_AuxOutput },
-    { .id = Output_Aux1,         .port = GPIO_SR16, .pin = 9,  .group = PinGroup_AuxOutput },
-    { .id = Output_Aux2,         .port = GPIO_SR16, .pin = 10, .group = PinGroup_AuxOutput },
-    { .id = Output_Aux3,         .port = GPIO_SR16, .pin = 11, .group = PinGroup_AuxOutput },
-    { .id = Output_Aux4,         .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
-    { .id = Output_Aux5,         .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
-    { .id = Output_Aux6,         .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
-#ifdef AUXOUTPUT7_PORT
-    { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT, .pin = AUXOUTPUT7_PIN, .group = PinGroup_AuxOutput},
 #endif
-    { .id = Output_SPIRST,       .port = GPIO_SR16, .pin = 15, .group = PinGroup_SPI },
-#endif // SD_SHIFT_REGISTER
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
@@ -1392,6 +1394,25 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
 #endif // AUX_CONTROLS_ENABLED
 
+#ifdef AUX_CONTROLS_OUT
+
+bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
+{
+    if(ioport_claim(Port_Digital, Port_Output, &aux_ctrl->aux_port, NULL)) {
+        if(aux_ctrl->function == Output_SpindlePWM || aux_ctrl->function == Output_Spindle1PWM) {
+            gpio_init(aux_ctrl->pin);
+            gpio_set_dir_out_masked(1 << aux_ctrl->pin);
+            gpio_set_function(aux_ctrl->pin, GPIO_FUNC_PWM);
+        }
+        ioport_assign_out_function(aux_ctrl, &((output_signal_t *)aux_ctrl->output)->id);
+    } else
+        aux_ctrl->aux_port = 0xFF;
+
+    return aux_ctrl->aux_port != 0xFF;
+}
+
+#endif // AUX_CONTROLS_OUT
+
 //*************************  SPINDLE  *************************//
 
 #if DRIVER_SPINDLE_ENABLE
@@ -2141,7 +2162,7 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
 
 #ifdef NEOPIXELS_PIN
 
-static void neopixels_write (void)
+static void _write (void)
 {
     // 50 us delay if busy? DMA?
     uint32_t *led = (uint32_t *)neopixel.leds;
@@ -2152,6 +2173,12 @@ static void neopixels_write (void)
 
     for(uint_fast16_t i = 0; i < neopixel.num_leds; i++)
         pio_sm_put_blocking(neop_pio, neop_sm, *led++);
+}
+
+static void neopixels_write (void)
+{
+    if(neopixel.num_leds > 1)
+        _write();
 }
 
 static void neopixel_out_masked (uint16_t device, rgb_color_t color, rgb_color_mask_t mask)
@@ -2176,7 +2203,7 @@ static void neopixel_out_masked (uint16_t device, rgb_color_t color, rgb_color_m
             *led = color.G;
 
        if(neopixel.num_leds == 1)
-            neopixels_write();
+            _write();
     }
 }
 
@@ -2218,7 +2245,8 @@ static uint8_t neopixels_set_intensity (uint8_t intensity)
                 neopixel_out(device, color);
             } while(device);
 
-//            neopixels_write();
+            if(neopixel.num_leds > 1)
+                _write();
         }
     }
 
@@ -2263,6 +2291,9 @@ static bool driver_setup (settings_t *settings)
     for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         if(outputpin[i].port == GPIO_OUTPUT && outputpin[i].group != PinGroup_AuxOutputAnalog) {
             outputpin[i].bit = 1 << outputpin[i].pin;
+
+            if(gpio_get_function(outputpin[i].pin) == GPIO_FUNC_PWM)
+                continue;
 
             gpio_init(outputpin[i].pin);
             if(outputpin[i].id == PinGroup_StepperEnable || outputpin[i].id == Output_SdCardCS)
@@ -2383,7 +2414,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240827";
+    hal.driver_version = "240907";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2582,7 +2613,11 @@ bool driver_init (void)
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
-            output->id = Output_Aux0 + aux_outputs.n_pins++;
+            output->id = Output_Aux0 + aux_outputs.n_pins;
+#ifdef AUX_CONTROLS_OUT
+            aux_out_remap_explicit((void *)output->port, output->pin, aux_outputs.n_pins, output);
+#endif
+            aux_outputs.n_pins++;
         } else if(output->group == PinGroup_AuxOutputAnalog) {
             if(aux_outputs_analog.pins.outputs == NULL)
                 aux_outputs_analog.pins.outputs = output;
@@ -2594,6 +2629,10 @@ bool driver_init (void)
 #if !defined(HAS_BOARD_INIT) || !OUT_SHIFT_REGISTER
     if(aux_inputs.n_pins || aux_outputs.n_pins)
         ioports_init(&aux_inputs, &aux_outputs);
+#endif
+
+#ifdef AUX_CONTROLS_OUT
+    aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 #endif
 
 #ifdef HAS_BOARD_INIT
@@ -2727,9 +2766,10 @@ bool driver_init (void)
         neop_sm = (uint)nsm;
         hal.rgb0.out = neopixel_out;
         hal.rgb0.out_masked = neopixel_out_masked;
-        hal.rgb0.write = neopixels_write;
         hal.rgb0.set_intensity = neopixels_set_intensity;
+        hal.rgb0.write = neopixels_write;
         hal.rgb0.num_devices = NEOPIXELS_NUM;
+        hal.rgb0.flags = (rgb_properties_t){ .is_blocking = On, .is_strip = On };
         hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
 
         pio_offset = pio_add_program(neop_pio, &ws2812_program);

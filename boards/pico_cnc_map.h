@@ -174,16 +174,19 @@ typedef union {
   #else
     #define SPI_CS_PIN      AUX_IO4_PIN
   #endif
-  #define SPI_IRQ_PIN       26
-  #define SPI_RST_PORT      GPIO_SR16
+    #define SPI_IRQ_PIN       26
+    #define SPI_RST_PORT      GPIO_SR16
 #else
-  #define AUXINPUT5_PIN     26
-  #define AUXOUTPUT7_PORT   GPIO_OUTPUT
-  #define AUXOUTPUT7_PIN    AUX_IO4_PIN
+    #define AUXINPUT5_PIN     26
+  #if RGB_LED_ENABLE
+    #define NEOPIXELS_PIN     AUX_IO4_PIN
+  #else
+    #define AUXOUTPUT7_PORT   GPIO_OUTPUT
+    #define AUXOUTPUT7_PIN    AUX_IO4_PIN
+  #endif
 #endif
 
-#if !(WIFI_ENABLE || BLUETOOTH_ENABLE == 1)
-//#define LED_PIN           25
+#if !(WIFI_ENABLE || BLUETOOTH_ENABLE == 1 || defined(NEOPIXELS_PIN))
 #define LED_G_PIN           25
 #endif
 
