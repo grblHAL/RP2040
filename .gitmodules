@@ -37,3 +37,6 @@
 [submodule "laser"]
 	path = laser
 	url = https://github.com/grblHAL/Plugins_laser/
+[submodule "plugins"]
+	path = plugins
+	url = https://github.com/grblHAL/Plugins_misc/
