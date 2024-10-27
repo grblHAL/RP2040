@@ -53,6 +53,9 @@
 #include "grbl/motor_pins.h"
 #include "grbl/pin_bits_masks.h"
 #include "grbl/protocol.h"
+#if NVSDATA_BUFFER_ENABLE
+#include "grbl/nvs_buffer.h"
+#endif
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -2414,7 +2417,7 @@ bool driver_init (void)
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
 
     hal.info = "RP2040";
-    hal.driver_version = "240928";
+    hal.driver_version = "241025";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2495,8 +2498,14 @@ bool driver_init (void)
     hal.nvs.type = NVS_Flash;
     hal.nvs.memcpy_from_flash = memcpy_from_flash;
     hal.nvs.memcpy_to_flash = memcpy_to_flash;
+    hal.nvs.size_max = 4096; // 32K allocated
 #else
     hal.nvs.type = NVS_None;
+#endif
+
+#if NVSDATA_BUFFER_ENABLE
+    if(hal.nvs.type != NVS_None)
+    	nvs_buffer_alloc(); // Reallocate memory block for NVS buffer
 #endif
 
 #if DRIVER_SPINDLE_ENABLE
