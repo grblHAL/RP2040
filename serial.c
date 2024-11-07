@@ -78,7 +78,6 @@ static io_stream_properties_t serial[] = {
       .instance = 0,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
 #ifdef RTS_PIN
@@ -92,7 +91,6 @@ static io_stream_properties_t serial[] = {
       .instance = 1,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
       .claim = serial1Init
