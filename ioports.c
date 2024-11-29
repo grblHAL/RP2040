@@ -33,7 +33,7 @@
 #include "grbl/protocol.h"
 #include "grbl/settings.h"
 
-static volatile uint32_t event_bits;
+static volatile uint64_t event_bits;
 static volatile bool spin_lock = false;
 static io_ports_data_t digital;
 static input_signal_t *aux_in;
@@ -72,7 +72,7 @@ static void digital_out (uint8_t port, bool on)
 {
     if(port < digital.out.n_ports) {
         port = ioports_map(digital.out, port);
-        DIGITAL_OUT(aux_out[port].bit, on);
+        DIGITAL_OUT(aux_out[port].pin, on);
     }
 }
 
@@ -81,7 +81,7 @@ static float digital_out_state (xbar_t *output)
     float value = -1.0f;
 
     if(output->id < digital.out.n_ports)
-        value = (float)DIGITAL_IN(aux_out[output->id].bit);
+        value = (float)DIGITAL_IN(aux_out[output->id].pin);
 
     return value;
 }
@@ -108,7 +108,7 @@ static float digital_in_state (xbar_t *input)
     float value = -1.0f;
 
     if(input->id < digital.in.n_ports)
-        value = (float)(DIGITAL_IN(aux_in[input->id].bit));
+        value = (float)(DIGITAL_IN(aux_in[input->id].pin));
 
     return value;
 }
@@ -116,7 +116,7 @@ static float digital_in_state (xbar_t *input)
 inline static __attribute__((always_inline)) int32_t get_input (const input_signal_t *input, wait_mode_t wait_mode, float timeout)
 {
     if(wait_mode == WaitMode_Immediate)
-        return DIGITAL_IN(input->bit);
+        return DIGITAL_IN(input->pin);
 
     int32_t value = -1;
     uint_fast16_t delay = (uint_fast16_t)ceilf((1000.0f / 50.0f) * timeout) + 1;
@@ -127,12 +127,12 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
 
         if(input->cap.irq_mode & irq_mode) {
 
-            event_bits &= ~input->bit;
+            event_bits &= ~(1UL << input->pin);
             pinEnableIRQ(input, irq_mode);
 
             do {
-                if(event_bits & input->bit) {
-                    value = DIGITAL_IN(input->bit);
+                if(event_bits & (1UL << input->pin)) {
+                    value = DIGITAL_IN(input->pin);
                     break;
                 }
                 if(delay) {
@@ -150,8 +150,8 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
         bool wait_for = wait_mode != WaitMode_Low;
 
         do {
-            if(DIGITAL_IN(input->bit) == wait_for) {
-                value = DIGITAL_IN(input->bit);
+            if(DIGITAL_IN(input->pin) == wait_for) {
+                value = DIGITAL_IN(input->pin);
                 break;
             }
             if(delay) {
@@ -183,10 +183,10 @@ static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wai
 
 void ioports_event (input_signal_t *input)
 {
-    event_bits |= input->bit;
+    event_bits |= (1UL << input->pin);
 
     if(input->interrupt_callback)
-        input->interrupt_callback(input->user_port, DIGITAL_IN(input->bit) ^ input->mode.inverted);
+        input->interrupt_callback(input->user_port, DIGITAL_IN(input->pin) ^ input->mode.inverted);
 }
 
 static bool register_interrupt_handler (uint8_t port, pin_irq_mode_t irq_mode, ioport_interrupt_callback_ptr interrupt_callback)

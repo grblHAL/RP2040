@@ -76,12 +76,12 @@ static void add_pin (xbar_t *gpio, void *data)
   if(gpio->group == PinGroup_SPI) switch(gpio->function) {
 
         case Output_SPICS:
-            hw.cs = 1 << gpio->pin;
+            hw.cs = gpio->pin;
 //            hal.periph_port.set_pin_description(gpio->function, gpio->group, "WizNet W5x00 CS");
             break;
 
         case Output_SPIRST:
-            hw.rst = 1 << gpio->pin;
+            hw.rst = gpio->pin;
 //            hal.periph_port.set_pin_description(gpio->function, gpio->group, "WizNet W5x00 Reset");
             break;
 

@@ -3,20 +3,20 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2021-2023 Terje Io
+  Copyright (c) 2021-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdio.h>
@@ -88,11 +88,18 @@ void i2c_irq_handler(void)
         irq_set_enabled(QI2C_IRQ, false);
 }
 
+static void i2c_cfg_pin (uint8_t gpio)
+{
+    gpio_set_function(gpio, GPIO_FUNC_I2C);
+    gpio_set_pulls(gpio, true, false);
+    gpio_set_input_hysteresis_enabled(gpio, true);
+    gpio_set_slew_rate(gpio, GPIO_SLEW_RATE_SLOW);
+}
+
 void I2C_Init (void)
 {
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-
+    i2c_cfg_pin(I2C_SDA);
+    i2c_cfg_pin(I2C_SCL);
     i2c_init(QI2C_PORT, 100000UL);
 
     static const periph_pin_t scl = {

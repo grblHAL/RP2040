@@ -70,7 +70,7 @@ static volatile enqueue_realtime_command_ptr enqueue_realtime_command = protocol
 #define PICO_STDIO_USB_LOW_PRIORITY_IRQ 31
 #endif
 
-static_assert(PICO_STDIO_USB_LOW_PRIORITY_IRQ > RTC_IRQ, ""); // note RTC_IRQ is currently the last one
+//static_assert(PICO_STDIO_USB_LOW_PRIORITY_IRQ > RTC_IRQ, ""); // note RTC_IRQ is currently the last one
 static mutex_t usb_mutex;
 
 static void execute_realtime (uint_fast16_t state);

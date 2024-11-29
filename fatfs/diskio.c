@@ -53,14 +53,14 @@
 static inline
 void SELECT (void)
 {
-    DIGITAL_OUT((1 << SD_CS_PIN), 0);
+    DIGITAL_OUT(SD_CS_PIN, 0);
 }
 
 /* de-asserts the CS pin to the card */
 static inline
 void DESELECT (void)
 {
-    DIGITAL_OUT((1 << SD_CS_PIN), 1);
+    DIGITAL_OUT(SD_CS_PIN, 1);
 }
 
 #else

@@ -53,8 +53,12 @@ static void uart_interrupt_handler (void);
 
 #ifdef SERIAL1_PORT
 
+#ifndef UART_1_TX_PIN
 #define UART_1_TX_PIN 8
+#endif
+#ifndef UART_1_RX_PIN
 #define UART_1_RX_PIN 9
+#endif
 
 #ifndef UART_1_PORT
 #define UART_1_PORT uart1
@@ -572,8 +576,11 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         return NULL;
 
     gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART);
+#if UART_1_RX_PIN == 27 // RP2350 - for now...
+    gpio_set_function(UART_1_RX_PIN, 11);
+#else
     gpio_set_function(UART_1_RX_PIN, GPIO_FUNC_UART);
-    
+#endif
     uart_init(UART_1_PORT, baud_rate);
 
     uart_set_hw_flow(UART_1_PORT, false, false);

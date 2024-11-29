@@ -30,6 +30,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "hardware/gpio.h"
+
 #ifndef OVERRIDE_MY_MACHINE
 #include "my_machine.h"
 #endif
@@ -53,8 +55,14 @@
 #error "WiFi and Ethernet cannot be enabled at the same time!"
 #endif
 
-#define DIGITAL_IN(bit) (!!(sio_hw->gpio_in & bit))
-#define DIGITAL_OUT(bit, on) { if(on) sio_hw->gpio_set = bit; else sio_hw->gpio_clr = bit; }
+#if NUM_BANK0_GPIOS <= 32
+#define DIGITAL_IN(pin) (!!(gpio_get_all() & (1UL << (pin))))
+#define DIGITAL_OUT(pin, on) gpio_put(pin, on)
+#else
+#define DIGITAL_IN(pin) (!!(gpio_get_all64() & (1ULL << (pin))))
+#define DIGITAL_OUT(pin, on) gpio_put(pin, on)
+#endif
+
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
 
 // Define GPIO mode options
@@ -130,6 +138,8 @@
   #include "cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)
   #include "boards/pico_cnc_map.h"
+#elif defined(BOARD_RP23U5XBB)
+  #include "boards/RP2350B_5X_map.h"
 #elif defined(BOARD_PICOBOB)
   #include "boards/picobob_map.h"
 #elif defined(BOARD_PICOBOB_G540)
@@ -275,7 +285,6 @@ typedef struct {
     uint8_t pin;
     uint8_t user_port;
     pin_group_t group;
-    uint32_t bit;
     uint32_t port;
     volatile bool active;
     ioport_interrupt_callback_ptr interrupt_callback;
@@ -286,7 +295,6 @@ typedef struct {
     pin_function_t id;
     pin_group_t group;
     uint8_t pin;
-    uint32_t bit;
     uint32_t port;
     pin_mode_t mode;
     const char *description;

@@ -35,10 +35,12 @@
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
 #include "hardware/spi.h"
-#include "hardware/rtc.h"
 #include "hardware/structs/systick.h"
 #include "hardware/structs/iobank0.h"
 #include "hardware/structs/sio.h"
+#if RP_MCU == 2040
+#include "hardware/rtc.h"
+#endif
 
 #include "driver.h"
 #include "serial.h"
@@ -561,14 +563,9 @@ static output_signal_t outputpin[] = {
 #define SPI_IRQ_BIT 0
 #endif
 
-// This should be a sdk function but it doesn't exist yet
-#define gpio_set_irqover(gpio, value) hw_write_masked(&iobank0_hw->io[gpio].ctrl, value << IO_BANK0_GPIO0_CTRL_IRQOVER_LSB, IO_BANK0_GPIO0_CTRL_IRQOVER_BITS);
-
 #define NVIC_HIGH_LEVEL_PRIORITY 0xC0
 #define NVIC_MEDIUM_LEVEL_PRIORITY 0x80
 #define NVIC_LOW_LEVEL_PRIORITY 0x40
-
-#define DRIVER_IRQMASK (LIMIT_MASK | CONTROL_MASK | I2C_STROBE_BIT | SPI_IRQ_BIT | SPINDLE_INDEX_BIT)
 
 #ifndef DEBOUNCE_DELAY
 #define DEBOUNCE_DELAY 40 // ms
@@ -995,13 +992,13 @@ static void stepperSetDirOutputs (axes_signals_t dir_outbits)
 #if DIRECTION_OUTMODE == GPIO_MAP
     gpio_put_masked(DIRECTION_MASK, dir_outmap[dir_outbits.mask]);
 #ifdef X2_DIRECTION_PIN
-    DIGITAL_OUT(X2_DIRECTION_BIT, (dir_outbits.x ^ settings.steppers.dir_invert.x) ^ settings.steppers.ganged_dir_invert.x);
+    DIGITAL_OUT(X2_DIRECTION_PIN, (dir_outbits.x ^ settings.steppers.dir_invert.x) ^ settings.steppers.ganged_dir_invert.x);
 #endif
 #ifdef Y2_DIRECTION_PIN
-    DIGITAL_OUT(Y2_DIRECTION_BIT, (dir_outbits.y ^ settings.steppers.dir_invert.y) ^ settings.steppers.ganged_dir_invert.y);
+    DIGITAL_OUT(Y2_DIRECTION_PIN, (dir_outbits.y ^ settings.steppers.dir_invert.y) ^ settings.steppers.ganged_dir_invert.y);
 #endif
 #ifdef Z2_DIRECTION_PIN
-    DIGITAL_OUT(Z2_DIRECTION_BIT, (dir_outbits.z ^ settings.steppers.dir_invert.z) ^ settings.steppers.ganged_dir_invert.z);
+    DIGITAL_OUT(Z2_DIRECTION_PIN, (dir_outbits.z ^ settings.steppers.dir_invert.z) ^ settings.steppers.ganged_dir_invert.z);
 #endif
 #else
     dir_outbits.mask ^= settings.steppers.dir_invert.mask;
@@ -1009,13 +1006,13 @@ static void stepperSetDirOutputs (axes_signals_t dir_outbits)
 #ifdef GANGING_ENABLED
     dir_outbits.mask ^= settings.steppers.ganged_dir_invert.mask;
 #ifdef X2_DIRECTION_PIN
-    DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits.x);
+    DIGITAL_OUT(X2_DIRECTION_PIN, dir_outbits.x);
 #endif
 #ifdef Y2_DIRECTION_PIN
-    DIGITAL_OUT(Y2_DIRECTION_BIT, dir_outbits.y);
+    DIGITAL_OUT(Y2_DIRECTION_PIN, dir_outbits.y);
 #endif
 #ifdef Z2_DIRECTION_PIN
-    DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits.z);
+    DIGITAL_OUT(Z2_DIRECTION_PIN, dir_outbits.z);
 #endif
 #endif
 #endif
@@ -1094,34 +1091,34 @@ void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
     // dir signals are set on the next step pulse output
 #else // DIRECTION_OUTMODE <= GPIO_MAP
         if(step_outbits.x) {
-            DIGITAL_OUT(X_DIRECTION_BIT, dir_outbits.x);
+            DIGITAL_OUT(X_DIRECTION_PIN, dir_outbits.x);
   #ifdef X2_DIRECTION_PIN
-            DIGITAL_OUT(X2_DIRECTION_BIT, dir_outbits2.x);
+            DIGITAL_OUT(X2_DIRECTION_PIN, dir_outbits2.x);
   #endif
         }
         if(step_outbits.y) {
-            DIGITAL_OUT(Y_DIRECTION_BIT, dir_outbits.y);
+            DIGITAL_OUT(Y_DIRECTION_PIN, dir_outbits.y);
   #ifdef Y2_DIRECTION_PIN
-            DIGITAL_OUT(Y2_DIRECTION_BIT, dir_outbits2.y);
+            DIGITAL_OUT(Y2_DIRECTION_PIN, dir_outbits2.y);
   #endif
         }
         if(step_outbits.z) {
-            DIGITAL_OUT(Z_DIRECTION_BIT, dir_outbits.z);
+            DIGITAL_OUT(Z_DIRECTION_PIN, dir_outbits.z);
   #ifdef Z2_DIRECTION_PIN
-            DIGITAL_OUT(Z2_DIRECTION_BIT, dir_outbits2.z);
+            DIGITAL_OUT(Z2_DIRECTION_PIN, dir_outbits2.z);
   #endif
         }
   #ifdef A_AXIS
         if(step_outbits.a)
-            DIGITAL_OUT(A_DIRECTION_BIT, dir_outbits.a);
+            DIGITAL_OUT(A_DIRECTION_PIN, dir_outbits.a);
   #endif
   #ifdef B_AXIS
         if(step_outbits.b)
-            DIGITAL_OUT(C_DIRECTION_BIT, dir_outbits.b);
+            DIGITAL_OUT(C_DIRECTION_PIN, dir_outbits.b);
   #endif
   #ifdef C_AXIS
         if(step_outbits.c)
-            DIGITAL_OUT(A_DIRECTION_BIT, dir_outbits.c);
+            DIGITAL_OUT(A_DIRECTION_PIN, dir_outbits.c);
   #endif
 #endif
     }
@@ -1163,26 +1160,26 @@ inline static limit_signals_t limitsGetState (void)
 {
     limit_signals_t signals = {0};
 
-    signals.min.x = DIGITAL_IN(X_LIMIT_BIT);
+    signals.min.x = DIGITAL_IN(X_LIMIT_PIN);
 #ifdef X2_LIMIT_PIN
-    signals.min2.x = DIGITAL_IN(X2_LIMIT_BIT);
+    signals.min2.x = DIGITAL_IN(X2_LIMIT_PIN);
 #endif
-    signals.min.y = DIGITAL_IN(Y_LIMIT_BIT);
+    signals.min.y = DIGITAL_IN(Y_LIMIT_PIN);
 #ifdef Y2_LIMIT_PIN
-    signals.min2.y = DIGITAL_IN(Y2_LIMIT_BIT);
+    signals.min2.y = DIGITAL_IN(Y2_LIMIT_PIN);
 #endif
-    signals.min.z = DIGITAL_IN(Z_LIMIT_BIT);
+    signals.min.z = DIGITAL_IN(Z_LIMIT_PIN);
 #ifdef Z2_LIMIT_PIN
-    signals.min2.z = DIGITAL_IN(Z2_LIMIT_BIT);
+    signals.min2.z = DIGITAL_IN(Z2_LIMIT_PIN);
 #endif
 #ifdef A_LIMIT_PIN
-    signals.min.a = DIGITAL_IN(A_LIMIT_BIT);
+    signals.min.a = DIGITAL_IN(A_LIMIT_PIN);
 #endif
 #ifdef B_LIMIT_PIN
-    signals.min.b = DIGITAL_IN(B_LIMIT_BIT);
+    signals.min.b = DIGITAL_IN(B_LIMIT_PIN);
 #endif
 #ifdef C_LIMIT_PIN
-    signals.min.c = DIGITAL_IN(C_LIMIT_BIT);
+    signals.min.c = DIGITAL_IN(C_LIMIT_PIN);
 #endif
 
     return signals;
@@ -1196,16 +1193,16 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
 
 #ifdef RESET_PIN
 #ifdef ESTOP_ENABLE
-    signals.e_stop = DIGITAL_IN(RESET_BIT);
+    signals.e_stop = DIGITAL_IN(RESET_PIN);
 #else
-    signals.reset = DIGITAL_IN(RESET_BIT);
+    signals.reset = DIGITAL_IN(RESET_PIN);
 #endif
 #endif
 #ifdef FEED_HOLD_PIN
-    signals.feed_hold = DIGITAL_IN(FEED_HOLD_BIT);
+    signals.feed_hold = DIGITAL_IN(FEED_HOLD_PIN);
 #endif
 #ifdef CYCLE_START_PIN
-    signals.cycle_start = DIGITAL_IN(CYCLE_START_BIT);
+    signals.cycle_start = DIGITAL_IN(CYCLE_START_PIN);
 #endif
 #if SAFETY_DOOR_BIT
     signals.safety_door_ajar = safety_door->active;
@@ -1217,13 +1214,13 @@ static control_signals_t __not_in_flash_func(systemGetState)(void)
     if(debounce.safety_door)
         signals.safety_door_ajar = Off;
     else
-        signals.safety_door_ajar = DIGITAL_IN(1 << SAFETY_DOOR_PIN);
+        signals.safety_door_ajar = DIGITAL_IN(SAFETY_DOOR_PIN);
   #endif
   #ifdef MOTOR_FAULT_PIN
-    signals.motor_fault = DIGITAL_IN(1 << MOTOR_FAULT_PIN);
+    signals.motor_fault = DIGITAL_IN(MOTOR_FAULT_PIN);
   #endif
   #ifdef MOTOR_WARNING_PIN
-    signals.motor_warning = DIGITAL_IN(1 << MOTOR_WARNING_PIN);
+    signals.motor_warning = DIGITAL_IN(MOTOR_WARNING_PIN);
   #endif
 
   #if AUX_CONTROLS_SCAN
@@ -1278,7 +1275,7 @@ static probe_state_t probeGetState (void)
     probe_state_t state = {0};
 
     state.connected = probe.connected;
-    state.triggered = probe.is_probing && probe.irq_enabled ? probe.triggered : DIGITAL_IN(1 << PROBE_PIN);
+    state.triggered = probe.is_probing && probe.irq_enabled ? probe.triggered : DIGITAL_IN(PROBE_PIN);
 
     return state;
 }
@@ -1291,14 +1288,14 @@ static input_signal_t *mpg_pin = NULL;
 
 static void mpg_select (void *data)
 {
-    stream_mpg_enable(DIGITAL_IN(mpg_pin->bit) == 0);
+    stream_mpg_enable(DIGITAL_IN(mpg_pin->pin) == 0);
 
     pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
 static void mpg_enable (void *data)
 {
-    if (sys.mpg_mode != (DIGITAL_IN(mpg_pin->bit) == 0))
+    if (sys.mpg_mode != (DIGITAL_IN(mpg_pin->pin) == 0))
         mpg_select(data);
     else
         pinEnableIRQ(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
@@ -1344,7 +1341,7 @@ static void aux_irq_handler (uint8_t port, bool state)
 #ifdef I2C_STROBE_PIN
             case Input_I2CStrobe:
                 if(i2c_strobe.callback)
-                    i2c_strobe.callback(0, DIGITAL_IN(1 << I2C_STROBE_PIN));
+                    i2c_strobe.callback(0, DIGITAL_IN(I2C_STROBE_PIN));
                 break;
 #endif
 #ifdef MPG_MODE_PIN
@@ -1426,7 +1423,7 @@ inline static void spindle_off (void)
 #if SPINDLE_PORT == GPIO_OUTPUT
 
 #ifdef SPINDLE_ENABLE_PIN
-    DIGITAL_OUT(SPINDLE_ENABLE_BIT, Off);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
 #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
@@ -1447,7 +1444,7 @@ inline static void spindle_on (void)
 #if SPINDLE_PORT == GPIO_OUTPUT
 
 #ifdef SPINDLE_ENABLE_PIN
-    DIGITAL_OUT(SPINDLE_ENABLE_BIT, On);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
 #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
@@ -1468,7 +1465,7 @@ inline static void spindle_dir (bool ccw)
 #if SPINDLE_PORT == GPIO_OUTPUT
 
 #ifdef SPINDLE_DIRECTION_PIN
-    DIGITAL_OUT(SPINDLE_DIRECTION_BIT, ccw);
+    DIGITAL_OUT(SPINDLE_DIRECTION_PIN, ccw);
 #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
@@ -1614,12 +1611,12 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 #if SPINDLE_PORT == GPIO_OUTPUT
 
 #ifdef SPINDLE_ENABLE_PIN
-    state.on = DIGITAL_IN(SPINDLE_ENABLE_BIT);
+    state.on = DIGITAL_IN(SPINDLE_ENABLE_PIN);
 #else
     state.on = pwmEnabled ^ settings.spindle.invert.on;
 #endif
 #ifdef SPINDLE_DIRECTION_PIN
-    state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_BIT);
+    state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_PIN);
 #endif
 
 #elif SPINDLE_PORT == GPIO_IOEXPAND
@@ -1647,10 +1644,10 @@ static void coolantSetState (coolant_state_t mode)
 #if COOLANT_PORT == GPIO_OUTPUT
 
 #ifdef COOLANT_FLOOD_PIN
-    DIGITAL_OUT(COOLANT_FLOOD_BIT, mode.flood);
+    DIGITAL_OUT(COOLANT_FLOOD_PIN, mode.flood);
 #endif
 #ifdef COOLANT_MIST_PIN
-    DIGITAL_OUT(COOLANT_MIST_BIT, mode.mist);
+    DIGITAL_OUT(COOLANT_MIST_PIN, mode.mist);
 #endif
 
 #elif COOLANT_PORT == GPIO_IOEXPAND
@@ -1680,10 +1677,10 @@ static coolant_state_t coolantGetState (void)
 #if COOLANT_PORT == GPIO_OUTPUT
 
 #ifdef COOLANT_FLOOD_PIN
-    state.flood = DIGITAL_IN(COOLANT_FLOOD_BIT);
+    state.flood = DIGITAL_IN(COOLANT_FLOOD_PIN);
 #endif
 #ifdef COOLANT_MIST_PIN
-    state.mist = DIGITAL_IN(COOLANT_MIST_BIT);
+    state.mist = DIGITAL_IN(COOLANT_MIST_PIN);
 #endif
 
 #elif COOLANT_PORT == GPIO_IOEXPAND
@@ -2026,7 +2023,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 #endif
 #if SAFETY_DOOR_BIT
             if(input->id == Input_SafetyDoor)
-                input->active = DIGITAL_IN(input->bit);
+                input->active = DIGITAL_IN(input->pin);
 #endif
             gpio_acknowledge_irq(input->pin, GPIO_IRQ_ALL);
 
@@ -2261,7 +2258,7 @@ static uint8_t neopixels_set_intensity (uint8_t intensity)
 static void board_led_out (uint16_t device, rgb_color_t color)
 {
     if(device == 0)
-        DIGITAL_OUT(1 << LED_G_PIN, color.G != 0);
+        DIGITAL_OUT(LED_G_PIN, color.G != 0);
 }
 
 #elif WIFI_ENABLE || BLUETOOTH_ENABLE == 1
@@ -2293,16 +2290,15 @@ static bool driver_setup (settings_t *settings)
 
     for(uint_fast8_t i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         if(outputpin[i].port == GPIO_OUTPUT && outputpin[i].group != PinGroup_AuxOutputAnalog) {
-            outputpin[i].bit = 1 << outputpin[i].pin;
 
             if(gpio_get_function(outputpin[i].pin) == GPIO_FUNC_PWM)
                 continue;
 
             gpio_init(outputpin[i].pin);
             if(outputpin[i].id == PinGroup_StepperEnable || outputpin[i].id == Output_SdCardCS)
-                DIGITAL_OUT(outputpin[i].bit, 1);
+                DIGITAL_OUT(outputpin[i].pin, 1);
 
-            gpio_set_dir_out_masked(outputpin[i].bit);
+            gpio_set_dir_out_masked64(1ULL << outputpin[i].pin);
 
             if(outputpin[i].group == PinGroup_SpindlePWM)
                 gpio_set_function(outputpin[i].pin, GPIO_FUNC_PWM);
@@ -2321,7 +2317,7 @@ static bool driver_setup (settings_t *settings)
     fs_littlefs_mount("/littlefs", pico_littlefs_hal());
 #endif
 
-    IOInitDone = settings->version == 22;
+    IOInitDone = settings->version.id == 22;
 
     hal.settings_changed(settings, (settings_changed_flags_t){0});
     stepperSetDirOutputs((axes_signals_t){0});
@@ -2332,6 +2328,8 @@ static bool driver_setup (settings_t *settings)
 
     return IOInitDone;
 }
+
+#if RP_MCU == 2040
 
 static bool set_rtc_time (struct tm *time)
 {
@@ -2369,6 +2367,8 @@ static bool get_rtc_time (struct tm *time)
 
     return ok;
 }
+
+#endif
 
 extern char __StackLimit, __bss_end__;
 
@@ -2414,10 +2414,13 @@ bool driver_init (void)
 
     systick_hw->rvr = 999;
     systick_hw->cvr = 0;
+#if RP_MCU == 2040
     systick_hw->csr = M0PLUS_SYST_CSR_TICKINT_BITS | M0PLUS_SYST_CSR_ENABLE_BITS;
-
+#else
+    systick_hw->csr = M33_SYST_CSR_TICKINT_BITS | M33_SYST_CSR_ENABLE_BITS;
+#endif
     hal.info = "RP2040";
-    hal.driver_version = "241025";
+    hal.driver_version = "241129";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2476,8 +2479,10 @@ bool driver_init (void)
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
+#if RP_MCU == 2040
     hal.rtc.get_datetime = get_rtc_time;
     hal.rtc.set_datetime = set_rtc_time;
+#endif
 
     serialRegisterStreams();
 
@@ -2594,7 +2599,6 @@ bool driver_init (void)
 
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
-        input->bit = 1 << input->pin;
         input->mode.input = input->cap.input = On;
         input->mode.pull_mode = input->cap.pull_mode = PullMode_Up;
         irq_pins[input->pin] = input;
@@ -2748,7 +2752,13 @@ bool driver_init (void)
 #elif STEP_PORT == GPIO_PIO
 
     pio_offset = pio_add_program(pio0, &step_pulse_program);
+
+#if STEP_PINS_BASE > 32
+    pio_set_gpio_base(pio0, 16);
+    step_pulse_program_init(pio0, 0, pio_offset, STEP_PINS_BASE - 16, N_AXIS + N_GANGED);
+#else
     step_pulse_program_init(pio0, 0, pio_offset, STEP_PINS_BASE, N_AXIS + N_GANGED);
+#endif
     pio_sm_claim(pio0, 0);
 
 #elif STEP_PORT == GPIO_SR8
@@ -2874,7 +2884,7 @@ void pin_debounce (void *pin)
 #endif
 
     if(input->mode.irq_mode == IRQ_Mode_Change ||
-        (DIGITAL_IN(input->bit) ^ input->mode.inverted) == (input->mode.irq_mode == IRQ_Mode_Falling ? 0 : 1)) {
+        (DIGITAL_IN(input->pin) ^ input->mode.inverted) == (input->mode.irq_mode == IRQ_Mode_Falling ? 0 : 1)) {
 
         switch(input->group) {
 
@@ -2913,7 +2923,7 @@ void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
 
     #if SPI_IRQ_BIT
         if(input->id == Input_SPIIRQ && spi_irq.callback)
-            spi_irq.callback(0, DIGITAL_IN(input->bit) == 0);
+            spi_irq.callback(0, DIGITAL_IN(input->pin) == 0);
         else
     #endif
         if(input->mode.debounce && task_add_delayed(pin_debounce, input, 40)) {
@@ -2955,7 +2965,7 @@ void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
       #ifdef I2C_STROBE_PIN
             case PinGroup_I2C:
                 if(input->id == Input_I2CStrobe && i2c_strobe.callback)
-                    i2c_strobe.callback(0, DIGITAL_IN(input->bit) == 0);
+                    i2c_strobe.callback(0, DIGITAL_IN(input->pin) == 0);
                 break;
       #endif
       #if MPG_ENABLE == 1
