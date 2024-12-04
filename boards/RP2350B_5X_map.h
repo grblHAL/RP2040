@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2024 Terje Io
   Copyright (c) 2024 PL Barrett
 
   grblHAL is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 #error "Axis configuration is not supported!"
 #endif
 
-#if PICO_PLATFORM != rp2350
+#if RP_MCU != 2350
 #error "Board has a RP2350 processor!"
 #endif
 
@@ -64,18 +64,18 @@
 // Define ganged axis or A axis step pulse and step direction output pins.
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
-#define M3_DIRECTION_PIN        31
+#define M3_DIRECTION_PIN        15
 #define M3_LIMIT_PIN            4 // 1.0 -> 3
-#define M3_ENABLE_PIN           41
+#define M3_ENABLE_PIN           25
 #endif
 
 #if N_ABC_MOTORS == 2
 #define M4_AVAILABLE
-#define M4_DIRECTION_PIN        32
+#define M4_DIRECTION_PIN        16
 #define M4_LIMIT_PIN            2
-#define M4_ENABLE_PIN           42
+#define M4_ENABLE_PIN           26
 #else
-#define AUXINPUT6_PIN			      2 // M4_LIMIT_PIN
+#define AUXINPUT6_PIN                 2 // M4_LIMIT_PIN
 #endif
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
@@ -87,10 +87,10 @@
 #define AUXOUTPUT3_PIN          33  // Spindle enable
 
 //#define AUXOUTPUT4_PORT         GPIO_OUTPUT
-#define AUXOUTPUT4_PIN			    35  // Spindle PWM
+#define AUXOUTPUT4_PIN          35  // Spindle PWM
 
 //#define AUXOUTPUT5_PORT         GPIO_OUTPUT
-#define AUXOUTPUT5_PIN			    34  // Spindle direction
+#define AUXOUTPUT5_PIN          34  // Spindle direction
 //#define AUXOUTPUT0_PWM_PIN      29 // Servo
 
 #if DRIVER_SPINDLE_ENABLE
@@ -166,13 +166,13 @@
 
 #if I2C_ENABLE
 #define I2C_PORT                1
-#define	I2C_SDA				          30	
-#define	I2C_SCL				          31
+#define I2C_SDA                 30    
+#define I2C_SCL                 31
 #endif
 
 #ifdef SERIAL1_PORT
-#define UART_1_RX_PIN				    27
-#define	UART_1_TX_PIN				    36
+#define UART_1_RX_PIN           27
+#define UART_1_TX_PIN           36
 #else
 #define AUXINPUT2_PIN           27
 #define AUXOUTPUT2_PORT         GPIO_OUTPUT

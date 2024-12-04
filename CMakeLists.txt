@@ -205,36 +205,15 @@ if(ADD_HPGL)
 endif()
 
 target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-if(RP_MCU EQUAL 2040)
+if(PICO_PLATFORM STREQUAL "rp2040")
+target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
 target_link_libraries(grblHAL PRIVATE
- grbl
- fatfs
- sdcard
- motors
- trinamic
- spindle
- keypad
- fans
- laser
- bluetooth
- eeprom
- misc_plugins
- embroidery
- tinyusb_device_unmarked
- pico_stdlib
- pico_unique_id
- hardware_dma
- hardware_uart
- hardware_pio
- hardware_i2c
- hardware_spi
- hardware_gpio
- hardware_pwm
- hardware_clocks
- hardware_flash
  hardware_rtc
 )
 else()
+target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
+endif()
+
 target_link_libraries(grblHAL PRIVATE
  grbl
  fatfs
@@ -262,7 +241,6 @@ target_link_libraries(grblHAL PRIVATE
  hardware_clocks
  hardware_flash
 )
-endif()
 
 pico_add_extra_outputs(grblHAL)
 

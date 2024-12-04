@@ -2419,7 +2419,11 @@ bool driver_init (void)
 #else
     systick_hw->csr = M33_SYST_CSR_TICKINT_BITS | M33_SYST_CSR_ENABLE_BITS;
 #endif
+#if RP_MCU == 2040
     hal.info = "RP2040";
+#else
+    hal.info = "RP2350";
+#endif
     hal.driver_version = "241129";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
