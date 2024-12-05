@@ -66,6 +66,29 @@
       }
     },
     {
+      "name": "PicoCNC w/RP2350",
+      "symbol": "BOARD_PICO_CNC",
+      "URL": "https://github.com/phil-barrett/PicoCNC",
+      "MAP": "boards/pico_cnc_map.h",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 8,
+        "i2c_strobe": 1,
+        "eeprom": 1,
+        "fram": 1,
+        "i2c": 1,
+        "sdcard": 1,
+        "wifi": 1,
+        "wiznet": 1,
+        "bluetooth": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350",
+          "RP_BOARD": "pico2"
+      }
+    },
+    {
       "name": "PicoBOB",
       "symbol": "BOARD_PICOBOB",
       "URL": "https://github.com/Expatria-Technologies/PicoBOB",
@@ -128,6 +151,28 @@
         "trinamic_uart_addr": 1
       }
     },
+    {
+      "name": "RP23U5XBB",
+      "symbol": "BOARD_RP23U5XBB",
+      "URL": "https://github.com/phil-barrett/PicoCNC",
+      "MAP": "boards/RP2350B_5X_map.h",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 8,
+        "i2c_strobe": 1,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 1,
+        "sdcard": 1,
+        "wifi": 0,
+        "wiznet": 1,
+        "bluetooth": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350"
+      }
+    },
 	{
       "name": "Generic",
       "symbol": "",
@@ -150,6 +195,38 @@
         "i2c_strobe": 1,
         "wifi": 1,
         "bluetooth": 1
+      }
+    },
+	{
+      "name": "Generic w/RP2350",
+      "symbol": "",
+      "MAP": "boards/generic_map.h",
+      "caps": {
+        "axes": 3,
+        "digital_in": 1,
+        "digital_out": 3,
+        "i2c_strobe": 1,
+        "wifi": 0,
+        "bluetooth": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350",
+          "RP_BOARD": "pico2"
+      }
+    },
+    {
+      "name": "Generic 4 axis w/RP2350",
+      "symbol": "BOARD_GENERIC_4AXIS",
+      "MAP": "boards/generic_map_4axis.h",
+      "caps": {
+        "axes": 4,
+        "i2c_strobe": 1,
+        "wifi": 0,
+        "bluetooth": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350",
+          "RP_BOARD": "pico2"
       }
     }
   ]
