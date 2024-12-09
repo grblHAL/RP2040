@@ -83,7 +83,7 @@ delay:
     out pins, 6
 
 % c-sdk {
-static inline void step_pulse_program_init(PIO pio, uint32_t sm, uint32_t offset, uint32_t startPin, uint32_t pinCount) {
+static inline void step_pulse_program_init(PIO pio, uint32_t sm, uint32_t offset, uint32_t startPin, uint32_t pinCount, float div) {
     pio_sm_config c = step_pulse_program_get_default_config(offset); 
 
     // Map the state machine's OUT pin group to the provided pin in pin count in parameters
@@ -97,7 +97,7 @@ static inline void step_pulse_program_init(PIO pio, uint32_t sm, uint32_t offset
     sm_config_set_set_pins(&c, startPin, pinCount);
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_clkdiv(pio, sm, 12.5f);
+    pio_sm_set_clkdiv(pio, sm, div);
     // Set the state machine running
     pio_sm_set_enabled(pio, sm, true);
 }
