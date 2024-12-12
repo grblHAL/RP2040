@@ -2014,8 +2014,13 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 #endif
 
 #if ETHERNET_ENABLE
-        if(!net.ethernet)
+
+        static bool enet_init = true;
+
+        if(enet_init && !net.ethernet) {
+            enet_init = false;
             net.ethernet = enet_start();
+        }
 #endif
 
 #if BLUETOOTH_ENABLE == 1
@@ -2654,7 +2659,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "241208";
+    hal.driver_version = "241211";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
