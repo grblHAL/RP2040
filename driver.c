@@ -1169,12 +1169,12 @@ static inline __attribute__((always_inline)) void stepper_set_dir (uint_fast8_t 
 #endif
 #ifdef B_AXIS
         case B_AXIS:
-            DIGITAL_OUT(C_DIRECTION_PIN, dir_out.b);
+            DIGITAL_OUT(B_DIRECTION_PIN, dir_out.b);
             break;
 #endif
 #ifdef C_AXIS
         case C_AXIS:
-            DIGITAL_OUT(A_DIRECTION_PIN, dir_out.c);
+            DIGITAL_OUT(C_DIRECTION_PIN, dir_out.c);
             break;
 #endif
     }
