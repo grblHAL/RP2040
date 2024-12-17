@@ -65,7 +65,7 @@
 
 // Define driver spindle pins
 
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_PORT        GPIO_OUTPUT
 #define SPINDLE_PWM_PIN         15
 #else
@@ -73,7 +73,8 @@
 #define AUXOUTPUT0_PIN          15
 #endif
 
-#if DRIVER_SPINDLE_DIR_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+
 #define SPINDLE_PORT            GPIO_OUTPUT
 #define SPINDLE_DIRECTION_PIN   27
 #else

@@ -115,7 +115,7 @@ typedef union {
 
 // Define spindle PWM output pin.
 
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_PORT    GPIO_OUTPUT
 #define SPINDLE_PWM_PIN     27
 #endif

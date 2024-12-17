@@ -70,14 +70,44 @@
 #define Y_LIMIT_PIN           1
 #define Z_LIMIT_PIN           2
 
-// Define spindle enable and spindle direction output pins.  No direction signal on the Mach3 BOB.
-//Spindle relay control is shared with B direction port, only one can be enabled at a time!
-#define SPINDLE_PORT          GPIO_OUTPUT
-#define SPINDLE_ENABLE_PIN    13
+// Define Aux Outputs
+#define AUXOUTPUT0_PORT       GPIO_OUTPUT // GPIO LED
+#define AUXOUTPUT0_PIN        7
+#define AUXOUTPUT1_PORT       GPIO_OUTPUT // Spindle PWM
+#define AUXOUTPUT1_PIN        14
+#define AUXOUTPUT2_PORT       GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT2_PIN        13
+#define AUXOUTPUT3_PORT       GPIO_OUTPUT // Coolant flood
+#define AUXOUTPUT3_PIN        8
 
-// Define spindle PWM output pin.
-#define SPINDLE_PWM_PORT      GPIO_OUTPUT
-#define SPINDLE_PWM_PIN       14
+// Define driver spindle pins
+// No direction signal on the Mach3 BOB.
+// Spindle relay control is shared with B direction port, only one can be enabled at a time!
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_PORT            GPIO_OUTPUT
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT1_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT2_PIN
+#endif
+
+//Stepper enable is replaced with coolant control
+#if COOLANT_ENABLE
+#define COOLANT_PORT            GPIO_OUTPUT
+#endif
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT3_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#ifdef COOLANT_FLOOD_PIN
+#define COOLANT_ENABLE COOLANT_FLOOD
+#else
+#define COOLANT_ENABLE 0
+#endif
+#endif
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.  Only Estop is supported on the Mach3 BOB.
 #ifndef I2C_STROBE_ENABLE
@@ -87,10 +117,6 @@
   #define RESET_PIN           15
   #define AUXINPUT2_PIN       3
 #endif
-
-//Stepper enable is replaced with coolant control
-#define COOLANT_PORT          GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN     8
 
 // Define Aux inputs
 #define AUXINPUT0_PIN         6
@@ -105,12 +131,6 @@
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN        AUXINPUT3_PIN
 #endif
-
-// Define Aux Outputs
-#define AUXOUTPUT0_PORT       GPIO_OUTPUT
-#define AUXOUTPUT0_PIN        7  // GPIO LED
-//#define AUXOUTPUT1_PORT       GPIO_OUTPUT
-//#define AUXOUTPUT1_PIN        21  // GPIO LED
 
 #if I2C_ENABLE
 #define I2C_PORT              0

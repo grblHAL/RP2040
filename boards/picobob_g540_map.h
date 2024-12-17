@@ -57,23 +57,38 @@
 
 // Define driver spindle pins
 // No direction signal on the Mach3 BOB.
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PORT      GPIO_OUTPUT
-#define SPINDLE_PWM_PIN       16
-#else
-#define AUXOUTPUT0_PORT       GPIO_OUTPUT
+#define AUXOUTPUT0_PORT       GPIO_OUTPUT // Spindle PWM
 #define AUXOUTPUT0_PIN        16
-#endif
+#define AUXOUTPUT1_PORT       GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT1_PIN        14
+#define AUXOUTPUT2_PORT       GPIO_OUTPUT // Coolant flood
+#define AUXOUTPUT2_PIN        13
 
 #if DRIVER_SPINDLE_ENABLE
-#ifndef SPINDLE_PORT
 #define SPINDLE_PORT          GPIO_OUTPUT
 #endif
-#define SPINDLE_ENABLE_PIN    14
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN       AUXOUTPUT0_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN    AUXOUTPUT1_PIN
+#endif
+
+//Stepper enable is replaced with coolant control
+
+#if COOLANT_ENABLE
+#define COOLANT_PORT        GPIO_OUTPUT
+#endif
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN   AUXOUTPUT2_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#ifdef COOLANT_FLOOD_PIN
+#define COOLANT_ENABLE COOLANT_FLOOD
 #else
-#define AUXOUTPUT1_PORT       GPIO_OUTPUT
-#define AUXOUTPUT1_PIN        14   
+#define COOLANT_ENABLE 0
+#endif
 #endif
 
 #define AUXINPUT0_PIN         4
@@ -85,7 +100,3 @@
 #if PROBE_ENABLE
 #define PROBE_PIN             AUXINPUT0_PIN
 #endif
-
-//Stepper enable is replaced with coolant control
-#define COOLANT_PORT          GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN     13

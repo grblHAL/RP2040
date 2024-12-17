@@ -53,6 +53,13 @@
 #include "ws2812.pio.h"
 
 #define AUX_DEVICES // until all drivers are converted?
+#ifndef AUX_CONTROLS
+#ifdef SD_SHIFT_REGISTER
+#define AUX_CONTROLS 0
+#else
+#define AUX_CONTROLS (AUX_CONTROL_SPINDLE|AUX_CONTROL_COOLANT)
+#endif
+#endif
 
 #include "grbl/crossbar.h"
 #include "grbl/machine_limits.h"
@@ -202,7 +209,7 @@ static net_types_t net = {0};
 #if DRIVER_SPINDLE_ENABLE
 static spindle_id_t spindle_id = -1;
 #endif
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm;
 #endif
@@ -467,7 +474,7 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnable,  .port = ENABLE_PORT, .pin = STEPPERS_ENABLE_PIN, .group = PinGroup_StepperEnable, .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
-#if defined(SPINDLE_PWM_PORT) && !defined(AUX_CONTROLS_OUT)
+#if !(AUX_CONTROLS & AUX_CONTROL_SPINDLE)
     { .id = Output_SpindlePWM,   .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #ifdef RTS_PIN
@@ -494,64 +501,66 @@ static output_signal_t outputpin[] = {
     { .id = Output_Aux4,         .port = GPIO_SR16, .pin = 12, .group = PinGroup_AuxOutput },
     { .id = Output_Aux5,         .port = GPIO_SR16, .pin = 13, .group = PinGroup_AuxOutput },
     { .id = Output_Aux6,         .port = GPIO_SR16, .pin = 14, .group = PinGroup_AuxOutput },
-#ifdef AUXOUTPUT7_PORT
+ #ifdef AUXOUTPUT7_PORT
     { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT, .pin = AUXOUTPUT7_PIN, .group = PinGroup_AuxOutput},
-#endif
+ #endif
     { .id = Output_SPIRST,       .port = GPIO_SR16, .pin = 15, .group = PinGroup_SPI },
 #else // !SD_SHIFT_REGISTER
-#ifndef AUX_CONTROLS_OUT
-#ifdef SPINDLE_ENABLE_PIN
-    { .id = Output_SpindleOn,    .port = SPINDLE_PORT,     .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
-#endif
-#ifdef SPINDLE_DIRECTION_PIN
-    { .id = Output_SpindleDir,   .port = SPINDLE_PORT,     .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
-#endif
-#endif // AUX_CONTROLS_OUT
-#ifdef COOLANT_FLOOD_PIN
-    { .id = Output_CoolantFlood, .port = COOLANT_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant},
-#endif
-#ifdef COOLANT_MIST_PIN
-    { .id = Output_CoolantMist,  .port = COOLANT_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
-#endif
-#ifdef LED_PIN
+ #if !(AUX_CONTROLS & AUX_CONTROL_SPINDLE)
+  #ifdef SPINDLE_ENABLE_PIN
+    { .id = Output_SpindleOn,    .port = SPINDLE_ENABLE_PORT,     .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
+  #endif
+  #ifdef SPINDLE_DIRECTION_PIN
+    { .id = Output_SpindleDir,   .port = SPINDLE_DIRECTION_PORT,     .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
+  #endif
+ #endif // AUX_CONTROL_SPINDLE
+ #if !(AUX_CONTROLS & AUX_CONTROL_COOLANT)
+  #ifdef COOLANT_FLOOD_PIN
+    { .id = Output_CoolantFlood, .port = COOLANT_FLOOD_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant},
+  #endif
+  #ifdef COOLANT_MIST_PIN
+    { .id = Output_CoolantMist,  .port = COOLANT_MIST_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
+  #endif
+ #endif // AUX_CONTROL_COOLANT
+ #ifdef LED_PIN
     { .id = Output_LED,          .port = GPIO_OUTPUT,      .pin = LED_PIN,               .group = PinGroup_LED },
-#endif
-#ifdef LED_R_PIN
+ #endif
+ #ifdef LED_R_PIN
     { .id = Output_LED_R,        .port = GPIO_OUTPUT,      .pin = LED_R_PIN,             .group = PinGroup_LED },
-#endif
-#ifdef LED_G_PIN
+ #endif
+ #ifdef LED_G_PIN
     { .id = Output_LED_G,        .port = GPIO_OUTPUT,      .pin = LED_G_PIN,             .group = PinGroup_LED },
-#endif
-#ifdef LED_B_PIN
+ #endif
+ #ifdef LED_B_PIN
     { .id = Output_LED_B,        .port = GPIO_OUTPUT,      .pin = LED_B_PIN,             .group = PinGroup_LED },
-#endif
-#ifdef LED_W_PIN
+ #endif
+ #ifdef LED_W_PIN
     { .id = Output_LED_W,        .port = GPIO_OUTPUT,      .pin = LED_W_PIN,             .group = PinGroup_LED },
-#endif
-#ifdef AUXOUTPUT0_PORT
+ #endif
+ #ifdef AUXOUTPUT0_PORT
     { .id = Output_Aux0,         .port = AUXOUTPUT0_PORT,  .pin = AUXOUTPUT0_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT1_PORT
+ #endif
+ #ifdef AUXOUTPUT1_PORT
     { .id = Output_Aux1,         .port = AUXOUTPUT1_PORT,  .pin = AUXOUTPUT1_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT2_PORT
+ #endif
+ #ifdef AUXOUTPUT2_PORT
     { .id = Output_Aux2,         .port = AUXOUTPUT2_PORT,  .pin = AUXOUTPUT2_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT3_PORT
+ #endif
+ #ifdef AUXOUTPUT3_PORT
     { .id = Output_Aux3,         .port = AUXOUTPUT3_PORT,  .pin = AUXOUTPUT3_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT4_PORT
+ #endif
+ #ifdef AUXOUTPUT4_PORT
     { .id = Output_Aux4,         .port = AUXOUTPUT4_PORT,  .pin = AUXOUTPUT4_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT5_PORT
+ #endif
+ #ifdef AUXOUTPUT5_PORT
     { .id = Output_Aux5,         .port = AUXOUTPUT5_PORT,  .pin = AUXOUTPUT5_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT6_PORT
+ #endif
+ #ifdef AUXOUTPUT6_PORT
     { .id = Output_Aux6,         .port = AUXOUTPUT6_PORT,  .pin = AUXOUTPUT6_PIN,        .group = PinGroup_AuxOutput},
-#endif
-#ifdef AUXOUTPUT7_PORT
+ #endif
+ #ifdef AUXOUTPUT7_PORT
     { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT,  .pin = AUXOUTPUT7_PIN,        .group = PinGroup_AuxOutput},
-#endif
+ #endif
 #endif
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
@@ -1601,7 +1610,7 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
 #endif // AUX_CONTROLS_ENABLED
 
-#ifdef AUX_CONTROLS_OUT
+#if AUX_CONTROLS
 
 bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 {
@@ -1618,7 +1627,7 @@ bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
     return aux_ctrl->aux_port != 0xFF;
 }
 
-#endif // AUX_CONTROLS_OUT
+#endif // AUX_CONTROLS
 
 //*************************  SPINDLE  *************************//
 
@@ -1702,7 +1711,7 @@ static void spindleSetState (spindle_ptrs_t *spindle, spindle_state_t state, flo
     }
 }
 
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
 // Variable spindle control functions
 
@@ -1806,7 +1815,7 @@ static void spindlePulseOn (uint_fast16_t pulse_length)
 
 #endif // PPI_ENABLE
 
-#endif // DRIVER_SPINDLE_PWM_ENABLE
+#endif // DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
 // Returns spindle state in a spindle_state_t variable
 static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
@@ -2028,7 +2037,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
             net.bluetooth = bluetooth_start_local();
 #endif
 
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
         if(changed.spindle) {
             spindleConfig(spindle_get_hal(spindle_id, SpindleHAL_Configured));
             if(spindle_id == spindle_get_default())
@@ -2659,7 +2668,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "241211";
+    hal.driver_version = "241217";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2754,11 +2763,12 @@ bool driver_init (void)
 
 #if DRIVER_SPINDLE_ENABLE
 
- #if DRIVER_SPINDLE_PWM_ENABLE
+ #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
     static const spindle_ptrs_t spindle = {
         .type = SpindleType_PWM,
-#if DRIVER_SPINDLE_DIR_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+
         .ref_id = SPINDLE_PWM0,
 #else
         .ref_id = SPINDLE_PWM0_NODIR,
@@ -2776,7 +2786,8 @@ bool driver_init (void)
             .variable = On,
             .laser = On,
             .pwm_invert = On,
-  #if DRIVER_SPINDLE_DIR_ENABLE
+  #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+
             .direction = On
   #endif
         }
@@ -2786,7 +2797,8 @@ bool driver_init (void)
 
     static const spindle_ptrs_t spindle = {
         .type = SpindleType_Basic,
-#if DRIVER_SPINDLE_DIR_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+
         .ref_id = SPINDLE_ONOFF0_DIR,
 #else
         .ref_id = SPINDLE_ONOFF0,
@@ -2795,7 +2807,8 @@ bool driver_init (void)
         .get_state = spindleGetState,
         .cap = {
             .gpio_controlled = On,
-  #if DRIVER_SPINDLE_DIR_ENABLE
+  #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+
             .direction = On
   #endif
         }
@@ -2876,8 +2889,8 @@ bool driver_init (void)
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
             output->id = Output_Aux0 + aux_outputs.n_pins;
-#ifdef AUX_CONTROLS_OUT
-            aux_out_remap_explicit((void *)output->port, output->pin, aux_outputs.n_pins, output);
+#if AUX_CONTROLS
+            aux_out_remap_explicit((void *)((uint32_t)output->port), output->pin, aux_outputs.n_pins, output);
 #endif
             aux_outputs.n_pins++;
         } else if(output->group == PinGroup_AuxOutputAnalog) {
@@ -2893,7 +2906,7 @@ bool driver_init (void)
         ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
-#ifdef AUX_CONTROLS_OUT
+#if AUX_CONTROLS
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 #endif
 

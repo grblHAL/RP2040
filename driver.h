@@ -179,6 +179,27 @@
 #endif
 #endif
 
+#ifdef SPINDLE_PORT
+#ifndef SPINDLE_ENABLE_PORT
+#define SPINDLE_ENABLE_PORT (void *)SPINDLE_PORT
+#endif
+#ifndef SPINDLE_PWM_PORT
+#define SPINDLE_PWM_PORT (void *)SPINDLE_PORT
+#endif
+#ifndef SPINDLE_DIRECTION_PORT
+#define SPINDLE_DIRECTION_PORT (void *)SPINDLE_PORT
+#endif
+#endif // SPINDLE_PORT
+
+#ifdef COOLANT_PORT
+#ifndef COOLANT_FLOOD_PORT
+#define COOLANT_FLOOD_PORT (void *)COOLANT_PORT
+#endif
+#ifndef COOLANT_MIST_PORT
+#define COOLANT_MIST_PORT (void *)COOLANT_PORT
+#endif
+#endif // COOLANT_PORT
+
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
 // The default value is calibrated for 10 microseconds length.
 // NOTE: step output mode, number of axes and compiler optimization settings may all affect this value.
@@ -347,6 +368,5 @@ static inline  void __disable_irq(void)
 {
   __asm volatile ("cpsid i" : : : "memory");
 }
-
 
 #endif // __DRIVER_H__

@@ -1,5 +1,5 @@
 /*
-  tbtt_skr_pico_10.c - driver code for RP2040 ARM processors
+  btt_skr_pico_10.c - driver code for RP2040 ARM processors
 
   Part of grblHAL
 

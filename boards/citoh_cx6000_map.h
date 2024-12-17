@@ -68,17 +68,24 @@
 #define AUXINPUT4_PIN           26 // Pen U/D
 #define AUXINPUT5_PIN           22 // Online
 
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          8  // Pen LED
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          28 // Alert LED
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          27 // Reset front panel
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT  // Pen LED
+#define AUXOUTPUT0_PIN          8
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT // Alert LED
+#define AUXOUTPUT1_PIN          28
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT // Reset front panel
+#define AUXOUTPUT2_PIN          27
+#define AUXOUTPUT3_PIN          GPIO_OUTPUT // Spindle PWM
+#define AUXOUTPUT3_PIN          14
+
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_PORT            GPIO_OUTPUT
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN 
+#endif
 
 #define RESET_PIN               10
 #define PROBE_PIN               12
-#define SPINDLE_PWM_PORT        GPIO_OUTPUT
-#define SPINDLE_PWM_PIN         14
 
 #if !USB_SERIAL_CDC
 #define RTS_PIN                 2

@@ -27,7 +27,7 @@
 #error "Wireless networking is not supported!"
 #endif
 
-#define AUX_CONTROLS_OUT
+//#define AUX_CONTROLS_OUT
 
 #define BOARD_NAME "BTT SKR Pico 1.0"
 #define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
@@ -78,39 +78,42 @@
 #define Y_LIMIT_PIN                 3
 #define Z_LIMIT_PIN                 25
 
-#define AUXOUTPUT0_PORT             GPIO_OUTPUT
+#define AUXOUTPUT0_PORT             GPIO_OUTPUT // Spindle PWM
 #define AUXOUTPUT0_PIN              20
-#define AUXOUTPUT1_PORT             GPIO_OUTPUT
+#define AUXOUTPUT1_PORT             GPIO_OUTPUT // Spindle direction
 #define AUXOUTPUT1_PIN              18
-#define AUXOUTPUT2_PORT             GPIO_OUTPUT
+#define AUXOUTPUT2_PORT             GPIO_OUTPUT // Spindle enable
 #define AUXOUTPUT2_PIN              17   
+#define AUXOUTPUT3_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT3_PIN              21 // HB PWM
+#define AUXOUTPUT4_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT4_PIN              23 // HE PWM
 
 // Define driver spindle pins
 
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PORT            AUXOUTPUT0_PORT
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_PORT                GPIO_OUTPUT
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN          AUXOUTPUT2_PIN 
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_PIN             AUXOUTPUT0_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_PORT                AUXOUTPUT1_PORT
-#define SPINDLE_DIRECTION_PORT      AUXOUTPUT1_PORT
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
 #define SPINDLE_DIRECTION_PIN       AUXOUTPUT1_PIN
 #endif
 
-#if DRIVER_SPINDLE_ENABLE
-#ifndef SPINDLE_PORT
-#define SPINDLE_PORT                AUXOUTPUT2_PORT
-#endif
-#define SPINDLE_ENABLE_PORT         AUXOUTPUT2_PORT
-#define SPINDLE_ENABLE_PIN          AUXOUTPUT2_PIN 
-#endif
-
 // Define flood and mist coolant enable output pins.
-
+#if COOLANT_ENABLE
 #define COOLANT_PORT                GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN           21 // HB PWM
-#define COOLANT_MIST_PIN            23 // HE PWM
+#endif
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN           AUXOUTPUT3_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN            AUXOUTPUT4_PIN
+#endif
 
 #define AUXINPUT0_PIN               22 // Probe
 #define AUXOUTPUT0_PWM_PIN          29 // Servo

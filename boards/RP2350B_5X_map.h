@@ -75,54 +75,60 @@
 #define M4_LIMIT_PIN            2
 #define M4_ENABLE_PIN           26
 #else
-#define AUXINPUT6_PIN                 2 // M4_LIMIT_PIN
+#define AUXINPUT6_PIN           2 // M4_LIMIT_PIN
 #endif
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
 #define AUXOUTPUT0_PIN          38
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
 #define AUXOUTPUT1_PIN          37
+#ifndef SERIAL1_PORT
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT
+#define AUXOUTPUT2_PIN          36
+#endif
+#define AUXOUTPUT3_PORT         GPIO_OUTPUT  // Spindle enable
+#define AUXOUTPUT3_PIN          33
+#define AUXOUTPUT4_PORT         GPIO_OUTPUT  // Spindle PWM
+#define AUXOUTPUT4_PIN          35
+#define AUXOUTPUT5_PORT         GPIO_OUTPUT  // Spindle direction
+#define AUXOUTPUT5_PIN          34
+#define AUXOUTPUT6_PORT         GPIO_OUTPUT  // Coolant flood
+#define AUXOUTPUT6_PIN          39
+#define AUXOUTPUT7_PORT         GPIO_OUTPUT  // Coolant mist
+#define AUXOUTPUT7_PIN          40
 
-//#define AUXOUTPUT3_PORT         GPIO_OUTPUT
-#define AUXOUTPUT3_PIN          33  // Spindle enable
-
-//#define AUXOUTPUT4_PORT         GPIO_OUTPUT
-#define AUXOUTPUT4_PIN          35  // Spindle PWM
-
-//#define AUXOUTPUT5_PORT         GPIO_OUTPUT
-#define AUXOUTPUT5_PIN          34  // Spindle direction
 //#define AUXOUTPUT0_PWM_PIN      29 // Servo
 
 #if DRIVER_SPINDLE_ENABLE
-
 #define SPINDLE_PORT            GPIO_OUTPUT
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
 #define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PORT        GPIO_OUTPUT
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_PIN         AUXOUTPUT4_PIN
-#else
-#define AUXOUTPUT4_PORT         GPIO_OUTPUT
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
 #define SPINDLE_DIRECTION_PIN   AUXOUTPUT5_PIN
-#else
-#define AUXOUTPUT5_PORT         GPIO_OUTPUT
 #endif
 
-#else
-#define AUXOUTPUT3_PORT         GPIO_OUTPUT
-#endif // DRIVER_SPINDLE_ENABLE
-
+#if COOLANT_ENABLE
 #define COOLANT_PORT            GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN       39
-#define COOLANT_MIST_PIN        40
+#endif
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
+#endif
 
 //
 
 #define AUXINPUT0_PIN           29
 #define AUXINPUT1_PIN           28
+#ifndef SERIAL1_PORT
+#define AUXINPUT2_PIN           27
+#endif
 #define AUXINPUT3_PIN           7   // Probe
 #define AUXINPUT4_PIN           8   // Safety door or motor fault
 #define AUXINPUT5_PIN           32  // I2C strobe pin
@@ -173,8 +179,4 @@
 #ifdef SERIAL1_PORT
 #define UART_1_RX_PIN           27
 #define UART_1_TX_PIN           36
-#else
-#define AUXINPUT2_PIN           27
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          36
 #endif
