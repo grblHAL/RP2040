@@ -122,7 +122,7 @@
         "i2c_strobe": 1,
         "safety_door": 0,
         "serial_ports": 0,
-        "wiznet": 1
+        "wiznet": 5500
       }
     },
     {
@@ -137,7 +137,7 @@
         "i2c_strobe": 1,
         "safety_door": 0,
         "serial_ports": 0,
-        "wiznet": 1
+        "wiznet": 5500
       }
     },    
     {

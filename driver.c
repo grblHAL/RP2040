@@ -2568,8 +2568,8 @@ static bool driver_setup (settings_t *settings)
     gpio_init(MPG_MODE_PIN);
 #endif
 
-#if LITTLEFS_ENABLE && WEBUI_ENABLE
-    fs_littlefs_mount("/littlefs", pico_littlefs_hal());
+#if LITTLEFS_ENABLE
+    fs_littlefs_mount(LITTLEFS_MOUNT_DIR , pico_littlefs_hal());
 #endif
 
     IOInitDone = settings->version.id == 23;
@@ -2668,7 +2668,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "241217";
+    hal.driver_version = "241219";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
