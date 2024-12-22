@@ -14,6 +14,8 @@
     "auto_square": 1,
     "digital_in": 8,
     "digital_out": 8,
+    "analog_out": 1,
+    "analog_pwm_out": 4,
     "probe": 1,
     "safety_door": 1,
     "estop": 1,
@@ -23,6 +25,7 @@
     "wiznet": 1,
     "littlefs": 1,
     "bluetooth": 1,
+    "rgb_out": 2,
     "mcp3221_adc": 1,
     "plugins": [
       { "id": "motors" },
@@ -38,6 +41,13 @@
       { "id": "laser_coolant" },
       { "id": "bluetooth" },
       { "id": "fans" },
+      { "id": "rgb_leds" },
+      { "id": "eventout" },
+      { "id": "homing_pulloff" },
+      { "id": "feed_override" },
+      { "id": "pwm_servo" },
+      { "id": "bltouch" },
+      { "id": "esp_at" },
       { "id": "embroidery" }
     ]
   },
@@ -137,6 +147,23 @@
         "i2c_strobe": 1,
         "safety_door": 0,
         "serial_ports": 0,
+        "wiznet": 5500
+      }
+    },
+    {
+      "name": "PicoHAL",
+      "symbol": "BOARD_PICOHAL",
+      "URL": "https://github.com/Expatria-Technologies/PicoHAL_HW",
+      "MAP": "boards/picohal_map.h",
+      "caps": {
+        "axes": 4,
+        "digital_in": 3,
+        "digital_out": 1,
+        "i2c_strobe": 0,
+        "safety_door": 0,
+        "serial_ports": 2,
+        "i2c": 0,
+        "rgb_out": 1,
         "wiznet": 5500
       }
     },    
