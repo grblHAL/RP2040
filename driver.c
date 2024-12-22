@@ -84,6 +84,7 @@
 #if LITTLEFS_ENABLE
 #include "littlefs_hal.h"
 #include "sdcard/fs_littlefs.h"
+#include "sdcard/macros.h"
 #endif
 
 #if USB_SERIAL_CDC
@@ -2562,6 +2563,8 @@ static bool driver_setup (settings_t *settings)
 
 #if SDCARD_ENABLE
     sdcard_init();
+#elif LITTLEFS_ENABLE
+    fs_macros_init();
 #endif
 
 #if MPG_ENABLE == 1
