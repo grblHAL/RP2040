@@ -2591,14 +2591,7 @@ static bool driver_setup (settings_t *settings)
 
 static bool set_rtc_time (struct tm *time)
 {
-    static bool init_ok = false;
-
-    if (!init_ok) {
-        init_ok = true;
-        rtc_init();
-    }
-
-    datetime_t dt = {0};
+    datetime_t dt = {};
     dt.year = time->tm_year + 1900;
     dt.month = time->tm_mon + 1;
     dt.day = time->tm_mday;
@@ -2606,15 +2599,15 @@ static bool set_rtc_time (struct tm *time)
     dt.min = time->tm_min;
     dt.sec = time->tm_sec;
 
-    return rtc_set_datetime(&dt);
+    return (hal.driver_cap.rtc_set = rtc_set_datetime(&dt));
 }
 
 static bool get_rtc_time (struct tm *time)
 {
     bool ok;
-    datetime_t dt = {0};
+    datetime_t dt = {};
 
-    if((ok = rtc_running() && rtc_get_datetime(&dt))) {
+    if((ok = hal.driver_cap.rtc_set && rtc_get_datetime(&dt))) {
         time->tm_year = dt.year - 1900;
         time->tm_mon = dt.month - 1;
         time->tm_mday = dt.day;
@@ -2731,8 +2724,13 @@ bool driver_init (void)
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
 #if RP_MCU == 2040
+
+    rtc_init();
+
+    hal.driver_cap.rtc = On;
     hal.rtc.get_datetime = get_rtc_time;
     hal.rtc.set_datetime = set_rtc_time;
+
 #endif
 
     serialRegisterStreams();
