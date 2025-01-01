@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
   Copyright (c) 2021 Volksolive
 
   grblHAL is free software: you can redistribute it and/or modify
@@ -63,43 +63,45 @@
 #define AUXOUTPUT1_PIN          9
 #endif
 
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT // Spindle PWM
+#define AUXOUTPUT2_PIN          15
+#define AUXOUTPUT3_PORT         GPIO_OUTPUT // Spindle direction
+#define AUXOUTPUT3_PIN          27
+#define AUXOUTPUT4_PORT         GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT4_PIN          26   
+#define AUXOUTPUT5_PORT         GPIO_OUTPUT // Coolant flood
+#define AUXOUTPUT5_PIN          16   
+#define AUXOUTPUT6_PORT         GPIO_OUTPUT // Coolant mist
+#define AUXOUTPUT6_PIN          17   
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
-#define SPINDLE_PWM_PORT        GPIO_OUTPUT
-#define SPINDLE_PWM_PIN         15
-#else
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          15
-#endif
-
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-
-#define SPINDLE_PORT            GPIO_OUTPUT
-#define SPINDLE_DIRECTION_PIN   27
-#else
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          27
-#endif
-
 #if DRIVER_SPINDLE_ENABLE
-#ifndef SPINDLE_PORT
 #define SPINDLE_PORT            GPIO_OUTPUT
 #endif
-#define SPINDLE_ENABLE_PIN      26
-#else
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          26   
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT2_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT3_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA   
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT4_PIN
+#endif
+
+// Define flood and mist coolant enable output pins.
+#if COOLANT_ENABLE
+#define COOLANT_PORT            GPIO_OUTPUT
+#endif
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT5_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT6_PIN
 #endif
 
 #define AUXINPUT1_PIN           21
 #define AUXINPUT2_PIN           28
 #define AUXINPUT3_PIN           22 // Probe
-
-// Define flood and mist coolant enable output pins.
-#define COOLANT_PORT            GPIO_OUTPUT
-#define COOLANT_FLOOD_PIN       16
-#define COOLANT_MIST_PIN        17
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #define RESET_PIN               18

@@ -84,9 +84,9 @@
 #define AUXOUTPUT1_PIN              18
 #define AUXOUTPUT2_PORT             GPIO_OUTPUT // Spindle enable
 #define AUXOUTPUT2_PIN              17   
-#define AUXOUTPUT3_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT3_PORT             GPIO_OUTPUT // Coolant flood
 #define AUXOUTPUT3_PIN              21 // HB PWM
-#define AUXOUTPUT4_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
 #define AUXOUTPUT4_PIN              23 // HE PWM
 
 // Define driver spindle pins
