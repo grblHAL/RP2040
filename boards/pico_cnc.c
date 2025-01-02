@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
   
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -153,7 +153,7 @@ static float digital_in_state (xbar_t *input)
     float value = -1.0f;
 
     if(input->id < digital.in.n_ports)
-        value = (float)(DIGITAL_IN(1UL << aux_in[input->id].pin));
+        value = (float)(DIGITAL_IN(aux_in[input->id].pin));
 
     return value;
 }
@@ -161,7 +161,7 @@ static float digital_in_state (xbar_t *input)
 inline static __attribute__((always_inline)) int32_t get_input (const input_signal_t *input, wait_mode_t wait_mode, float timeout)
 {
     if(wait_mode == WaitMode_Immediate)
-        return DIGITAL_IN(1UL << input->pin);
+        return DIGITAL_IN(input->pin);
 
     int32_t value = -1;
     uint_fast16_t delay = (uint_fast16_t)ceilf((1000.0f / 50.0f) * timeout) + 1;

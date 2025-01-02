@@ -5,7 +5,7 @@
   Part of grblHAL
 
   Copyright (c) 2021 Volksolive
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1558,7 +1558,7 @@ static void aux_irq_handler (uint8_t port, bool state)
 #ifdef I2C_STROBE_PIN
             case Input_I2CStrobe:
                 if(i2c_strobe.callback)
-                    i2c_strobe.callback(0, DIGITAL_IN(I2C_STROBE_PIN));
+                    i2c_strobe.callback(0, DIGITAL_IN(I2C_STROBE_PIN) == 0);
                 break;
 #endif
 #ifdef MPG_MODE_PIN
@@ -2664,7 +2664,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "241219";
+    hal.driver_version = "250102";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2711,7 +2711,7 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
-#if I2C_STROBE_BIT || SPI_IRQ_BIT
+#if I2C_STROBE_ENABLE || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
     hal.get_micros = getElapsedMicros;
