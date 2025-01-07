@@ -103,7 +103,7 @@ void wizchip_reset (void)
     hal.delay_ms(2, NULL);
     DIGITAL_OUT(hw.rst, 1);
 #endif
-    hal.delay_ms(10, NULL);
+    hal.delay_ms(75, NULL);
 }
 
 wizchip_init_err_t wizchip_initialize (void)
