@@ -28,6 +28,10 @@
 #error "Axis configuration is not supported!"
 #endif
 
+#if I2C_STROBE_ENABLE && MOTOR_FAULT_ENABLE
+#error "Motor fault input and I2C strobe input (keypad plugin) cannot be enabled at the same time."
+#endif
+
 // Define step pulse output pins.
 #define STEP_PORT               GPIO_PIO  // N_AXIS pin PIO SM
 #define STEP_PINS_BASE          2         // N_AXIS number of consecutive pins are used by PIO
@@ -52,8 +56,7 @@
 // Define auxiliary I/O
 #define AUXINPUT0_PIN           22
 #define AUXINPUT1_PIN           21
-#define AUXINPUT2_PIN           23
-#define AUXINPUT3_PIN           28 // Probe
+#define AUXINPUT2_PIN           28 // Probe
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
 #define AUXOUTPUT0_PIN          12
@@ -101,18 +104,21 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
 #endif
 
-#if PROBE_ENABLE
-#define PROBE_PIN               AUXINPUT3_PIN
-#endif
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#define RESET_PIN               18
+#define FEED_HOLD_PIN           19
+#define CYCLE_START_PIN         20
 
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          AUXINPUT2_PIN
+#if PROBE_ENABLE
+#define PROBE_PIN               AUXINPUT2_PIN
 #endif
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN         AUXINPUT1_PIN
 #endif
 
-#if MOTOR_FAULT_ENABLE
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN          AUXINPUT0_PIN
+#elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN         AUXINPUT0_PIN
 #endif
