@@ -2664,7 +2664,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250102";
+    hal.driver_version = "250123";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2823,7 +2823,9 @@ bool driver_init (void)
 
 // driver capabilities
 
-#if ESTOP_ENABLE
+#ifndef RESET_PIN
+    hal.signals_cap.reset = Off;
+#elif ESTOP_ENABLE
     hal.signals_cap.e_stop = On;
     hal.signals_cap.reset = Off;
 #endif
