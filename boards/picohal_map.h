@@ -33,14 +33,14 @@
 
 // Define step pulse output pins.
 #define STEP_PORT             GPIO_PIO  // N_AXIS pin PIO SM
-#define STEP_PINS_BASE        20        // N_AXIS number of consecutive pins are used by PIO
+#define STEP_PINS_BASE        16        // N_AXIS number of consecutive pins are used by PIO
 
 // Define step direction output pins.
 #define DIRECTION_PORT        GPIO_OUTPUT
 #define DIRECTION_OUTMODE     GPIO_MAP
-#define X_DIRECTION_PIN       16
-#define Y_DIRECTION_PIN       17
-#define Z_DIRECTION_PIN       18
+#define X_DIRECTION_PIN       20
+#define Y_DIRECTION_PIN       21
+#define Z_DIRECTION_PIN       22
 
 // Define stepper driver enable/disable output pin.
 #define ENABLE_PORT           GPIO_OUTPUT
@@ -49,7 +49,7 @@
 // Define ganged axis or A axis step pulse and step direction output pins.
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
-#define M3_DIRECTION_PIN      19
+#define M3_DIRECTION_PIN      23
 #define M3_LIMIT_PIN          5  //shared with Z
 #endif
 
@@ -96,7 +96,6 @@
 
 // Modbus 
 #define MODBUS_DIR_AUX  0
-
 #define SERIAL1_PORT 1
 
 #if MODBUS_ENABLE
@@ -110,13 +109,6 @@
 // UART 1 (Modbus)
 #define UART_1_TX_PIN 8
 #define UART_1_RX_PIN 9
-
-#define MODBUS_DIR_AUX  0
-#define SERIAL1_PORT 1
-
-#if MODBUS_ENABLE
-#define MODBUS_SERIAL_PORT          1
-#endif
 
 // Ethernet
 #if ETHERNET_ENABLE

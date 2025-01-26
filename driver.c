@@ -28,6 +28,7 @@
 #include <malloc.h>
 
 #include "pico/time.h"
+#include "pico/bootrom.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
@@ -2644,6 +2645,37 @@ static bool assign_step_sm (PIO *pio, uint *sm, uint32_t pin)
 
 #endif
 
+//UF2 bootloader entry via command
+#if USB_SERIAL_CDC
+
+status_code_t enter_uf2 (sys_state_t state, char *args)
+{
+
+    hal.stream.write("[MSG:Warning: Entering UF2 Bootloader]" ASCII_EOL);
+    hal.delay_ms(100, NULL);
+
+    rom_reset_usb_boot(0, 0); // enter bootloader
+
+    return Status_OK;
+}
+
+const sys_command_t boot_command_list[1] = {
+	{"UF2", enter_uf2, { .noargs = On }, { .str = "enter UF2 bootloader" } }
+};
+
+static sys_commands_t boot_commands = {
+    .n_commands = sizeof(boot_command_list) / sizeof(sys_command_t),
+    .commands = boot_command_list
+};
+
+static void onReportOptions (bool newopt)
+{
+    if(!newopt)
+        hal.stream.write("[PLUGIN:Bootloader Entry v0.01]" ASCII_EOL);
+}
+
+#endif // USB_SERIAL_CDC
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: grblHAL is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
@@ -2911,6 +2943,16 @@ bool driver_init (void)
 
 #if AUX_CONTROLS
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
+#endif
+
+#if USB_SERIAL_CDC
+
+    // register $UF2 bootloader command
+
+    grbl.on_report_options = onReportOptions;
+
+    system_register_commands(&boot_commands);
+
 #endif
 
 #ifdef HAS_BOARD_INIT
