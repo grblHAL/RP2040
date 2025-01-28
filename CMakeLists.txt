@@ -1,12 +1,12 @@
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
+set(sdkVersion 2.1.0)
+set(toolchainVersion 13_3_Rel1)
+set(picotoolVersion 2.1.0)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
@@ -25,11 +25,8 @@ option(ADD_MQTT "Add MQTT client API" OFF)
 #
 option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
-if(ADD_WIFI OR ADD_BLUETOOTH)
-    set(PICO_BOARD pico_w)
-endif()
-
-#set(PICO_BOARD pimoroni_pga2350 CACHE STRING "Board type")
+# Select the correct board in VSCode, the following line will be updated accordingly
+set(PICO_BOARD pico CACHE STRING "Board type")
 
 include(pico_sdk_import.cmake)
 
@@ -116,7 +113,7 @@ target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
 endif()
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
-target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
+#target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
 if(ADD_WIFI)
     target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)
@@ -205,7 +202,7 @@ if(ADD_HPGL)
 endif()
 
 target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-if(PICO_PLATFORM STREQUAL "rp2040")
+if(PICO_PLATFORM STREQUAL "rp2040" OR PICO_BOARD STREQUAL "pico" OR PICO_BOARD STREQUAL "pico_w")
 target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
 target_link_libraries(grblHAL PRIVATE
  hardware_rtc
