@@ -5,18 +5,18 @@
 
   Copyright (c) 2021-2023 Andrew Marles
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if TRINAMIC_ENABLE
@@ -112,26 +112,26 @@
 #endif
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.  Only Estop is supported on the Mach3 BOB.
-#ifndef I2C_STROBE_ENABLE
-  #define RESET_PIN           3
+#if I2C_STROBE_ENABLE
+//reset pin is swapped to keypad when present, frees up additional input.
+#define RESET_PIN             15
+#define AUXINPUT1_PIN         3
 #else
-  //reset pin is swapped to keypad when present, frees up additional input.
-  #define RESET_PIN           15
-  #define AUXINPUT2_PIN       3
+#define RESET_PIN             3
+#define AUXINPUT1_PIN         15
 #endif
 
 // Define Aux inputs
 #define AUXINPUT0_PIN         6
-#define AUXINPUT1_PIN         15
-#define AUXINPUT3_PIN         27 // I2C strobe
-#define AUXINPUT4_PIN         4  // Probe
+#define AUXINPUT2_PIN         27 // I2C strobe
+#define AUXINPUT3_PIN         4  // Probe
 
 #if PROBE_ENABLE
-#define PROBE_PIN             AUXINPUT4_PIN
+#define PROBE_PIN             AUXINPUT3_PIN
 #endif
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN        AUXINPUT3_PIN
+#define I2C_STROBE_PIN        AUXINPUT2_PIN
 #endif
 
 #if I2C_ENABLE
