@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022-2024 Terje Io
+  Copyright (c) 2022-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 //#include "dnsserver.h"
 #include "dhcpserver.h"
 #include "grbl/report.h"
+#include "grbl/task.h"
 #include "grbl/nvs_buffer.h"
 #include "grbl/protocol.h"
 
@@ -53,9 +54,8 @@ typedef struct
 } wifi_settings_t;
 
 static int interface;
-static volatile bool linkUp = false;
 static bool scan_in_progress = false;
-static char IPAddress[IP4ADDR_STRLEN_MAX];
+static char IPAddress[IP4ADDR_STRLEN_MAX], sta_if_name[NETIF_NAMESIZE] = "";
 static stream_type_t active_stream = StreamType_Null;
 static wifi_settings_t wifi;
 static network_settings_t network;
@@ -68,6 +68,7 @@ static on_report_options_ptr on_report_options;
 static on_execute_realtime_ptr on_execute_realtime;
 static on_stream_changed_ptr on_stream_changed;
 static char netservices[NETWORK_SERVICES_LEN] = "";
+static network_flags_t sta_status = {};
 static uint32_t country_codes[] = {
     CYW43_COUNTRY_WORLDWIDE,
     CYW43_COUNTRY_AUSTRALIA,
@@ -193,6 +194,33 @@ static char *wifi_get_mac (void)
     return mac;
 }
 
+static network_info_t *get_info (const char *interface)
+{
+    static network_info_t info;
+
+    memcpy(&info.status, &network, sizeof(network_settings_t));
+
+    strcpy(info.mac, wifi_get_mac());
+    strcpy(info.status.ip, wifi_get_ipaddr());
+
+    if(info.status.ip_mode == IpMode_DHCP) {
+        *info.status.gateway = '\0';
+        *info.status.mask = '\0';
+    }
+
+    info.interface = (const char *)sta_if_name;
+    info.is_ethernet = false;
+    info.link_up = false;
+//    info.mbps = 100;
+    info.status.services = services;
+
+#if MQTT_ENABLE
+    networking_make_mqtt_clientid(info.mac, info.mqtt_client_id);
+#endif
+
+    return &info;
+}
+
 static void reportIP (bool newopt)
 {
     on_report_options(newopt);
@@ -231,39 +259,13 @@ static void reportIP (bool newopt)
         }
 #if MQTT_ENABLE
         char *client_id;
-        if(*(client_id = networking_get_info()->mqtt_client_id)) {
+        if(*(client_id = get_info(NULL)->mqtt_client_id)) {
             hal.stream.write("[MQTT CLIENTID:");
             hal.stream.write(client_id);
             hal.stream.write(mqtt_connected ? "]" ASCII_EOL : " (offline)]" ASCII_EOL);
         }
 #endif
     }
-}
-
-network_info_t *networking_get_info (void)
-{
-    static network_info_t info;
-
-    memcpy(&info.status, &network, sizeof(network_settings_t));
-
-    strcpy(info.mac, wifi_get_mac());
-    strcpy(info.status.ip, wifi_get_ipaddr());
-
-    if(info.status.ip_mode == IpMode_DHCP) {
-        *info.status.gateway = '\0';
-        *info.status.mask = '\0';
-    }
-
-    info.is_ethernet = false;
-    info.link_up = false;
-//    info.mbps = 100;
-    info.status.services = services;
-
-#if MQTT_ENABLE
-    networking_make_mqtt_clientid(info.mac, info.mqtt_client_id);
-#endif
-
-    return &info;
 }
 
 #if MDNS_ENABLE
@@ -285,6 +287,16 @@ static void mdns_service_info (struct mdns_service *service, void *txt_userdata)
 }
 
 #endif
+
+static void status_event_out (void *data)
+{
+    networking.event(sta_if_name, (network_status_t){ .value = (uint32_t)data });
+}
+
+static void status_event_publish (network_flags_t changed)
+{
+    task_add_immediate(status_event_out, (void *)((network_status_t){ .changed = changed, .flags = sta_status }).value);
+}
 
 static inline void services_poll (void)
 {
@@ -347,7 +359,7 @@ static void start_services (void)
 
 #if MQTT_ENABLE
     if(wifi.mode == WiFiMode_STA && !mqtt_connected)
-        mqtt_connect(&network.mqtt, networking_get_info()->mqtt_client_id);
+        mqtt_connect(&network.mqtt, get_info(NULL)->mqtt_client_id);
 #endif
 
 #if MDNS_ENABLE
@@ -409,15 +421,6 @@ static void stop_services (void)
 #endif
 //    if(running.dns)
 //        dns_server_stop();
-}
-
-static void msg_sta_active (void *data)
-{
-    char buf[50];
-
-    sprintf(buf, "WIFI STA ACTIVE, IP=%s", wifi_get_ipaddr());
-
-    report_message(buf, Message_Plain);
 }
 
 static int scan_result (void *env, const cyw43_ev_scan_result_t *result)
@@ -495,7 +498,7 @@ static void enet_poll (sys_state_t state)
 
         if((status = cyw43_tcpip_link_status(&cyw43_state, interface)) != last_status) {
 
-            linkUp = status == CYW43_LINK_UP;
+            sta_status.link_up = status == CYW43_LINK_UP;
             last_status = status;
 
             switch(status) {
@@ -597,18 +600,29 @@ static void netif_sta_status_callback (struct netif *netif)
             if(netif->ip_addr.addr != 0) {
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
+                if(!sta_status.ip_aquired) {
+                    sta_status.ip_aquired = On;
+                    status_event_publish((network_flags_t){ .ip_aquired = On });
+                }
             }
-            protocol_enqueue_foreground_task(msg_sta_active, NULL);
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
+            if(sta_status.ip_aquired) {
+                sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .ip_aquired = On });
+            }
             protocol_enqueue_foreground_task(report_plain, "WIFI STA DISCONNECTED");
             break;
 
         case CYW43_LINK_FAIL:
         case CYW43_LINK_BADAUTH:
            *IPAddress = '\0';
+            if(sta_status.ip_aquired) {
+                sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .ip_aquired = On });
+            }
             protocol_enqueue_foreground_task(report_plain, "WIFI STA CONNECT FAILED");
             break;
 
@@ -642,18 +656,29 @@ static void link_sta_status_callback (struct netif *netif)
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
                 wifi_ap_scan();
+                if(!sta_status.ip_aquired) {
+                    sta_status.ip_aquired = On;
+                    status_event_publish((network_flags_t){ .ip_aquired = On });
+                }
             }
-            protocol_enqueue_foreground_task(msg_sta_active, NULL);
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
+            if(sta_status.ip_aquired) {
+                sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .ip_aquired = On });
+            }
             protocol_enqueue_foreground_task(report_plain, "WIFI STA DISCONNECTED");
             break;
 
         case CYW43_LINK_FAIL:
         case CYW43_LINK_BADAUTH:
            *IPAddress = '\0';
+            if(sta_status.ip_aquired) {
+                sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .ip_aquired = On });
+            }
             protocol_enqueue_foreground_task(report_plain, "WIFI STA CONNECT FAILED");
             break;
 
@@ -814,6 +839,11 @@ bool wifi_start (void)
 #if LWIP_NETIF_HOSTNAME
         netif_set_hostname(netif_default, network.hostname);
 #endif
+        netif_index_to_name(1, sta_if_name);
+
+        sta_status.interface_up = On;
+        status_event_publish((network_flags_t){ .interface_up = On });
+
         netif_set_status_callback(netif_default, netif_sta_status_callback);
         netif_set_link_callback(netif_default, link_sta_status_callback);
 
@@ -1323,6 +1353,8 @@ bool wifi_init (void)
 {
     if((nvs_address = nvs_alloc(sizeof(wifi_settings_t)))) {
 
+        networking_init();
+
         on_report_options = grbl.on_report_options;
         grbl.on_report_options = reportIP;
 
@@ -1340,6 +1372,7 @@ bool wifi_init (void)
         modbus_tcp_client_init();
 #endif
 
+        networking.get_info = get_info;
         allowed_services.mask = networking_get_services_list((char *)netservices).mask;
     }
 
