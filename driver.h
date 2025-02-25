@@ -49,6 +49,20 @@
 #endif
 #endif
 
+#if defined(WEBUI_ENABLE) && WEBUI_ENABLE
+#ifndef WEBUI_INFLASH
+#define WEBUI_INFLASH 1
+#endif
+#if WEBUI_INFLASH
+#if defined(LITTLEFS_ENABLE) && LITTLEFS_ENABLE == 0
+#undef LITTLEFS_ENABLE
+#endif
+#ifndef LITTLEFS_ENABLE
+#define LITTLEFS_ENABLE 1
+#endif
+#endif
+#endif
+
 #include "grbl/driver_opts.h"
 
 #if ETHERNET_ENABLE && WIFI_ENABLE
@@ -126,13 +140,6 @@
 #define PPI_TIMER_IRQn              timerINT(PPI_TIMER_N)
 #define PPI_TIMER_IRQHandler        timerHANDLER(PPI_TIMER_N)
 */
-
-#if WEBUI_ENABLE && LITTLEFS_ENABLE
-#ifdef WEBUI_INFLASH
-#undef WEBUI_INFLASH
-#endif
-#define WEBUI_INFLASH 1
-#endif
 
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "cnc_boosterpack_map.h"
