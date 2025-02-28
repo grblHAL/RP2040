@@ -94,6 +94,10 @@ endif()
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
+if(PICO_SDK_VERSION_STRING VERSION_GREATER_EQUAL "2.1.1")
+target_compile_definitions(grblHAL PUBLIC PICO_USE_FASTEST_SUPPORTED_CLOCK=1)
+endif()
+
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
 target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)

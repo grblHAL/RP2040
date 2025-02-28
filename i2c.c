@@ -96,8 +96,13 @@ static void i2c_cfg_pin (uint8_t gpio)
     gpio_set_slew_rate(gpio, GPIO_SLEW_RATE_SLOW);
 }
 
-void I2C_Init (void)
+i2c_cap_t i2c_start (void)
 {
+    static i2c_cap_t cap = {};
+
+    if(cap.started)
+        return cap;
+
     i2c_cfg_pin(I2C_SDA);
     i2c_cfg_pin(I2C_SCL);
     i2c_init(QI2C_PORT, 100000UL);
@@ -124,6 +129,11 @@ void I2C_Init (void)
     tx.channel = dma_claim_unused_channel(false);
 
     irq_set_exclusive_handler(QI2C_IRQ, i2c_irq_handler);
+
+    cap.started = On;
+    cap.tx_non_blocking = cap.tx_dma = tx.channel != -1;
+
+    return cap;
 }
 
 bool i2c_probe (uint_fast16_t i2cAddr)
@@ -187,15 +197,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
     return ok;
 }
 
-uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
-{
-    i2c_write_blocking(QI2C_PORT, i2cAddr, buf, 1, true);
-    i2c_read_blocking(QI2C_PORT, i2cAddr, buf, bytes, false);
-
-    return buf;
-}
-
-void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
+bool i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
 {
     uint8_t c;
     keycode = 0;
@@ -203,17 +205,15 @@ void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
 
     if(i2c_read_blocking(QI2C_PORT, i2cAddr, &c, 1, false) == 1)
         keypad_callback(c);
+
+    return true;
 }
 
-#endif
-
-#if EEPROM_ENABLE
-
-nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *i2c, bool read)
+bool i2c_transfer (i2c_transfer_t *i2c, bool read)
 {
-    static uint8_t txbuf[MAX_PAGE_SIZE + 2];
+    static uint8_t txbuf[NVS_SIZE + 2];
 
-    int retval = 0;
+    bool ok;
 
     if(i2c->word_addr_bytes == 2) {
         txbuf[0] = i2c->word_addr >> 8;
@@ -221,25 +221,19 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *i2c, bool read)
     } else
         txbuf[0] = i2c->word_addr;
 
-    if(!read)
-        memcpy(&txbuf[i2c->word_addr_bytes], i2c->data, i2c->count);
-
     if(read) {
         i2c_write_blocking(QI2C_PORT, i2c->address, txbuf, i2c->word_addr_bytes, true);
-        retval = i2c_read_blocking(QI2C_PORT, i2c->address, i2c->data, i2c->count, false);
-    } else {
-        retval = i2c_write_blocking(QI2C_PORT, i2c->address, txbuf, i2c->count + i2c->word_addr_bytes, false);
-#if !EEPROM_IS_FRAM
-        hal.delay_ms(5, NULL);
-#endif
+        ok = i2c_read_blocking(QI2C_PORT, i2c->address, i2c->data, i2c->count, false) != PICO_ERROR_GENERIC;
+    } else if((ok = i2c->count + i2c->word_addr_bytes) <= sizeof(txbuf)) {
+        memcpy(&txbuf[i2c->word_addr_bytes], i2c->data, i2c->count);
+        if(i2c->no_block)
+            ok = i2c_send(i2c->address, txbuf, i2c->count + i2c->word_addr_bytes, false) != PICO_ERROR_GENERIC;
+        else
+            ok = i2c_write_blocking(QI2C_PORT, i2c->address, txbuf, i2c->count + i2c->word_addr_bytes, false) != PICO_ERROR_GENERIC;
     }
 
-    i2c->data += i2c->count;
-
-    return retval == PICO_ERROR_GENERIC ? NVS_TransferResult_Failed : NVS_TransferResult_OK;
+    return ok;
 }
-
-#endif
 
 /*
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
@@ -254,6 +248,14 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
 
 static const uint8_t tmc_addr = I2C_ADR_I2CBRIDGE << 1;
+
+uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+{
+    i2c_write_blocking(QI2C_PORT, i2cAddr, buf, 1, true);
+    i2c_read_blocking(QI2C_PORT, i2cAddr, buf, bytes, false);
+
+    return buf;
+}
 
 static TMC2130_status_t TMC_I2C_ReadRegister (TMC2130_t *driver, TMC2130_datagram_t *reg)
 {
@@ -298,3 +300,4 @@ static TMC2130_status_t TMC_I2C_WriteRegister (TMC2130_t *driver, TMC2130_datagr
 }
 
 #endif
+#endif // I2C_ENABLE

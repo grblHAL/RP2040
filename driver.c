@@ -41,10 +41,12 @@
 #include "hardware/structs/sio.h"
 #if RP_MCU == 2040
 #include "hardware/rtc.h"
-#define PIO_CLK_DIV 12.5f
-#define PIO_STEP_ADJ 0.29f
+#if defined(PICO_USE_FASTEST_SUPPORTED_CLOCK) && PICO_USE_FASTEST_SUPPORTED_CLOCK
+#define PIO_STEP_ADJ 0.2f
 #else
-#define PIO_CLK_DIV 15.0f
+#define PIO_STEP_ADJ 0.29f
+#endif
+#else
 #define PIO_STEP_ADJ 0.2f
 #endif
 
@@ -208,6 +210,7 @@ static net_types_t net = {0};
 
 #endif
 
+static float pio_clk;
 #if DRIVER_SPINDLE_ENABLE
 static spindle_id_t spindle_id = -1;
 #endif
@@ -260,26 +263,44 @@ static input_signal_t inputpin[] = {
 #ifdef LIMITS_OVERRIDE_PIN
     { .id = Input_LimitsOverride, .port = GPIO_INPUT, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control },
 #endif
-    { .id = Input_LimitX, .port = GPIO_INPUT, .pin = X_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitX,         .port = GPIO_INPUT, .pin = X_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef X2_LIMIT_PIN
-    { .id = Input_LimitX_2, .port = GPIO_INPUT, .pin = X2_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitX_2,       .port = GPIO_INPUT, .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
 #endif
-    { .id = Input_LimitY, .port = GPIO_INPUT, .pin = Y_LIMIT_PIN, .group = PinGroup_Limit },
+#ifdef X_LIMIT_PIN_MAX
+    { .id = Input_LimitX_Max,     .port = GPIO_INPUT, .pin = X_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+#endif
+    { .id = Input_LimitY,         .port = GPIO_INPUT, .pin = Y_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef Y2_LIMIT_PIN
-    { .id = Input_LimitY_Max, .port = GPIO_INPUT, .pin = Y2_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitY_2,       .port = GPIO_INPUT, .pin = Y2_LIMIT_PIN,        .group = PinGroup_Limit },
 #endif
-    { .id = Input_LimitZ, .port = GPIO_INPUT, .pin = Z_LIMIT_PIN, .group = PinGroup_Limit },
+#ifdef Y_LIMIT_PIN_MAX
+    { .id = Input_LimitY_Max,     .port = GPIO_INPUT, .pin = Y_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+#endif
+    { .id = Input_LimitZ,         .port = GPIO_INPUT, .pin = Z_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef Z2_LIMIT_PIN
-    { .id = Input_LimitZ_Max, .port = GPIO_INPUT, .pin = Z2_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitZ_2,       .port = GPIO_INPUT, .pin = Z2_LIMIT_PIN,        .group = PinGroup_Limit },
+#endif
+#ifdef Z_LIMIT_PIN_MAX
+    { .id = Input_LimitZ_Max,     .port = GPIO_INPUT, .pin = Z_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
 #ifdef A_LIMIT_PIN
-    { .id = Input_LimitA, .port = GPIO_INPUT, .pin = A_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitA,         .port = GPIO_INPUT, .pin = A_LIMIT_PIN,         .group = PinGroup_Limit },
+#endif
+#ifdef A_LIMIT_PIN_MAX
+    { .id = Input_LimitA_Max,     .port = GPIO_INPUT, .pin = A_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
 #ifdef B_LIMIT_PIN
-    { .id = Input_LimitB, .port = GPIO_INPUT, .pin = B_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitB,         .port = GPIO_INPUT, .pin = B_LIMIT_PIN,         .group = PinGroup_Limit },
+#endif
+#ifdef B_LIMIT_PIN_MAX
+    { .id = Input_LimitB_Max,     .port = GPIO_INPUT, .pin = B_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
 #ifdef C_LIMIT_PIN
-    { .id = Input_LimitC, .port = GPIO_INPUT, .pin = C_LIMIT_PIN, .group = PinGroup_Limit },
+    { .id = Input_LimitC,         .port = GPIO_INPUT, .pin = C_LIMIT_PIN,         .group = PinGroup_Limit },
+#endif
+#ifdef C_LIMIT_PIN_MAX
+    { .id = Input_LimitC_Max,     .port = GPIO_INPUT, .pin = C_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
 #ifndef AUX_DEVICES
   #ifdef PROBE_PIN
@@ -1382,22 +1403,40 @@ inline static limit_signals_t limitsGetState (void)
 #ifdef X2_LIMIT_PIN
     signals.min2.x = DIGITAL_IN(X2_LIMIT_PIN);
 #endif
+#ifdef X_LIMIT_PIN_MAX
+    signals.max.x = DIGITAL_IN(X_LIMIT_PIN_MAX);
+#endif
     signals.min.y = DIGITAL_IN(Y_LIMIT_PIN);
 #ifdef Y2_LIMIT_PIN
     signals.min2.y = DIGITAL_IN(Y2_LIMIT_PIN);
+#endif
+#ifdef Y_LIMIT_PIN_MAX
+    signals.max.y = DIGITAL_IN(Y_LIMIT_PIN_MAX);
 #endif
     signals.min.z = DIGITAL_IN(Z_LIMIT_PIN);
 #ifdef Z2_LIMIT_PIN
     signals.min2.z = DIGITAL_IN(Z2_LIMIT_PIN);
 #endif
+#ifdef Z_LIMIT_PIN_MAX
+    signals.max.z = DIGITAL_IN(Z_LIMIT_PIN_MAX);
+#endif
 #ifdef A_LIMIT_PIN
     signals.min.a = DIGITAL_IN(A_LIMIT_PIN);
+#endif
+#ifdef A_LIMIT_PIN_MAX
+    signals.max.a = DIGITAL_IN(A_LIMIT_PIN_MAX);
 #endif
 #ifdef B_LIMIT_PIN
     signals.min.b = DIGITAL_IN(B_LIMIT_PIN);
 #endif
+#ifdef B_LIMIT_PIN_MAX
+    signals.max.b = DIGITAL_IN(B_LIMIT_PIN_MAX);
+#endif
 #ifdef C_LIMIT_PIN
     signals.min.c = DIGITAL_IN(C_LIMIT_PIN);
+#endif
+#ifdef C_LIMIT_PIN_MAX
+    signals.max.c = DIGITAL_IN(C_LIMIT_PIN_MAX);
 #endif
 
     return signals;
@@ -2638,7 +2677,7 @@ static bool assign_step_sm (PIO *pio, uint *sm, uint32_t pin)
     bool ok;
 
     if((ok = pio_claim_free_sm_and_add_program_for_gpio_range(&step_pulse_program, pio, sm, &offset, pin, 1, false)))
-        step_pulse_program_init(*pio, *sm, offset, pin, 1, PIO_CLK_DIV);
+        step_pulse_program_init(*pio, *sm, offset, pin, 1, pio_clk);
 
     return ok;
 }
@@ -2659,19 +2698,10 @@ status_code_t enter_uf2 (sys_state_t state, char *args)
     return Status_OK;
 }
 
-const sys_command_t boot_command_list[1] = {
-	{"UF2", enter_uf2, { .noargs = On }, { .str = "enter UF2 bootloader" } }
-};
-
-static sys_commands_t boot_commands = {
-    .n_commands = sizeof(boot_command_list) / sizeof(sys_command_t),
-    .commands = boot_command_list
-};
-
 static void onReportOptions (bool newopt)
 {
     if(!newopt)
-        hal.stream.write("[PLUGIN:Bootloader Entry v0.01]" ASCII_EOL);
+        report_plugin("Bootloader Entry", "0.01");
 }
 
 #endif // USB_SERIAL_CDC
@@ -2696,7 +2726,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250123";
+    hal.driver_version = "250228";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2713,6 +2743,8 @@ bool driver_init (void)
     hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay;
     hal.settings_changed = settings_changed;
+
+    pio_clk = (float)hal.f_mcu / 10.0f;
 
     hal.stepper.wake_up = stepperWakeUp;
     hal.stepper.go_idle = stepperGoIdle;
@@ -2772,10 +2804,6 @@ bool driver_init (void)
 #else
     if(!stream_connect_instance(SERIAL_STREAM, BAUD_RATE))
         while(true);
-#endif
-
-#ifdef I2C_PORT
-    I2C_Init();
 #endif
 
 #if EEPROM_ENABLE
@@ -2947,13 +2975,22 @@ bool driver_init (void)
 
 #if USB_SERIAL_CDC
 
-    // register $UF2 bootloader command
+// Register $UF2 bootloader command
+
+    static const sys_command_t boot_command_list[] = {
+        {"UF2", enter_uf2, { .noargs = On }, { .str = "enter UF2 bootloader" } }
+    };
+
+    static sys_commands_t boot_commands = {
+        .n_commands = sizeof(boot_command_list) / sizeof(sys_command_t),
+        .commands = boot_command_list
+    };
 
     grbl.on_report_options = onReportOptions;
 
     system_register_commands(&boot_commands);
 
-#endif
+#endif // USB_SERIAL_CDC
 
 #ifdef HAS_BOARD_INIT
 #if OUT_SHIFT_REGISTER
@@ -2999,7 +3036,7 @@ bool driver_init (void)
 
     stepper_timer_sm = pio_claim_unused_sm(pio1, false);
     stepper_timer_sm_offset = pio_add_program(pio1, &stepper_timer_program);
-    stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, PIO_CLK_DIV); // 10MHz
+    stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, pio_clk); // 10MHz
 
     //    irq_add_shared_handler(PIO1_IRQ_0, stepper_int_handler, 0);
     irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
@@ -3040,7 +3077,7 @@ bool driver_init (void)
 #elif STEP_PORT == GPIO_PIO
 
 if(pio_claim_free_sm_and_add_program_for_gpio_range(&step_pulse_program, &step_pio, &step_sm, &pio_offset, STEP_PINS_BASE, N_AXIS + N_GANGED, false))
-   step_pulse_program_init(step_pio, step_sm, pio_offset, STEP_PINS_BASE, N_AXIS + N_GANGED, PIO_CLK_DIV);
+   step_pulse_program_init(step_pio, step_sm, pio_offset, STEP_PINS_BASE, N_AXIS + N_GANGED, pio_clk);
 
 #elif STEP_PORT == GPIO_SR8
 
@@ -3048,10 +3085,10 @@ if(pio_claim_free_sm_and_add_program_for_gpio_range(&step_pulse_program, &step_p
     step_dir_sr4_program_init(pio0, 0, pio_offset, SD_SR_DATA_PIN, SD_SR_SCK_PIN);
 
     pio_offset = pio_add_program(pio0, &sr_delay_program);
-    sr_delay_program_init(pio0, 1, pio_offset, 11.65f);
+    sr_delay_program_init(pio0, 1, pio_offset, pio_clk - 0.37f);
 
     pio_offset = pio_add_program(pio0, &sr_hold_program);
-    sr_hold_program_init(pio0, 2, pio_offset, 11.65f);
+    sr_hold_program_init(pio0, 2, pio_offset, pio_clk - 0.37f);
 
     pio_claim_sm_mask(pio0, 0b1111); // claim all state machines, no room for more programs
 sr8_sm = 0;
