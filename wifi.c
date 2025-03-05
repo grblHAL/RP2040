@@ -53,7 +53,7 @@ typedef struct
     wifi_ap_settings_t ap;
 } wifi_settings_t;
 
-static int interface;
+static int cyw43_if;
 static bool scan_in_progress = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX], sta_if_name[NETIF_NAMESIZE] = "";
 static stream_type_t active_stream = StreamType_Null;
@@ -178,47 +178,40 @@ char *wifi_get_authmode_name (uint32_t authmode)
            "unknown";
 }
 
-static char *wifi_get_ipaddr (void)
-{
-   return IPAddress;
-}
-
-static char *wifi_get_mac (void)
-{
-    static char mac[18];
-    uint8_t bmac[6];
-
-    cyw43_wifi_get_mac(&cyw43_state, interface, bmac);
-    sprintf(mac, MAC_FORMAT_STRING, bmac[0], bmac[1], bmac[2], bmac[3], bmac[4], bmac[5]);
-
-    return mac;
-}
-
 static network_info_t *get_info (const char *interface)
 {
-    static network_info_t info;
+    static network_info_t info = {};
 
-    memcpy(&info.status, &network, sizeof(network_settings_t));
+    if(interface == sta_if_name) {
 
-    strcpy(info.mac, wifi_get_mac());
-    strcpy(info.status.ip, wifi_get_ipaddr());
+        memcpy(&info.status, &network, sizeof(network_settings_t));
 
-    if(info.status.ip_mode == IpMode_DHCP) {
-        *info.status.gateway = '\0';
-        *info.status.mask = '\0';
-    }
+        uint8_t bmac[6];
 
-    info.interface = (const char *)sta_if_name;
-    info.is_ethernet = false;
-    info.link_up = false;
-//    info.mbps = 100;
-    info.status.services = services;
+        cyw43_wifi_get_mac(&cyw43_state, cyw43_if, bmac);
+        sprintf(info.mac, MAC_FORMAT_STRING, bmac[0], bmac[1], bmac[2], bmac[3], bmac[4], bmac[5]);
+    
+        strcpy(info.status.ip, IPAddress);
+
+        if(info.status.ip_mode == IpMode_DHCP) {
+            *info.status.gateway = '\0';
+            *info.status.mask = '\0';
+        }
+
+        info.interface = (const char *)sta_if_name;
+        info.is_ethernet = false;
+        info.link_up = false;
+    //    info.mbps = 100;
+        info.status.services = services;
 
 #if MQTT_ENABLE
-    networking_make_mqtt_clientid(info.mac, info.mqtt_client_id);
+        networking_make_mqtt_clientid(info.mac, info.mqtt_client_id);
 #endif
 
-    return &info;
+        return &info;
+    }
+
+    return NULL;
 }
 
 static void reportIP (bool newopt)
@@ -244,27 +237,33 @@ static void reportIP (bool newopt)
             hal.stream.write(",SSDP");
 #endif
     } else {
-        hal.stream.write("[WIFI MAC:");
-        hal.stream.write(wifi_get_mac());
-        hal.stream.write("]" ASCII_EOL);
 
-        hal.stream.write("[IP:");
-        hal.stream.write(wifi_get_ipaddr());
-        hal.stream.write("]" ASCII_EOL);
+        network_info_t *network;
 
-        if(active_stream == StreamType_Telnet || active_stream == StreamType_WebSocket) {
-            hal.stream.write("[NETCON:");
-            hal.stream.write(active_stream == StreamType_Telnet ? "Telnet" : "Websocket");
+        if((network = get_info(sta_if_name))) {
+
+            hal.stream.write("[WIFI MAC:");
+            hal.stream.write(network->mac);
             hal.stream.write("]" ASCII_EOL);
-        }
+
+            hal.stream.write("[IP:");
+            hal.stream.write(network->status.ip);
+            hal.stream.write("]" ASCII_EOL);
+
+            if(active_stream == StreamType_Telnet || active_stream == StreamType_WebSocket) {
+                hal.stream.write("[NETCON:");
+                hal.stream.write(active_stream == StreamType_Telnet ? "Telnet" : "Websocket");
+                hal.stream.write("]" ASCII_EOL);
+            }
 #if MQTT_ENABLE
-        char *client_id;
-        if(*(client_id = get_info(NULL)->mqtt_client_id)) {
-            hal.stream.write("[MQTT CLIENTID:");
-            hal.stream.write(client_id);
-            hal.stream.write(mqtt_connected ? "]" ASCII_EOL : " (offline)]" ASCII_EOL);
-        }
+            char *client_id;
+            if(*(client_id = network->mqtt_client_id)) {
+                hal.stream.write("[MQTT CLIENTID:");
+                hal.stream.write(client_id);
+                hal.stream.write(mqtt_connected ? "]" ASCII_EOL : " (offline)]" ASCII_EOL);
+            }
 #endif
+        }
     }
 }
 
@@ -352,14 +351,14 @@ static void start_services (void)
   #endif
   #if SSDP_ENABLE
         if(network.services.ssdp && !services.ssdp)
-            services.ssdp = ssdp_init(network.http_port);
+            services.ssdp = ssdp_init(get_info(sta_if_name));
   #endif
     }
 #endif
 
 #if MQTT_ENABLE
     if(wifi.mode == WiFiMode_STA && !mqtt_connected)
-        mqtt_connect(&network.mqtt, get_info(NULL)->mqtt_client_id);
+        mqtt_connect(get_info(sta_if_name), &network.mqtt);
 #endif
 
 #if MDNS_ENABLE
@@ -461,7 +460,7 @@ static int scan_result (void *env, const cyw43_ev_scan_result_t *result)
 
 void wifi_debug (char *context)
 {
-    int status = cyw43_tcpip_link_status(&cyw43_state, interface);
+    int status = cyw43_tcpip_link_status(&cyw43_state, cyw43_if);
 
     hal.stream.write("[MSG:");
     hal.stream.write(context);
@@ -496,7 +495,7 @@ static void enet_poll (sys_state_t state)
         services_poll();
 #endif
 
-        if((status = cyw43_tcpip_link_status(&cyw43_state, interface)) != last_status) {
+        if((status = cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) != last_status) {
 
             sta_status.link_up = status == CYW43_LINK_UP;
             last_status = status;
@@ -594,7 +593,7 @@ static void netif_sta_status_callback (struct netif *netif)
     wifi_debug("STA_NETIF");
 #endif
 
-    switch(cyw43_tcpip_link_status(&cyw43_state, interface)) {
+    switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
             if(netif->ip_addr.addr != 0) {
@@ -649,7 +648,7 @@ static void link_sta_status_callback (struct netif *netif)
     wifi_debug("STA_LINK");
 #endif
 
-    switch(cyw43_tcpip_link_status(&cyw43_state, interface)) {
+    switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
             if(netif->ip_addr.addr != 0) {
@@ -707,7 +706,7 @@ static void link_ap_status_callback (struct netif *netif)
     wifi_debug("AP_LINK");
 #endif
 
-    switch(cyw43_tcpip_link_status(&cyw43_state, interface)) {
+    switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
             if((linkUp = netif->ip_addr.addr != 0)) {
@@ -731,7 +730,7 @@ static void netif_ap_status_callback (struct netif *netif)
     wifi_debug("AP_NETIF");
 #endif
 
-    switch(cyw43_tcpip_link_status(&cyw43_state, interface)) {
+    switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
             if(netif->ip_addr.addr != 0) {
@@ -765,7 +764,7 @@ static inline void get_addr (ip4_addr_t *addr, char *ip)
 
 static void init_settings (int itf, network_settings_t *settings)
 {
-    interface = itf;
+    cyw43_if = itf;
     memcpy(&network, settings, sizeof(network_settings_t));
 
     if(network.telnet_port == 0)
