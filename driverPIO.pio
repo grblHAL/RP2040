@@ -3,21 +3,21 @@
 ;
 ;  Part of grblHAL
 ;
-;  Copyright (c) 2021 Terje Io
+;  Copyright (c) 2021-2025 Terje Io
 ;  Copyright (c) 2021 Volksolive
 ;
-;  Grbl is free software: you can redistribute it and/or modify
+;  grblHAL is free software: you can redistribute it and/or modify
 ;  it under the terms of the GNU General Public License as published by
 ;  the Free Software Foundation, either version 3 of the License, or
 ;  (at your option) any later version.
 ;
-;  Grbl is distributed in the hope that it will be useful,
+;  grblHAL is distributed in the hope that it will be useful,
 ;  but WITHOUT ANY WARRANTY; without even the implied warranty of
-;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;  GNU General Public License for more details.
 ;
 ;  You should have received a copy of the GNU General Public License
-;  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+;  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 ;
 
 ;
@@ -27,6 +27,7 @@
     pull noblock    ; Pull timer period from the TX FIFO, loads X into OSR if empty
     mov x osr       ; Reload X from OSR
     mov y x
+    wait 0 irq 0    ; Ensure IRQ does not fire early by waiting for it to be cleared
 count:
     jmp y-- count
     irq 0         
@@ -41,9 +42,12 @@ static inline void stepper_timer_program_init(PIO pio, uint32_t sm, uint32_t off
     pio_sm_set_clkdiv(pio, sm, div);
 }
 
-static inline void stepper_timer_set_period(PIO pio, uint32_t sm, uint32_t offset, uint32_t period) {
+static inline void stepper_timer_set_period(PIO pio, uint32_t sm, uint32_t offset, uint32_t period, uint32_t adj) {
 
     static uint32_t period_prev = 0;
+
+    if(period > adj)
+        period -= adj;
 
     if(period_prev != period) {
         period_prev = period;

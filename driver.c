@@ -46,8 +46,10 @@
 #else
 #define PIO_STEP_ADJ 0.29f
 #endif
+#define PIO_RATE_ADJ 16
 #else
 #define PIO_STEP_ADJ 0.2f
+#define PIO_RATE_ADJ 14
 #endif
 
 #include "driver.h"
@@ -607,10 +609,6 @@ static output_signal_t outputpin[] = {
 #define SPI_IRQ_BIT 0
 #endif
 
-#define NVIC_HIGH_LEVEL_PRIORITY 0xC0
-#define NVIC_MEDIUM_LEVEL_PRIORITY 0x80
-#define NVIC_LOW_LEVEL_PRIORITY 0x40
-
 #ifndef DEBOUNCE_DELAY
 #define DEBOUNCE_DELAY 40 // ms
 #endif
@@ -779,7 +777,7 @@ static void stepperEnable (axes_signals_t enable, bool hold)
 static void stepperWakeUp (void)
 {
     hal.stepper.enable((axes_signals_t){AXES_BITMASK}, false);
-    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, hal.f_step_timer / 500); // ~2ms delay to allow drivers time to wake up.
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, hal.f_step_timer / 50, 0); // ~2ms delay to allow drivers time to wake up.
     irq_set_enabled(PIO1_IRQ_0, true);
 }
 
@@ -793,7 +791,7 @@ static void stepperGoIdle (bool clear_signals)
 // Sets up stepper driver interrupt timeout, "Normal" version
 static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
 {
-    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000);
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000, PIO_RATE_ADJ);
 }
 
 #if STEP_PORT == GPIO_PIO || STEP_PORT == GPIO_PIO_1
@@ -1870,7 +1868,7 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 #ifdef SPINDLE_ENABLE_PIN
     state.on = DIGITAL_IN(SPINDLE_ENABLE_PIN);
 #else
-    state.on = pwmEnabled ^ settings.spindle.invert.on;
+    state.on = pwmEnabled ^ settings.pwm_spindle.invert.on;
 #endif
 #ifdef SPINDLE_DIRECTION_PIN
     state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_PIN);
@@ -2366,9 +2364,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
             }
         } while(i);
 
-        // Activate GPIO IRQ
-        irq_set_priority(IO_IRQ_BANK0, NVIC_MEDIUM_LEVEL_PRIORITY); // By default all IRQ are medium priority but in case the GPIO IRQ would need high or low priority it can be done here
-        irq_set_enabled(IO_IRQ_BANK0, true);                        // Enable GPIO IRQ
+        irq_set_enabled(IO_IRQ_BANK0, true); // Enable GPIO IRQ
     }
 }
 
@@ -2726,7 +2722,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250228";
+    hal.driver_version = "250312";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3037,10 +3033,8 @@ bool driver_init (void)
     stepper_timer_sm = pio_claim_unused_sm(pio1, false);
     stepper_timer_sm_offset = pio_add_program(pio1, &stepper_timer_program);
     stepper_timer_program_init(pio1, stepper_timer_sm, stepper_timer_sm_offset, pio_clk); // 10MHz
-
-    //    irq_add_shared_handler(PIO1_IRQ_0, stepper_int_handler, 0);
     irq_set_exclusive_handler(PIO1_IRQ_0, stepper_int_handler);
-    //    irq_set_priority(PIO1_IRQ_0, 0);
+    irq_set_priority(PIO1_IRQ_0, PICO_HIGHEST_IRQ_PRIORITY);
 
 #if STEP_PORT == GPIO_PIO_1
     assign_step_sm(&x_step_pio, &x_step_sm, X_STEP_PIN);
@@ -3185,9 +3179,9 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 // Main stepper driver
 void __not_in_flash_func(stepper_int_handler)(void)
 {
-    stepper_timer_irq_clear(pio1);
-
     hal.stepper.interrupt_callback();
+
+    stepper_timer_irq_clear(pio1);
 }
 
 #if PPI_ENABLE
