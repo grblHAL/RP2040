@@ -56,16 +56,16 @@
 #define Z_ENABLE_PIN            24
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN             5 // 1.0 -> 6
-#define Y_LIMIT_PIN             6 // 1.0 -> 5
-#define Z_LIMIT_PIN             3 // 1.0 -> 4
+#define X_LIMIT_PIN             6 // pre 1.0 -> 5
+#define Y_LIMIT_PIN             5 // pre 1.0 -> 6
+#define Z_LIMIT_PIN             4 // pre 1.0 -> 3
 #define LIMIT_INMODE            GPIO_MAP
 
 // Define ganged axis or A axis step pulse and step direction output pins.
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
 #define M3_DIRECTION_PIN        15
-#define M3_LIMIT_PIN            4 // 1.0 -> 3
+#define M3_LIMIT_PIN            3 // pre 1.0 -> 4
 #define M3_ENABLE_PIN           25
 #endif
 

@@ -42,6 +42,7 @@ if(AddMyPlugin)
     ioports_analog.c
     tmc_uart.c
     my_plugin.c
+    MCP3221.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
     eeprom/eeprom_24AAxxx.c
@@ -73,6 +74,7 @@ else()
     ioports.c
     ioports_analog.c
     tmc_uart.c
+    MCP3221.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
     eeprom/eeprom_24AAxxx.c
