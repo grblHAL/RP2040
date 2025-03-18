@@ -52,6 +52,7 @@ if(AddMyPlugin)
     sdcard/ymodem.c
     sdcard/fs_fatfs.c
     sdcard/fs_littlefs.c
+    sdcard/fs_stream.c
     sdcard/macros.c
     bluetooth/hc_05.c
     motors/trinamic.c
@@ -84,6 +85,7 @@ else()
     sdcard/ymodem.c
     sdcard/fs_fatfs.c
     sdcard/fs_littlefs.c
+    sdcard/fs_stream.c
     sdcard/macros.c
     bluetooth/hc_05.c
     motors/trinamic.c
