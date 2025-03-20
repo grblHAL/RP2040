@@ -175,6 +175,7 @@
       "MAP": "boards/btt_skr_pico_10_map.h",
       "caps": {
         "axes": 4,
+        "analog_pwm_out": 1,
         "trinamic": 2209,
         "trinamic_uart_addr": 1
       }
