@@ -50,6 +50,7 @@ include(eeprom/CMakeLists.txt)
 include(fans/CMakeLists.txt)
 include(bluetooth/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
+include(plasma/CMakeLists.txt)
 include(laser/CMakeLists.txt)
 include(plugins/CMakeLists.txt)
 if(ADD_HPGL)
@@ -162,6 +163,9 @@ if(ADD_WIFI OR ADD_ETHERNET)
         target_sources(grblHAL PRIVATE
          ${lwipmqtt_SRCS}
         )
+        target_link_libraries(grblHAL PRIVATE
+            pico_lwip_mqtt
+        )
     endif()
     target_link_libraries(grblHAL PRIVATE
      networking
@@ -226,6 +230,7 @@ target_link_libraries(grblHAL PRIVATE
  laser
  bluetooth
  eeprom
+ plasma
  misc_plugins
  embroidery
  tinyusb_device_unmarked

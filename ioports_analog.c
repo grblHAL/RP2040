@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2023-2024 Terje Io
+  Copyright (c) 2023-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,48 @@ static wait_on_input_ptr wait_on_input_digital;
 static set_pin_description_ptr set_pin_description_digital;
 static get_pin_info_ptr get_pin_info_digital;
 static claim_port_ptr claim_digital;
-static swap_pins_ptr swap_pins_digital; 
+static swap_pins_ptr swap_pins_digital;
+
+#ifdef MCP3221_ENABLE
+
+#include "MCP3221.h"
+
+static xbar_t mcp3221;
+static enumerate_pins_ptr on_enumerate_pins;
+
+static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
+{
+    on_enumerate_pins(low_level, pin_info, data);
+
+    pin_info(&mcp3221, data);
+}
+
+static float mcp3221_in_state (xbar_t *input)
+{
+    return (float)MCP3221_read();
+}
+
+static int32_t wait_on_input_dummy (io_port_type_t type, uint8_t port, wait_mode_t wait_mode, float timeout)
+{
+    return -1;
+}
+
+static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wait_mode, float timeout)
+{
+    int32_t value = -1;
+
+    if(type == Port_Digital)
+        return wait_on_input_digital(type, port, wait_mode, timeout);
+
+    port = ioports_map(analog.in, port);
+
+    if(port == mcp3221.id)
+        value = (int32_t)MCP3221_read();
+
+    return value;
+}
+
+#endif // MCP3221_ENABLE
 
 static void set_pwm_cap (xbar_t *output, bool servo_pwm)
 {
@@ -104,21 +145,33 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 
         memset(&pin, 0, sizeof(xbar_t));
 
-        if(dir == Port_Output && port < analog.out.n_ports) {
-            pin.id = ioports_map(analog.out, port);
-            pin.mode = aux_out_analog[pin.id].mode;
-            pin.mode.pwm = !pin.mode.servo_pwm; //?? for easy filtering
-            XBAR_SET_CAP(pin.cap, pin.mode);
-            pin.function = aux_out_analog[pin.id].id;
-            pin.group = aux_out_analog[pin.id].group;
-            pin.pin = aux_out_analog[pin.id].pin;
-            pin.description = aux_out_analog[pin.id].description;
-            if(aux_out_analog[pin.id].mode.pwm || aux_out_analog[pin.id].mode.servo_pwm) {
-                pin.port = &pwm_data[aux_out_analog[pin.id].pwm_idx];
-                pin.config = (xbar_config_ptr)init_pwm;
-                pin.get_value = pwm_get_value;
-            }
-            info = &pin;
+        switch(dir) {
+
+    #ifdef MCP3221_ENABLE
+            case Port_Input:
+                if(port == mcp3221.id)
+                    info = &mcp3221;
+                break;
+    #endif
+
+            case Port_Output: 
+                if(port < analog.out.n_ports) {
+                    pin.id = ioports_map(analog.out, port);
+                    pin.mode = aux_out_analog[pin.id].mode;
+                    pin.mode.pwm = !pin.mode.servo_pwm; //?? for easy filtering
+                    XBAR_SET_CAP(pin.cap, pin.mode);
+                    pin.function = aux_out_analog[pin.id].id;
+                    pin.group = aux_out_analog[pin.id].group;
+                    pin.pin = aux_out_analog[pin.id].pin;
+                    pin.description = aux_out_analog[pin.id].description;
+                    if(aux_out_analog[pin.id].mode.pwm || aux_out_analog[pin.id].mode.servo_pwm) {
+                        pin.port = &pwm_data[aux_out_analog[pin.id].pwm_idx];
+                        pin.config = (xbar_config_ptr)init_pwm;
+                        pin.get_value = pwm_get_value;
+                    }
+                    info = &pin;
+                }
+                break;
         }
     }
 
@@ -130,6 +183,10 @@ static void set_pin_description (io_port_type_t type, io_port_direction_t dir, u
     if(type == Port_Analog) {
         if(dir == Port_Output && port < analog.out.n_ports)
             aux_out_analog[ioports_map(analog.out, port)].description = description;
+        #ifdef MCP3221_ENABLE
+        if(dir == Port_Input && port == mcp3221.id)
+            mcp3221.description = description;
+#endif
     } else if(set_pin_description_digital)
         set_pin_description_digital(type, dir, port, description);
 }
@@ -141,25 +198,36 @@ static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, 
     if(type == Port_Digital)
         return claim_digital ? claim_digital(type, dir, port, description) : false;
 
-    else if(dir == Port_Output) {
+    else switch(dir) {
 
-        if((ok = analog.out.map && *port < analog.out.n_ports && !aux_out_analog[*port].mode.claimed)) {
-
-            uint8_t i;
-
-            hal.port.num_analog_out--;
-
-            for(i = ioports_map_reverse(&analog.out, *port); i < hal.port.num_analog_out; i++) {
-                analog.out.map[i] = analog.out.map[i + 1];
-                aux_out_analog[analog.out.map[i]].description = iports_get_pnum(analog, i);
+#ifdef MCP3221_ENABLE
+         case Port_Input:
+            if(ok == *port == mcp3221.id && !mcp3221.mode.claimed) {
+                mcp3221.mode.claimed = On;
+                mcp3221.description = description;
             }
+            break;
+#endif
 
-            aux_out_analog[*port].mode.claimed = On;
-            aux_out_analog[*port].description = description;
+        case Port_Output:
+            if((ok = analog.out.map && *port < analog.out.n_ports && !aux_out_analog[*port].mode.claimed)) {
 
-            analog.out.map[hal.port.num_analog_out] = *port;
-            *port = hal.port.num_analog_out;
-        }
+                uint8_t i;
+
+                hal.port.num_analog_out--;
+
+                for(i = ioports_map_reverse(&analog.out, *port); i < hal.port.num_analog_out; i++) {
+                    analog.out.map[i] = analog.out.map[i + 1];
+                    aux_out_analog[analog.out.map[i]].description = iports_get_pnum(analog, i);
+                }
+
+                aux_out_analog[*port].mode.claimed = On;
+                aux_out_analog[*port].description = description;
+
+                analog.out.map[hal.port.num_analog_out] = *port;
+                *port = hal.port.num_analog_out;
+            }
+            break;
     }
 
     return ok;
@@ -173,15 +241,43 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
     set_pin_description_digital = hal.port.set_pin_description;
     hal.port.set_pin_description = set_pin_description;
 
+#ifdef MCP3221_ENABLE
+
+    pin_group_pins_t aux_in = {
+        .n_pins = 1
+    };
+
+    mcp3221.function = Input_Analog_Aux0 + (aux_inputs ? aux_inputs->n_pins : 0);
+    mcp3221.group = PinGroup_AuxInputAnalog;
+    mcp3221.id = aux_inputs ? aux_inputs->n_pins : 0;
+    mcp3221.port = "MCP3221:";
+
+    if((mcp3221.mode.analog = MCP3221_init())) {
+        if(aux_inputs)
+            aux_inputs->n_pins++;
+        else
+            aux_inputs = &aux_in;
+        mcp3221.get_value = mcp3221_in_state;
+    } else
+        mcp3221.description = "No power";
+
+    on_enumerate_pins = hal.enumerate_pins;
+    hal.enumerate_pins = enumerate_pins;
+
+#endif // MCP3221_ENABLE
+
     if(ioports_add(&analog, Port_Analog, aux_inputs->n_pins, aux_outputs->n_pins))  {
 
         uint_fast8_t i, n_pwm = 0;
-/*
-        if(analog.n_in) {
-            wait_on_input_digital = hal.port.wait_on_input;
+
+#ifdef MCP3221_ENABLE
+        if(analog.in.n_ports) {
+            if((wait_on_input_digital = hal.port.wait_on_input) == NULL)
+                wait_on_input_digital = wait_on_input_dummy;
             hal.port.wait_on_input = wait_on_input;
         }
-*/
+#endif
+
         if(analog.out.n_ports) {
 
             pwm_config_t config = {

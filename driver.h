@@ -40,6 +40,10 @@
 #define SPI_ENABLE 1
 #endif
 
+#if MCP3221_ENABLE
+#define I2C_ENABLE 1
+#endif
+
 #if ETHERNET_ENABLE
 #ifndef _WIZCHIP_
 #define _WIZCHIP_ 5105 // W5100S
@@ -169,7 +173,7 @@
   #include "boards/generic_map.h"
 #endif
 
-#if SPI_ENABLE
+#if SPI_ENABLE && !defined(SPI_DMA_ENABLE)
 #define SPI_DMA_ENABLE 1
 #endif
 

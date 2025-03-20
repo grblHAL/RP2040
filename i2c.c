@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -202,6 +202,8 @@ bool i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
     uint8_t c;
     keycode = 0;
     keypad_callback = callback;
+
+    dma_channel_wait_for_finish_blocking(tx.channel);
 
     if(i2c_read_blocking(QI2C_PORT, i2cAddr, &c, 1, false) == 1)
         keypad_callback(c);

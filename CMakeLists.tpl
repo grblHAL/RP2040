@@ -20,6 +20,7 @@ include(spindle/CMakeLists.txt)
 include(keypad/CMakeLists.txt)
 include(embroidery/CMakeLists.txt)
 include(laser/CMakeLists.txt)
+include(plasma/CMakeLists.txt)
 include(plugins/CMakeLists.txt)
 %include_libraries%
 
@@ -199,6 +200,7 @@ target_link_libraries(grblHAL PRIVATE
  spindle
  keypad
  laser
+ plasma
  misc_plugins
  embroidery
  tinyusb_device_unmarked

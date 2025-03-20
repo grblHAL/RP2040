@@ -47,6 +47,7 @@
       { "id": "feed_override" },
       { "id": "pwm_servo" },
       { "id": "bltouch" },
+      { "id": "plasma" },
       { "id": "esp_at" },
       { "id": "embroidery" }
     ]

@@ -242,7 +242,7 @@ neopixel_cfg_t neopixel = { .intensity = 255 };
 
 #include "grbl/stepdir_map.h"
 
-static input_signal_t *irq_pins[32] = {0};
+static input_signal_t *irq_pins[NUM_BANK0_GPIOS] = {};
 static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
@@ -2722,7 +2722,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250312";
+    hal.driver_version = "250319";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2998,7 +2998,9 @@ bool driver_init (void)
 #endif
 #endif
 
+#if !MCP3221_ENABLE
     if(aux_outputs_analog.n_pins)
+#endif
         ioports_init_analog(&aux_inputs_analog, &aux_outputs_analog);
 
 #if AUX_CONTROLS_ENABLED
