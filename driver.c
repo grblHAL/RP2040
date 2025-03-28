@@ -632,6 +632,7 @@ static output_sr_t out_sr;
 static struct {
     uint32_t length;
     uint32_t delay;
+    uint32_t t_min_period; // timer ticks
     axes_signals_t out;
 #if STEP_INJECT_ENABLE
     struct {
@@ -791,7 +792,7 @@ static void stepperGoIdle (bool clear_signals)
 // Sets up stepper driver interrupt timeout, "Normal" version
 static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
 {
-    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, cycles_per_tick < 1000000 ? cycles_per_tick : 1000000, PIO_RATE_ADJ);
+    stepper_timer_set_period(pio1, stepper_timer_sm, stepper_timer_sm_offset, cycles_per_tick < 1000000 ? max(cycles_per_tick, step_pulse.t_min_period) : 1000000, PIO_RATE_ADJ);
 }
 
 #if STEP_PORT == GPIO_PIO || STEP_PORT == GPIO_PIO_1
@@ -1291,11 +1292,13 @@ static void stepperSetDirOutputs (axes_signals_t dir_out)
 // Sets stepper direction and pulse pins and starts a step pulse.
 static void __not_in_flash_func(stepperPulseStart)(stepper_t *stepper)
 {
-    if (stepper->dir_change)
-        stepperSetDirOutputs(stepper->dir_outbits);
+    if(stepper->dir_changed.bits) {
+        stepper->dir_changed.bits = 0;
+        stepperSetDirOutputs(stepper->dir_out);
+    }
 
-    if (stepper->step_outbits.value)
-        stepperSetStepOutputs(stepper->step_outbits);
+    if(stepper->step_out.bits)
+        stepperSetStepOutputs(stepper->step_out);
 }
 
 #if STEP_INJECT_ENABLE
@@ -2086,28 +2089,30 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
 #ifdef NEOPIXELS_PIN
 
-    if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip.length0) {
+        if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip.length0) {
 
-        if(settings->rgb_strip.length0 == 0)
-            settings->rgb_strip.length0 = hal.rgb0.num_devices;
-        else
-            hal.rgb0.num_devices = settings->rgb_strip.length0;
+            if(settings->rgb_strip.length0 == 0)
+                settings->rgb_strip.length0 = hal.rgb0.num_devices;
+            else
+                hal.rgb0.num_devices = settings->rgb_strip.length0;
 
-        if(neopixel.leds) {
-            free(neopixel.leds);
-            neopixel.leds = NULL;
+            if(neopixel.leds) {
+                free(neopixel.leds);
+                neopixel.leds = NULL;
+            }
+
+            if(hal.rgb0.num_devices) {
+                neopixel.num_bytes = hal.rgb0.num_devices * sizeof(uint32_t);
+                if((neopixel.leds = calloc(neopixel.num_bytes, sizeof(uint8_t))) == NULL)
+                    hal.rgb0.num_devices = 0;
+            }
+
+            neopixel.num_leds = hal.rgb0.num_devices;
         }
 
-        if(hal.rgb0.num_devices) {
-            neopixel.num_bytes = hal.rgb0.num_devices * sizeof(uint32_t);
-            if((neopixel.leds = calloc(neopixel.num_bytes, sizeof(uint8_t))) == NULL)
-                hal.rgb0.num_devices = 0;
-        }
+#endif // NEOPIXELS_PIN
 
-        neopixel.num_leds = hal.rgb0.num_devices;
-    }
-
-#endif
+        step_pulse.t_min_period = (uint32_t)ceilf((settings->steppers.pulse_microseconds + STEP_PULSE_TOFF_MIN) * (hal.f_step_timer / 1000000.0f));
 
 #if SD_SHIFT_REGISTER
         pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds - 0.8f));
@@ -2133,8 +2138,8 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 #endif
 
 #else // PIO step parameters init
-    pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds - PIO_STEP_ADJ));
-    pio_steps.delay = settings->steppers.pulse_delay_microseconds <= 0.8f
+        pio_steps.length = (uint32_t)(10.0f * (settings->steppers.pulse_microseconds - PIO_STEP_ADJ));
+        pio_steps.delay = settings->steppers.pulse_delay_microseconds <= 0.8f
                             ? 2
                             : (uint32_t)(10.0f * (settings->steppers.pulse_delay_microseconds - PIO_STEP_ADJ));
 #if N_GANGED
@@ -2722,7 +2727,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250319";
+    hal.driver_version = "250327";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2735,12 +2740,14 @@ bool driver_init (void)
     hal.driver_setup = driver_setup;
     hal.f_step_timer = 10000000;
     hal.f_mcu = clock_get_hz(clk_sys) / 1000000UL;
+    hal.step_us_min = 1.0;
+ 
+    pio_clk = (float)hal.f_mcu / 10.0f;
+
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay;
     hal.settings_changed = settings_changed;
-
-    pio_clk = (float)hal.f_mcu / 10.0f;
 
     hal.stepper.wake_up = stepperWakeUp;
     hal.stepper.go_idle = stepperGoIdle;

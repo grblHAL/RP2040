@@ -173,6 +173,10 @@
   #include "boards/generic_map.h"
 #endif
 
+#ifndef STEP_PULSE_TOFF_MIN
+#define STEP_PULSE_TOFF_MIN 2.0f
+#endif
+
 #if SPI_ENABLE && !defined(SPI_DMA_ENABLE)
 #define SPI_DMA_ENABLE 1
 #endif

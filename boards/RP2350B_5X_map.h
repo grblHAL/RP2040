@@ -79,12 +79,12 @@
 #endif
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          38
+#define AUXOUTPUT0_PIN          36
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
 #define AUXOUTPUT1_PIN          37
 #ifndef SERIAL1_PORT
 #define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          36
+#define AUXOUTPUT2_PIN          38
 #endif
 #define AUXOUTPUT3_PORT         GPIO_OUTPUT  // Spindle enable
 #define AUXOUTPUT3_PIN          33
