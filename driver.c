@@ -782,13 +782,6 @@ static void stepperWakeUp (void)
     irq_set_enabled(PIO1_IRQ_0, true);
 }
 
-// Disables stepper driver interrupts
-static void stepperGoIdle (bool clear_signals)
-{
-    irq_set_enabled(PIO1_IRQ_0, false);
-    stepper_timer_stop(pio1, stepper_timer_sm);
-}
-
 // Sets up stepper driver interrupt timeout, "Normal" version
 static void __not_in_flash_func(stepperCyclesPerTick)(uint32_t cycles_per_tick)
 {
@@ -1287,6 +1280,18 @@ static void stepperSetDirOutputs (axes_signals_t dir_out)
  #endif
  
 #endif
+}
+
+// Disables stepper driver interrupts
+static void stepperGoIdle (bool clear_signals)
+{
+    irq_set_enabled(PIO1_IRQ_0, false);
+    stepper_timer_stop(pio1, stepper_timer_sm);
+    
+    if(clear_signals) {
+        stepperSetDirOutputs((axes_signals_t){0});
+        stepperSetStepOutputs((axes_signals_t){0});
+    }
 }
 
 // Sets stepper direction and pulse pins and starts a step pulse.
@@ -2182,8 +2187,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
 #endif // PIO step parameters init
 
-        stepperSetStepOutputs((axes_signals_t){0});
-        stepperSetDirOutputs((axes_signals_t){0});
+        hal.stepper.go_idle(true);
 
         /***********************
          *  Input pins config  *
@@ -2727,7 +2731,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250327";
+    hal.driver_version = "250328";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
