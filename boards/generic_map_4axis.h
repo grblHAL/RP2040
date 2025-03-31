@@ -112,10 +112,6 @@
 #define PROBE_PIN               AUXINPUT3_PIN
 #endif
 
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          AUXINPUT2_PIN
-#endif
-
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN         AUXINPUT1_PIN
 #elif MOTOR_FAULT_ENABLE

@@ -60,10 +60,16 @@
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
 #define AUXOUTPUT0_PIN          12
+#if I2C_ENABLE
+#define I2C_PORT                1
+#define I2C_SDA                 26
+#define I2C_SCL                 27
+#else
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
 #define AUXOUTPUT1_PIN          26
-//#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-//#define AUXOUTPUT2_PIN          27
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT
+#define AUXOUTPUT2_PIN          27
+#endif
 #define AUXOUTPUT3_PORT         GPIO_OUTPUT // Spindle PWM
 #define AUXOUTPUT3_PIN          15
 #define AUXOUTPUT4_PORT         GPIO_OUTPUT // Spindle direction
@@ -75,9 +81,9 @@
 #define AUXOUTPUT7_PORT         GPIO_OUTPUT // Coolant mist
 #define AUXOUTPUT7_PIN          17   
 
-#define NEOPIXELS_PIN 27
+//#define NEOPIXELS_PIN 27
 //#define NEOPIXELS_NUM 5
-// Define user-control controls (cycle start, reset, feed hold) input pins.
+//Define user-control controls (cycle start, reset, feed hold) input pins.
 
 // Define driver spindle pins
 #if DRIVER_SPINDLE_ENABLE

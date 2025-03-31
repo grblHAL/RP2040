@@ -221,7 +221,6 @@
       "MAP": "boards/generic_map_4axis.h",
       "caps": {
         "axes": 4,
-        "i2c_strobe": 1,
         "wifi": 1,
         "bluetooth": 1
       }
