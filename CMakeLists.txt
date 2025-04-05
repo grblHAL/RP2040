@@ -74,7 +74,6 @@ if(AddMyPlugin)
     ioports.c
     ioports_analog.c
     tmc_uart.c
-    MCP3221.c
     my_plugin.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
@@ -96,7 +95,6 @@ else()
     ioports.c
     ioports_analog.c
     tmc_uart.c
-    MCP3221.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
     littlefs/lfs.c

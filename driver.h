@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "hardware/pio.h"
 #include "hardware/gpio.h"
 
 #ifndef OVERRIDE_MY_MACHINE
@@ -40,8 +41,9 @@
 #define SPI_ENABLE 1
 #endif
 
-#if MCP3221_ENABLE
+#if defined(MCP3221_ENABLE)
 #define I2C_ENABLE 1
+#define MCP3221_ENABLE_NEW MCP3221_ENABLE
 #endif
 
 #if ETHERNET_ENABLE
@@ -350,7 +352,12 @@ typedef struct {
 bool driver_init (void);
 
 #if OUT_SHIFT_REGISTER
-void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, output_sr_t *reg);
+typedef struct {
+    PIO pio;
+    uint sm;
+    output_sr_t *reg;
+} sr_reg_t;
+void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, sr_reg_t *reg);
 #else
 void board_init (void);
 #endif
