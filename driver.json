@@ -39,6 +39,7 @@
       { "id": "macros" },
       { "id": "laser_cluster" },
       { "id": "laser_coolant" },
+      { "id": "laser_overdrive" },
       { "id": "bluetooth" },
       { "id": "fans" },
       { "id": "rgb_leds" },
