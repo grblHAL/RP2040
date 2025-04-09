@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,10 +30,13 @@
 #define BOARD_NAME "CNC BoosterPack"
 #define BOARD_URL "https://github.com/terjeio/CNC_Boosterpack"
 
-#define IOEXPAND_ENABLE 1
+#define USE_EXPANDERS
+#if !PCA9654E_ENABLE
+#error "This board uses PCA9654E I/O expander, enable it in my_machine.h!"
+#endif
 
-#undef EEPROM_ENABLE
-#define EEPROM_ENABLE 1
+//#undef EEPROM_ENABLE
+//#define EEPROM_ENABLE 1
 #undef I2C_ENABLE
 #define I2C_ENABLE 1
 
@@ -49,13 +52,15 @@
 #define DIRECTION_OUTMODE           GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
-#define ENABLE_PORT                 GPIO_IOEXPAND
-#define STEPPERS_ENABLEX_PIN        6
-#define STEPPERS_ENABLEZ_PIN        0
+#define ENABLE_PORT                 EXPANDER_PORT
+#define XY_ENABLE_PORT              EXPANDER_PORT
+#define Z_ENABLE_PORT               EXPANDER_PORT
+#define XY_ENABLE_PIN               6
+#define Z_ENABLE_PIN                0
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN                 19
-#define Y_LIMIT_PIN                 20
+#define X_LIMIT_PIN                 8
+#define Y_LIMIT_PIN                 9
 #define Z_LIMIT_PIN                 10
 #define LIMIT_INMODE                GPIO_OE
 
@@ -70,19 +75,19 @@
 #endif
 
 #if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_PORT                GPIO_IOEXPAND
+#define SPINDLE_PORT                EXPANDER_PORT
 #define SPINDLE_DIRECTION_PIN       5
 #endif
 
 #if DRIVER_SPINDLE_ENABLE
 #ifndef SPINDLE_PORT
-#define SPINDLE_PORT                GPIO_IOEXPAND
+#define SPINDLE_PORT                EXPANDER_PORT
 #endif
-#define SPINDLE_ENABLE_PIN          0
+#define SPINDLE_ENABLE_PIN          7
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_PORT                GPIO_IOEXPAND
+#define COOLANT_PORT                EXPANDER_PORT
 #define COOLANT_FLOOD_PIN           2
 #define COOLANT_MIST_PIN            3
 
@@ -91,7 +96,7 @@
 #define AUXINPUT0_PIN               15
 #define AUXINPUT1_PIN               17
 #define AUXINPUT2_PIN               18
-#define AUXINPUT3_PIN               16 // Probe
+#define AUXINPUT3_PIN               15 // Probe
 
 #define RESET_PIN                   12
 #define FEED_HOLD_PIN               13
@@ -114,8 +119,8 @@
 #endif
 
 #define I2C_PORT                    1
-#define I2C_SDA                     10
-#define I2C_SCL                     11
+#define I2C_SDA                     26
+#define I2C_SCL                     27
 
 #if SDCARD_ENABLE
 #define SPI_PORT spi0
@@ -126,4 +131,4 @@
 #endif
 
 //I2C: 26,27
-//Free: 21,21,22,28
+//Free: 20,21,22,28

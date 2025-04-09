@@ -38,7 +38,6 @@ if(AddMyPlugin)
     flash.c
     i2c.c
     spi.c
-    PCA9654E.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
@@ -71,7 +70,6 @@ else()
     flash.c
     i2c.c
     spi.c
-    PCA9654E.c
     ioports.c
     ioports_analog.c
     tmc_uart.c

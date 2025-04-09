@@ -230,8 +230,8 @@ static pin_group_pins_t limit_inputs;
 static input_signal_t *safety_door;
 #endif
 
-#if IOEXPAND_ENABLE
-static ioexpand_t io_expander = {0};
+#ifdef USE_EXPANDERS
+static xbar_t *iox_out[8] = {};
 #endif
 
 #ifdef NEOPIXELS_PIN
@@ -472,7 +472,7 @@ static output_signal_t outputpin[] = {
 #ifdef Y_ENABLE_PIN
     { .id = Output_StepperEnableY, .port = ENABLE_PORT, .pin = Y_ENABLE_PIN, .group = PinGroup_StepperEnable,  .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
-#ifdef Z_ENABLE_PIN
+#if defined(Z_ENABLE_PIN) && ENABLE_PORT != EXPANDER_PORT
     { .id = Output_StepperEnableZ, .port = ENABLE_PORT, .pin = Z_ENABLE_PIN, .group = PinGroup_StepperEnable,  .mode = { STEPPERS_ENABLE_PINMODE } },
 #endif
 #ifdef X2_ENABLE_PIN
@@ -717,59 +717,113 @@ static void stepperEnable (axes_signals_t enable, bool hold)
     enable.mask ^= settings.steppers.enable_invert.mask;
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
     axes_signals_t tmc_enable = trinamic_stepper_enable(enable);
-#elif ENABLE_PORT == GPIO_OUTPUT
-#ifndef STEPPERS_ENABLE_PIN
-    gpio_put(X_ENABLE_PIN, enable.x);
-#ifdef Y_ENABLE_PIN
-    gpio_put(Y_ENABLE_PIN, enable.y);
-#endif
-    gpio_put(Z_ENABLE_PIN, enable.z);
-#ifdef X2_ENABLE_PIN
-    gpio_put(X2_ENABLE_PIN, enable.x);
-#endif
-#ifdef Y2_ENABLE_PIN
-    gpio_put(Y2_ENABLE_PIN, enable.y);
-#endif
-#ifdef Z2_ENABLE_PIN
-    gpio_put(Z2_ENABLE_PIN, enable.z);
-#endif
-#ifdef A_ENABLE_PIN
-    gpio_put(A_ENABLE_PIN, enable.a);
-#endif
-#ifdef B_ENABLE_PIN
-    gpio_put(B_ENABLE_PIN, enable.b);
-#endif
-#ifdef C_ENABLE_PIN
-    gpio_put(C_ENABLE_PIN, enable.c);
-#endif
-#else // STEPPERS_ENABLE_PIN
-    gpio_put(STEPPERS_ENABLE_PIN, enable.x);
-#endif
+
 #elif ENABLE_PORT == GPIO_SR16
+
     out_sr.x_ena = enable.x;
-#ifdef X2_ENABLE_PIN
-    out_sr.m3_ena = enable.x;
-#endif
     out_sr.y_ena = enable.y;
-#ifdef Y2_ENABLE_PIN
-    out_sr.m3_ena = enable.y;
-#endif
     out_sr.z_ena = enable.z;
-#ifdef Z2_ENABLE_PIN
+ #ifdef X2_ENABLE_PIN
+    out_sr.m3_ena = enable.x;
+ #endif
+ #ifdef Y2_ENABLE_PIN
+    out_sr.m3_ena = enable.y;
+ #endif
+    out_sr.z_ena = enable.z;
+ #ifdef Z2_ENABLE_PIN
     out_sr.m3_ena = enable.z;
-#endif
-#ifdef A_ENABLE_PIN
+ #endif
+ #ifdef A_ENABLE_PIN
     out_sr.m3_ena = enable.a;
-#endif
+ #endif
     out_sr16_write(sr16.pio, sr16.sm, out_sr.value);
-#elif ENABLE_PORT == GPIO_IOEXPAND
-#ifdef STEPPERS_DISABLEX_PIN
-    ioex_out(STEPPERS_DISABLEX_PIN) = enable.x;
-#endif
-#ifdef STEPPERS_DISABLEZ_PIN
-    ioex_out(STEPPERS_DISABLEZ_PIN) = enable.z;
-#endif
-    ioexpand_out(io_expander);
+
+#elif defined(STEPPERS_ENABLE_PIN)
+
+ #if STEPPERS_ENABLE_PORT == EXPANDER_PORT
+   EXPANDER_OUT(STEPPERS_ENABLE_PIN, enable.x);
+ #else
+   DIGITAL_OUT(STEPPERS_ENABLE_PIN, enable.x);
+ #endif
+
+#else
+
+ #ifdef XY_ENABLE_PIN
+  #if XY_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(XY_ENABLE_PIN, enable.x || enable.y);
+  #else
+    DIGITAL_OUT(XY_ENABLE_PIN, enable.x || enable.y);
+  #endif
+ #else
+  #ifdef X_ENABLE_PIN
+   #if X_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(X_ENABLE_PIN, enable.x);
+   #else
+    DIGITAL_OUT(X_ENABLE_PIN, enable.x);
+   #endif
+  #endif
+ #endif
+ #ifdef Y_ENABLE_PIN
+  #if Y_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(Y_ENABLE_PIN, enable.y);
+  #else
+    DIGITAL_OUT(Y_ENABLE_PIN, enable.y);
+  #endif
+ #endif
+
+ #ifdef X2_ENABLE_PIN
+  #if X2_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(X2_ENABLE_PIN, enable.x);
+  #else
+    DIGITAL_OUT(X2_ENABLE_PIN, enable.x);
+  #endif
+ #endif
+ #ifdef Y2_ENABLE_PIN
+  #if Y2_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(Y2_ENABLE_PIN, enable.y);
+  #else
+    DIGITAL_OUT(Y2_ENABLE_PIN, enable.y);
+  #endif
+ #endif
+
+ #ifdef Z_ENABLE_PIN
+  #if Z_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(Z_ENABLE_PIN, enable.z);
+  #else
+    DIGITAL_OUT(Z_ENABLE_PIN, enable.z);
+  #endif
+ #endif
+ #ifdef Z2_ENABLE_PIN
+  #if Z2_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(Z2_ENABLE_PIN, enable.z);
+  #else
+    DIGITAL_OUT(Z2_ENABLE_PIN, enable.z);
+  #endif
+ #endif
+
+ #ifdef A_ENABLE_PIN
+  #if A_ENABLE_PORT == EXPANDER_PORT
+     EXPANDER_OUT(A_ENABLE_PIN, enable.a);
+  #else
+    DIGITAL_OUT(A_ENABLE_PIN, enable.a);
+  #endif
+ #endif
+
+ #ifdef B_ENABLE_PIN
+  #if B_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(B_ENABLE_PIN, enable.b);
+  #else
+   DIGITAL_OUT(B_ENABLE_PIN, enable.b);
+  #endif
+ #endif
+
+ #ifdef C_ENABLE_PIN
+  #if C_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(C_ENABLE_PIN, enable.c);
+  #else
+    DIGITAL_OUT(C_ENABLE_PIN, enable.c);
+  #endif
+ #endif
 #endif
 }
 
@@ -1663,6 +1717,14 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
 bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 {
+#ifdef USE_EXPANDERS
+    if(aux_ctrl->port == (void *)EXPANDER_PORT) {
+        if((iox_out[aux_ctrl->pin] = malloc(sizeof(xbar_t))))
+            memcpy(iox_out[aux_ctrl->pin], aux_ctrl->output, sizeof(xbar_t));
+        else
+            aux_ctrl->aux_port = 0xFF;
+    } else
+#endif
     if(ioport_claim(Port_Digital, Port_Output, &aux_ctrl->aux_port, NULL)) {
         if(aux_ctrl->function == Output_SpindlePWM || aux_ctrl->function == Output_Spindle1PWM) {
             gpio_init(aux_ctrl->pin);
@@ -1758,26 +1820,26 @@ inline static void spindle_dir (bool ccw)
     UNUSED(ccw);
 }
 
-#elif SPINDLE_PORT == GPIO_IOEXPAND
+#elif SPINDLE_PORT == EXPANDER_PORT
 
 inline static void spindle_off (spindle_ptrs_t *spindle)
 {
     spindle->context.pwm->flags.enable_out = Off;
-    if(spindle->context.pwm->flags.cloned)
-        ioex_out(SPINDLE_DIRECTION_PIN) = settings.spindle.invert.ccw;
-    else
-        ioex_out(SPINDLE_ENABLE_PIN) = settings.spindle.invert.on;
-    ioexpand_out(io_expander);
+    if(spindle->context.pwm->flags.cloned) {
+        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, settings.pwm_spindle.invert.ccw);
+    } else {
+        EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
+    }
 }
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
     spindle->context.pwm->flags.enable_out = On;
-    if(spindle->context.pwm->flags.cloned)
-        ioex_out(SPINDLE_DIRECTION_PIN) = !settings.spindle.invert.ccw;
-    else
-        ioex_out(SPINDLE_ENABLE_PIN) = !settings.spindle.invert.on;
-    ioexpand_out(io_expander);
+    if(spindle->context.pwm->flags.cloned) {
+        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, !settings.pwm_spindle.invert.ccw);
+    } else {
+        EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
+    }
 #if SPINDLE_ENCODER_ENABLE
     if(spindle->reset_data)
         spindle->reset_data();
@@ -1786,10 +1848,10 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
 
 inline static void spindle_dir (bool ccw)
 {
-    ioex_out(SPINDLE_DIRECTION_PIN) = ccw ^ settings.spindle.invert.ccw;
-    ioexpand_out(io_expander);
-    UNUSED(ccw);
+    EXPANDER_OUT(SPINDLE_DIRECTION_PIN, ccw ^ settings.pwm_spindle.invert.ccw);
+ //   UNUSED(ccw);
 }
+
 #endif
 
 // Start or stop spindle
@@ -1933,10 +1995,10 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
     state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_PIN);
 #endif
 
-#elif SPINDLE_PORT == GPIO_IOEXPAND
+#elif SPINDLE_PORT == EXPANDER_PORT
 
-    state.on = ioex_in(SPINDLE_ENABLE_PIN);
-    state.ccw = ioex_in(SPINDLE_DIRECTION_PIN);
+    state.on = EXPANDER_IN(SPINDLE_ENABLE_PIN);
+    state.ccw = EXPANDER_IN(SPINDLE_DIRECTION_PIN);
 
 #elif SPINDLE_PORT == GPIO_SR16
 
@@ -1968,14 +2030,13 @@ static void coolantSetState (coolant_state_t mode)
     DIGITAL_OUT(COOLANT_MIST_PIN, mode.mist);
 #endif
 
-#elif COOLANT_PORT == GPIO_IOEXPAND
+#elif COOLANT_PORT == EXPANDER_PORT
 
-    mode.value ^= settings.coolant_invert.mask;
-    ioex_out(COOLANT_FLOOD_PIN) = mode.flood;
+    mode.value ^= settings.coolant.invert.mask;
+    EXPANDER_OUT(COOLANT_FLOOD_PIN, mode.flood);
 #ifdef COOLANT_MIST_PIN
-    ioex_out(COOLANT_MIST_PIN) = mode.mist;
+    EXPANDER_OUT(COOLANT_MIST_PIN, mode.mist);
 #endif
-    ioexpand_out(io_expander);
 
 #elif COOLANT_PORT == GPIO_SR16
 
@@ -2001,12 +2062,10 @@ static coolant_state_t coolantGetState (void)
     state.mist = DIGITAL_IN(COOLANT_MIST_PIN);
 #endif
 
-#elif COOLANT_PORT == GPIO_IOEXPAND
-
-    ioexpand_t val = ioexpand_in();
-    state.flood = ioex_in(COOLANT_FLOOD_PIN);
+#elif COOLANT_PORT == EXPANDER_PORT
+    state.flood = EXPANDER_IN(COOLANT_FLOOD_PIN);
 #ifdef COOLANT_MIST_PIN
-    state.mist = ioex_in(COOLANT_MIST_PIN);
+    state.mist = EXPANDER_IN(COOLANT_MIST_PIN);
 #endif
 
 #elif COOLANT_PORT == GPIO_SR16
@@ -2786,7 +2845,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250405";
+    hal.driver_version = "250409";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3031,6 +3090,8 @@ bool driver_init (void)
         ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
+    io_expanders_init();
+
 #if AUX_CONTROLS
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 #endif
@@ -3071,10 +3132,6 @@ bool driver_init (void)
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
 #elif defined(SAFETY_DOOR_PIN)
     hal.signals_cap.safety_door = On;
-#endif
-
-#if IOEXPAND_ENABLE
-    ioexpand_init();
 #endif
 
 #if WIFI_ENABLE
@@ -3216,11 +3273,6 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
     hal.rgb0.out(0, hal.rgb0.cap);
 
 #endif // NEOPIXELS_PIN
-
-#if MCP3221_ENABLE_NEW
-    extern void mcp3221_init (void);
-    mcp3221_init();
-#endif
 
 #include "grbl/plugins_init.h"
 

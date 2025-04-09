@@ -41,11 +41,6 @@
 #define SPI_ENABLE 1
 #endif
 
-#if defined(MCP3221_ENABLE)
-#define I2C_ENABLE 1
-#define MCP3221_ENABLE_NEW MCP3221_ENABLE
-#endif
-
 #if ETHERNET_ENABLE
 #ifndef _WIZCHIP_
 #define _WIZCHIP_ 5105 // W5100S
@@ -82,6 +77,10 @@
 #define DIGITAL_IN(pin) (!!(gpio_get_all64() & (1ULL << (pin))))
 #define DIGITAL_OUT(pin, on) gpio_put(pin, on)
 #endif
+
+#define EXPANDER_IN(pin) ( iox_out[pin]->get_value(iox_out[pin]) != 0.0f )
+#define EXPANDER_OUT(pin, state) iox_out[pin]->set_value(iox_out[pin], (float)(state))
+
 
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
 
@@ -148,7 +147,7 @@
 */
 
 #ifdef BOARD_CNC_BOOSTERPACK
-  #include "cnc_boosterpack_map.h"
+  #include "boards/cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)
   #include "boards/pico_cnc_map.h"
 #elif defined(BOARD_RP23U5XBB)
@@ -232,11 +231,6 @@
 #define FLASH_ENABLE 1
 #else
 #define FLASH_ENABLE 0
-#endif
-
-#ifdef IOEXPAND_ENABLE
-#undef I2C_ENABLE
-#define I2C_ENABLE 1
 #endif
 
 #if I2C_ENABLE && !defined(I2C_PORT)
