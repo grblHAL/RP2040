@@ -53,8 +53,6 @@
 
 // Define stepper driver enable/disable output pin.
 #define ENABLE_PORT                 EXPANDER_PORT
-#define XY_ENABLE_PORT              EXPANDER_PORT
-#define Z_ENABLE_PORT               EXPANDER_PORT
 #define XY_ENABLE_PIN               6
 #define Z_ENABLE_PIN                0
 

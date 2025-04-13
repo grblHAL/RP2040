@@ -31,30 +31,28 @@
 
 #define BOARD_NAME "PicoCNC"
 #define BOARD_URL "https://github.com/phil-barrett/PicoCNC"
+#define USE_EXPANDERS
 #define HAS_BOARD_INIT
 
-typedef union {
-    uint32_t value;
-    struct {
-        uint32_t spi_reset   :1,
-                 aux6_out    :1,
-                 aux5_out    :1,
-                 aux4_out    :1,
-                 aux3_out    :1,
-                 aux2_out    :1,
-                 aux1_out    :1,
-                 aux0_out    :1,
-                 flood_ena   :1,
-                 mist_ena    :1,
-                 spindle_ena :1,
-                 spindle_dir :1,
-                 m3_ena      :1,
-                 z_ena       :1,
-                 y_ena       :1,
-                 x_ena       :1,
-                 unused      :16;
-    };
-} output_sr_t;
+/*
+SR16 bit mappings:
+  x_enable    0
+  y_enable    1
+  z_enable    2
+  m3_enable   3
+  spindle_dir 4
+  spindle_ena 5
+  mist_ena    6
+  flood_ena   7
+  aux0_out    8
+  aux1_out    9
+  aux2_out    10
+  aux3_out    11
+  aux4_out    12
+  aux5_out    13
+  aux6_out    14
+  spi_reset   15
+*/
 
 typedef union {
     uint8_t value;
@@ -91,7 +89,11 @@ typedef union {
 
 #define STEP_PORT           GPIO_SR8
 #define DIRECTION_PORT      GPIO_SR8
-#define ENABLE_PORT         GPIO_SR16
+#define ENABLE_PORT         EXPANDER_PORT
+
+#define X_ENABLE_PIN        0
+#define Y_ENABLE_PIN        1
+#define Z_ENABLE_PIN        2
 
 #define AUX_N_OUT           8
 #define AUX_OUT_MASK        0xFF
@@ -102,7 +104,7 @@ typedef union {
 #define M3_STEP_PIN         0 // Not referenced by driver code
 #define M3_DIRECTION_PIN    0 // Not referenced by driver code
 #define M3_LIMIT_PIN        3
-#define M3_ENABLE_PIN       0 // Not referenced by driver code
+#define M3_ENABLE_PIN       3
 #endif
 
 // Define homing/hard limit switch input pins.
@@ -110,14 +112,28 @@ typedef union {
 #define Y_LIMIT_PIN         5
 #define Z_LIMIT_PIN         4
 
-#define SPINDLE_PORT        GPIO_SR16
-#define COOLANT_PORT        GPIO_SR16
+#define SPINDLE_PORT        EXPANDER_PORT
+#define COOLANT_PORT        EXPANDER_PORT
 
 // Define spindle PWM output pin.
 
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_PORT    GPIO_OUTPUT
 #define SPINDLE_PWM_PIN     27
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN    5
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN  4
+#endif
+
+// Define flood and mist coolant enable output pins.
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN           7
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN            6
 #endif
 
 // Define aux I/O
@@ -169,20 +185,21 @@ typedef union {
 #if ETHERNET_ENABLE
   #if !SDCARD_ENABLE
     #define SPI_CS_PIN      AUX_IO3_PIN
-    #define AUXOUTPUT7_PORT GPIO_OUTPUT
-    #define AUXOUTPUT7_PIN  AUX_IO4_PIN
+    #define AUXOUTPUT0_PORT GPIO_OUTPUT
+    #define AUXOUTPUT0_PIN  AUX_IO4_PIN
   #else
     #define SPI_CS_PIN      AUX_IO4_PIN
   #endif
     #define SPI_IRQ_PIN       26
-    #define SPI_RST_PORT      GPIO_SR16
+    #define SPI_RST_PORT      EXPANDER_PORT
+    #define SPI_RST_PIN       15
 #else
     #define AUXINPUT5_PIN     26
   #if RGB_LED_ENABLE
     #define NEOPIXELS_PIN     AUX_IO4_PIN
   #else
-    #define AUXOUTPUT7_PORT   GPIO_OUTPUT
-    #define AUXOUTPUT7_PIN    AUX_IO4_PIN
+    #define AUXOUTPUT0_PORT   GPIO_OUTPUT
+    #define AUXOUTPUT0_PIN    AUX_IO4_PIN
   #endif
 #endif
 
@@ -209,7 +226,7 @@ typedef union {
   #if defined(SPI_CS_PIN) && SPI_CS_PIN == AUX_IO4_PIN
     #error "Modbus direction pin not available, is assigned as ethernet CS!"
   #else
-    #define MODBUS_DIR_AUX  7
+    #define MODBUS_DIR_AUX  AUXOUTPUT0_PIN
   #endif
 #endif
 

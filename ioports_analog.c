@@ -85,6 +85,14 @@ static bool analog_out (uint8_t port, float value)
     return port < analog.out.n_ports;
 }
 
+static bool set_function (xbar_t *port, pin_function_t function)
+{
+    if(port->mode.output)
+        aux_in_analog[port->id].id = function;
+
+    return port->mode.output;
+}
+
 static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
 {
     static xbar_t pin;
@@ -105,6 +113,7 @@ static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
                 pin.group = aux_out_analog[pin.id].group;
                 pin.pin = aux_out_analog[pin.id].pin;
                 pin.description = aux_out_analog[pin.id].description;
+                pin.set_function = set_function;
                 if(aux_out_analog[pin.id].mode.pwm || aux_out_analog[pin.id].mode.servo_pwm) {
                     pin.port = &pwm_data[aux_out_analog[pin.id].pwm_idx];
                     pin.config = (xbar_config_ptr)init_pwm;

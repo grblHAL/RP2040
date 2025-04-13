@@ -78,8 +78,8 @@
 #define DIGITAL_OUT(pin, on) gpio_put(pin, on)
 #endif
 
-#define EXPANDER_IN(pin) ( iox_out[pin]->get_value(iox_out[pin]) != 0.0f )
-#define EXPANDER_OUT(pin, state) iox_out[pin]->set_value(iox_out[pin], (float)(state))
+#define EXPANDER_IN(pin) (iox_out[pin] && iox_out[pin]->get_value(iox_out[pin]) != 0.0f)
+#define EXPANDER_OUT(pin, state) { if(iox_out[pin]) iox_out[pin]->set_value(iox_out[pin], (float)(state)); }
 
 
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)
@@ -170,6 +170,8 @@
   #include "boards/my_machine_map.h"
 #elif defined(BOARD_GENERIC_4AXIS)
   #include "boards/generic_map_4axis.h"
+#elif defined(BOARD_GENERIC_8AXIS)
+  #include "boards/generic_map_8axis.h"
 #else // default board
   #include "boards/generic_map.h"
 #endif
@@ -186,37 +188,22 @@
 #define X_STEP_PIN STEP_PINS_BASE + 0
 #define Y_STEP_PIN STEP_PINS_BASE + 1
 #define Z_STEP_PIN STEP_PINS_BASE + 2
-#ifdef M3_AVAILABLE
+#if defined(M3_AVAILABLE) && !defined(M3_STEP_PIN)
 #define M3_STEP_PIN STEP_PINS_BASE + 3
 #endif
-#ifdef M4_AVAILABLE
+#if defined(M4_AVAILABLE) && !defined(M4_STEP_PIN)
 #define M4_STEP_PIN STEP_PINS_BASE + 4
 #endif
-#ifdef M5_AVAILABLE
+#if defined(M5_AVAILABLE) && !defined(M5_STEP_PIN)
 #define M5_STEP_PIN STEP_PINS_BASE + 5
 #endif
+#if defined(M6_AVAILABLE) && !defined(M6_STEP_PIN)
+#define M6_STEP_PIN STEP_PINS_BASE + 6
 #endif
-
-#ifdef SPINDLE_PORT
-#ifndef SPINDLE_ENABLE_PORT
-#define SPINDLE_ENABLE_PORT (void *)SPINDLE_PORT
+#if defined(M7_AVAILABLE) && !defined(M7_STEP_PIN)
+#define M7_STEP_PIN STEP_PINS_BASE + 7
 #endif
-#ifndef SPINDLE_PWM_PORT
-#define SPINDLE_PWM_PORT (void *)SPINDLE_PORT
 #endif
-#ifndef SPINDLE_DIRECTION_PORT
-#define SPINDLE_DIRECTION_PORT (void *)SPINDLE_PORT
-#endif
-#endif // SPINDLE_PORT
-
-#ifdef COOLANT_PORT
-#ifndef COOLANT_FLOOD_PORT
-#define COOLANT_FLOOD_PORT (void *)COOLANT_PORT
-#endif
-#ifndef COOLANT_MIST_PORT
-#define COOLANT_MIST_PORT (void *)COOLANT_PORT
-#endif
-#endif // COOLANT_PORT
 
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
 // The default value is calibrated for 10 microseconds length.
@@ -227,11 +214,7 @@
 
 // End configuration
 
-#if EEPROM_ENABLE == 0
-#define FLASH_ENABLE 1
-#else
-#define FLASH_ENABLE 0
-#endif
+#include "grbl/driver_opts2.h"
 
 #if I2C_ENABLE && !defined(I2C_PORT)
 #define I2C_PORT    1
@@ -239,62 +222,7 @@
 #define I2C_SCL     27
 #endif
 
-#if TRINAMIC_ENABLE 
-#ifndef TRINAMIC_MIXED_DRIVERS
-#define TRINAMIC_MIXED_DRIVERS 1
-#endif
-#include "motors/trinamic.h"
-#endif
-
-#if USB_SERIAL_CDC
-#define SP0 1
-#else
-#define SP0 0
-#endif
-
-#ifdef SERIAL1_PORT
-#define SP1 1
-#else
-#define SP1 0
-#endif
-
-#if (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
-#define MODBUS_TEST 1
-#else
-#define MODBUS_TEST 0
-#endif
-
-#if KEYPAD_ENABLE == 2 && MPG_ENABLE == 0
-#define KEYPAD_TEST 1
-#else
-#define KEYPAD_TEST 0
-#endif
-
-#if MPG_ENABLE
-#define MPG_TEST 1
-#else
-#define MPG_TEST 0
-#endif
-
-#if (MODBUS_TEST + KEYPAD_TEST + (BLUETOOTH_ENABLE == 2 ? 1 : 0) + TRINAMIC_UART_ENABLE + MPG_TEST) > (SP0 + SP1)
-#error "Too many options that uses the serial port are enabled!"
-#endif
-
-#undef SP0
-#undef SP1
-#undef MODBUS_TEST
-#undef KEYPAD_TEST
-#undef MPG_TEST
-
 // End configuration
-
-#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
-#error "MPG_MODE_PIN must be defined!"
-#endif
-
-#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PIN)
-#error Keypad plugin not supported!
-#endif
 
 #if SDCARD_ENABLE && !defined(SD_CS_PIN)
 #error SD card plugin not supported!
@@ -349,13 +277,12 @@ bool driver_init (void);
 typedef struct {
     PIO pio;
     uint sm;
-    output_sr_t *reg;
 } sr_reg_t;
-void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs, sr_reg_t *reg);
-#else
-void board_init (void);
 #endif
-#if SPI_RST_PORT == GPIO_SR16
+
+void board_init (void);
+
+#if SPI_RST_PORT == EXPANDER_PORT
 void spi_reset_out (bool on);
 #endif
 

@@ -21,8 +21,6 @@
 
 #include "driver.h"
 
-#if !defined(BOARD_PICO_CNC)
-
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -202,11 +200,23 @@ static bool register_interrupt_handler (uint8_t port, uint8_t user_port, pin_irq
     return ok;
 }
 
+static bool set_function (xbar_t *port, pin_function_t function)
+{
+    if(port->mode.input)
+        aux_in[port->id].id = function;
+    else
+        aux_out[port->id].id = function;
+
+    return true;
+}
+
 static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
 {
     static xbar_t pin;
 
     xbar_t *info = NULL;
+
+    pin.set_function = set_function;
 
     if(dir == Port_Input && port < digital.in.n_ports) {
         XBAR_SET_DIN_INFO(pin, port, aux_in[pin.id], digital_in_cfg, digital_in_state);
@@ -249,5 +259,3 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 
     ioports_add_digital(&ports);
 }
-
-#endif // !defined(BOARD_PICO_CNC)
