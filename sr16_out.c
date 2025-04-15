@@ -69,7 +69,7 @@ static bool digital_out_cfg (xbar_t *output, gpio_out_config_t *config, bool per
             ioport_save_output_settings(output, config);
     }
 
-    return aux_out->id < digital.out.n_ports;
+    return output->id < digital.out.n_ports;
 }
 
 static void digital_out (uint8_t port, bool on)
