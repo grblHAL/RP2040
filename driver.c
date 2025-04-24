@@ -57,11 +57,7 @@
 
 #define AUX_DEVICES // until all drivers are converted?
 #ifndef AUX_CONTROLS
-//#ifdef SD_SHIFT_REGISTER
-//#define AUX_CONTROLS 0
-//#else
 #define AUX_CONTROLS (AUX_CONTROL_SPINDLE|AUX_CONTROL_COOLANT)
-//#endif
 #endif
 
 #include "grbl/crossbar.h"
@@ -230,6 +226,23 @@ static xbar_t *iox_out[16] = {};
 neopixel_cfg_t neopixel = { .intensity = 255 };
 #endif
 
+#if SPINDLE_ENCODER_ENABLE
+
+#include "grbl/spindle_sync.h"
+
+#define RPM_TIMER_RESOLUTION 1
+
+static uint encoder_pwm;
+static uint32_t encoder_ovf;
+static absolute_time_t encoder_started;
+static spindle_data_t spindle_data;
+static spindle_encoder_t spindle_encoder = {
+    .tics_per_irq = 4
+};
+static on_spindle_programmed_ptr on_spindle_programmed = NULL;
+
+#endif // SPINDLE_ENCODER_ENABLE
+
 #include "grbl/stepdir_map.h"
 
 static input_signal_t *irq_pins[NUM_BANK0_GPIOS] = {};
@@ -323,6 +336,9 @@ static input_signal_t inputpin[] = {
 #endif // AUX_DEVICES
 #ifdef SPI_IRQ_PIN
     { .id = Input_SPIIRQ,    .port = GPIO_INPUT, .pin = SPI_IRQ_PIN,    .group = PinGroup_SPI },
+#endif
+#ifdef SPINDLE_INDEX_PIN
+    { .id = Input_SpindleIndex,   .port = GPIO_INPUT, .pin = SPINDLE_INDEX_PIN,   .group = PinGroup_SpindleIndex },
 #endif
 #ifdef AUXINPUT0_PIN
     { .id = Input_Aux0, .port = GPIO_INPUT, .pin = AUXINPUT0_PIN, .group = PinGroup_AuxInput },
@@ -507,7 +523,7 @@ static output_signal_t outputpin[] = {
     add_enable_pin(V)
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
-#if !(AUX_CONTROLS & AUX_CONTROL_SPINDLE)
+#if add_aux_pin(SPINDLE, PWM) || SPINDLE_ENABLE_PORT == EXPANDER_PORT
     { .id = Output_SpindlePWM,   .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #ifdef RTS_PIN
@@ -523,19 +539,17 @@ static output_signal_t outputpin[] = {
     { .id = Output_SPIRST,       .port = SPI_RST_PORT,     .pin = SPI_RST_PIN,           .group = PinGroup_SPI },
 #endif
 #if add_aux_pin(SPINDLE, ENABLE)
-    { .id = Output_SpindleOn,    .port = SPINDLE_ENABLE_PORT,     .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
+    { .id = Output_SpindleOn,    .port = SPINDLE_ENABLE_PORT,    .pin = SPINDLE_ENABLE_PIN,    .group = PinGroup_SpindleControl},
 #endif
 #if add_aux_pin(SPINDLE, DIRECTION)
-    { .id = Output_SpindleDir,   .port = SPINDLE_DIRECTION_PORT,     .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
+    { .id = Output_SpindleDir,   .port = SPINDLE_DIRECTION_PORT, .pin = SPINDLE_DIRECTION_PIN, .group = PinGroup_SpindleControl},
 #endif
-#if !(AUX_CONTROLS & AUX_CONTROL_COOLANT)
-  #ifdef COOLANT_FLOOD_PIN
+#if add_aux_pin(COOLANT, FLOOD)
     { .id = Output_CoolantFlood, .port = COOLANT_FLOOD_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant},
-  #endif
-  #ifdef COOLANT_MIST_PIN
-    { .id = Output_CoolantMist,  .port = COOLANT_MIST_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
-  #endif
-#endif // AUX_CONTROL_COOLANT
+#endif
+#if add_aux_pin(COOLANT, MIST)
+    { .id = Output_CoolantMist,  .port = COOLANT_MIST_PORT,      .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant},
+#endif
 #ifdef LED_PIN
     { .id = Output_LED,          .port = GPIO_OUTPUT,      .pin = LED_PIN,               .group = PinGroup_LED },
 #endif
@@ -632,6 +646,7 @@ static struct {
 
 static void systick_handler(void);
 static void stepper_int_handler(void);
+static void rpm_int_handler(void);
 static void gpio_int_handler(uint gpio, uint32_t events);
 
 #if I2C_STROBE_ENABLE || SPI_IRQ_BIT
@@ -1677,7 +1692,7 @@ static void aux_irq_handler (uint8_t port, bool state)
 #endif
 #ifdef MPG_MODE_PIN
             case Input_MPGSelect:
-                protocol_enqueue_foreground_task(mpg_select, NULL);
+                task_add_immediate(mpg_select, NULL);
                 break;
 #endif
             default:
@@ -1779,7 +1794,6 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
-    spindle->context.pwm->flags.enable_out = On;
 #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned)
         DIGITAL_OUT(SPINDLE_DIRECTION_PIN, On);
@@ -1789,9 +1803,10 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
         DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
 #endif
 #if SPINDLE_ENCODER_ENABLE
-    if(spindle->reset_data)
+    if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
 #endif
+    spindle->context.pwm->flags.enable_out = On;
 }
 
 inline static void spindle_dir (bool ccw)
@@ -1817,16 +1832,16 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
-    spindle->context.pwm->flags.enable_out = On;
     if(spindle->context.pwm->flags.cloned) {
         EXPANDER_OUT(SPINDLE_DIRECTION_PIN, !settings.pwm_spindle.invert.ccw);
     } else {
         EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
     }
 #if SPINDLE_ENCODER_ENABLE
-    if(spindle->reset_data)
+    if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
 #endif
+    spindle->context.pwm->flags.enable_out = On;
 }
 
 inline static void spindle_dir (bool ccw)
@@ -1857,7 +1872,7 @@ static void pwm_off (spindle_ptrs_t *spindle)
     if (spindle->context.pwm->flags.always_on)
         pwm_set_gpio_level(SPINDLE_PWM_PIN, spindle->context.pwm->off_value);
     else
-        pwm_set_gpio_level(SPINDLE_PWM_PIN, 0);
+        pwm_set_gpio_level(SPINDLE_PWM_PIN, spindle->context.pwm->off_value);
 }
 
 // Sets spindle speed
@@ -1928,8 +1943,8 @@ bool spindleConfig (spindle_ptrs_t *spindle)
         pwm_set_gpio_level(SPINDLE_PWM_PIN, spindle_pwm.off_value);
 
         // Set polarity of the channel
-        uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
-        pwm_config_set_output_polarity(&config, (!channel & settings.pwm_spindle.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
+    //    uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
+    //    pwm_config_set_output_polarity(&config, (!channel & settings.pwm_spindle.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
 
         // Load the configuration into our PWM slice, and set it running.
         pwm_init(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN), &config, true);
@@ -1991,10 +2006,137 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
     state.on |= spindle->param->state.on;
 #endif
 
+#if SPINDLE_ENCODER_ENABLE
+    if(spindle->get_data) {
+        spindle_data_t *spindle_data = spindle->get_data(SpindleData_AtSpeed);
+        state.at_speed = spindle_data->state_programmed.at_speed;
+        state.encoder_error = spindle_data->state_programmed.encoder_error;
+    }
+#endif
+
     return state;
 }
 
 #endif // DRIVER_SPINDLE_ENABLE
+
+#if SPINDLE_ENCODER_ENABLE
+
+static spindle_data_t *spindleGetData (spindle_data_request_t request)
+{
+    static uint32_t pl[4] = {};
+    static uint_fast8_t idx = 0;
+    static volatile bool running = false;
+
+ //   uint32_t rpm_timer_delta;
+    spindle_encoder_counter_t encoder;
+
+//    while(spindle_encoder.spin_lock);
+
+    __disable_irq();
+    memcpy(&encoder, &spindle_encoder.counter, sizeof(spindle_encoder_counter_t));
+    __enable_irq();
+
+    uint32_t tval = (uint32_t)(get_absolute_time() - encoder_started);
+    uint16_t cval = pwm_get_counter(encoder_pwm);
+
+    spindle_encoder.counter.pulse_count = (encoder_ovf | cval);
+
+    if(tval - spindle_encoder.timer.last_pulse > 100000) {
+
+        spindle_encoder.timer.pulse_length = (tval - spindle_encoder.timer.last_pulse) /
+                                              (spindle_encoder.counter.pulse_count -
+                                                spindle_encoder.counter.last_count) ;
+
+        if(spindle_encoder.timer.pulse_length == 0) {
+            running = false;
+            spindle_data.rpm = 0.0f;
+    //        rpm_timer_delta = (uint16_t)((pwm_get_counter(encoder_pwm) - (uint16_t)encoder.last_count)) * pulse_length;
+        } else if(!running) {
+            running = true;
+            pl[0] = pl[1] = pl[2] = pl[3] = spindle_encoder.timer.pulse_length;
+        } else {
+            pl[idx++] = spindle_encoder.timer.pulse_length;
+            idx &= 0b11;
+        }
+
+        spindle_encoder.counter.last_count = spindle_encoder.counter.pulse_count;
+        spindle_encoder.timer.last_pulse = tval;
+    }
+ 
+    switch(request) {
+
+        case SpindleData_Counters:
+            spindle_data.index_count = encoder.index_count;
+            spindle_data.pulse_count = spindle_encoder.counter.pulse_count;
+            spindle_data.error_count = spindle_encoder.error_count;
+            break;
+
+        case SpindleData_RPM:
+            if(running)
+                spindle_data.rpm = spindle_encoder.rpm_factor / (float)((pl[0] + pl[1] + pl[2] + pl[3]) >> 2);
+            break;
+
+        case SpindleData_AtSpeed:
+            if(running)
+                spindle_data.rpm = spindle_encoder.rpm_factor / (float)((pl[0] + pl[1] + pl[2] + pl[3]) >> 2);
+            spindle_data.state_programmed.at_speed = !spindle_data.at_speed_enabled || (spindle_data.rpm >= spindle_data.rpm_low_limit && spindle_data.rpm <= spindle_data.rpm_high_limit);
+            spindle_data.state_programmed.encoder_error = spindle_encoder.error_count > 0;
+            break;
+
+        case SpindleData_AngularPosition:
+            spindle_data.angular_position = (float)encoder.index_count +
+                                             (float)(spindle_encoder.counter.pulse_count - encoder.last_index) *
+                                                      spindle_encoder.pulse_distance;
+            break;
+    }
+
+    return &spindle_data;
+}
+
+static void spindleDataReset (void)
+{
+    while(spindle_encoder.spin_lock);
+
+    uint32_t timeout = elapsed_ticks + 1000; // 1 second
+
+    uint32_t index_count = spindle_encoder.counter.index_count + 2;
+    if(spindleGetData(SpindleData_RPM)->rpm > 0.0f) { // wait for index pulse if running
+
+        while(index_count != spindle_encoder.counter.index_count && elapsed_ticks <= timeout);
+
+//        if(elapsed_ticks > timeout)
+//            alarm?
+    }
+
+    encoder_ovf = 0;
+    encoder_started = get_absolute_time();
+    pwm_set_irq_enabled(encoder_pwm, false);
+    pwm_clear_irq(encoder_pwm);
+    pwm_set_counter(encoder_pwm, 0);
+    pwm_set_irq_enabled(encoder_pwm, true);
+
+    spindle_encoder.timer.last_index =
+    spindle_encoder.timer.pulse_length =
+    spindle_encoder.counter.last_count =
+    spindle_encoder.counter.last_index =
+    spindle_encoder.counter.pulse_count =
+    spindle_encoder.counter.index_count =
+    spindle_encoder.error_count = 0;
+}
+
+static void onSpindleProgrammed (spindle_ptrs_t *spindle, spindle_state_t state, float rpm, spindle_rpm_mode_t mode)
+{
+    if(on_spindle_programmed)
+        on_spindle_programmed(spindle, state, rpm, mode);
+
+    if(spindle->get_data == spindleGetData) {
+        spindle_set_at_speed_range(spindle, &spindle_data, rpm);
+        spindle_data.state_programmed.on = state.on;
+        spindle_data.state_programmed.ccw = state.ccw;
+    }
+}
+
+#endif // SPINDLE_ENCODER_ENABLE
 
 // Start/stop coolant (and mist if enabled)
 static void coolantSetState (coolant_state_t mode)
@@ -2170,6 +2312,46 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                 spindle_select(spindle_id);
         }
 #endif
+
+#if SPINDLE_ENCODER_ENABLE
+
+        static const spindle_data_ptrs_t encoder_data = {
+            .get = spindleGetData,
+            .reset = spindleDataReset
+        };
+
+        static bool event_claimed = false;
+
+        if((hal.spindle_data.get = settings->spindle.ppr > 0 ? spindleGetData : NULL)) {
+            if(spindle_encoder.ppr != settings->spindle.ppr) {
+
+                spindle_ptrs_t *spindle;
+
+                hal.spindle_data.reset = spindleDataReset;
+                if((spindle = spindle_get(0)))
+                    spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
+
+                if(!event_claimed) {
+                    event_claimed = true;
+                    on_spindle_programmed = grbl.on_spindle_programmed;
+                    grbl.on_spindle_programmed = onSpindleProgrammed;
+                }
+
+                spindle_encoder.ppr = settings->spindle.ppr;
+                spindle_encoder.tics_per_irq = max(1, spindle_encoder.ppr / 32);
+                spindle_encoder.pulse_distance = 1.0f / spindle_encoder.ppr;
+                spindle_encoder.maximum_tt = 250000UL / RPM_TIMER_RESOLUTION; // 250ms
+                spindle_encoder.rpm_factor = (60.0f * 1000000.0f / RPM_TIMER_RESOLUTION) / (float)spindle_encoder.ppr;
+                spindleDataReset();
+            }
+        } else {
+            spindle_encoder.ppr = 0;
+            hal.spindle_data.reset = NULL;
+        }
+
+        spindle_bind_encoder(spindle_encoder.ppr ? &encoder_data : NULL);
+
+#endif // SPINDLE_ENCODER_ENABLE
 
 #ifdef NEOPIXELS_PIN
 
@@ -2360,6 +2542,12 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     input->mode.pull_mode = PullMode_Up;
                     input->mode.irq_mode = IRQ_Mode_Falling;
                     break;
+
+                case Input_SpindleIndex:
+                    input->mode.pull_mode = PullMode_Up;
+                    input->mode.irq_mode = IRQ_Mode_Falling;
+                    break;
+
 #if AUX_CONTROLS_ENABLED
   #if SAFETY_DOOR_BIT
                 case Input_SafetyDoor:
@@ -2654,7 +2842,7 @@ static void cyw43_led_out (uint16_t device, rgb_color_t color)
         if(net.value) // Network stack is up?
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, color.G != 0);
         else
-            protocol_enqueue_foreground_task(cyw43_led_on, color.G ? (void *)1 : NULL);
+            task_add_immediate(cyw43_led_on, color.G ? (void *)1 : NULL);
     }
 }
 
@@ -2706,6 +2894,23 @@ static bool driver_setup (settings_t *settings)
 #if PPI_ENABLE
     ppi_init();
 #endif
+
+#if SPINDLE_ENCODER_ENABLE
+
+    assert(pwm_gpio_to_channel(SPINDLE_PULSE_PIN) == PWM_CHAN_B);
+    encoder_pwm = pwm_gpio_to_slice_num(SPINDLE_PULSE_PIN);
+    
+    pwm_config cfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_mode(&cfg, PWM_DIV_B_RISING);
+    pwm_init(encoder_pwm, &cfg, false);
+    gpio_set_function(SPINDLE_PULSE_PIN, GPIO_FUNC_PWM);
+
+    pwm_set_enabled(encoder_pwm, true);
+
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, rpm_int_handler);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+
+#endif // SPINDLE_ENCODER_ENABLE
 
     return IOInitDone;
 }
@@ -2828,7 +3033,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250412";
+    hal.driver_version = "250424";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3000,6 +3205,9 @@ bool driver_init (void)
 #endif
 #if defined(COOLANT_MIST_PIN) || OUT_SHIFT_REGISTER
     hal.coolant_cap.mist = On;
+#endif
+#if SPINDLE_ENCODER_ENABLE
+    hal.driver_cap.spindle_encoder = On;
 #endif
     hal.driver_cap.software_debounce = On;
     hal.driver_cap.step_pulse_delay = On;
@@ -3255,7 +3463,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
     if(hal.driver_cap.mpg_mode)
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
+        task_run_on_startup(mpg_enable, NULL);
 #elif MPG_ENABLE == 2
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
@@ -3275,7 +3483,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 /* interrupt handlers */
 
 // Main stepper driver
-void __not_in_flash_func(stepper_int_handler)(void)
+static void __not_in_flash_func(stepper_int_handler)(void)
 {
     hal.stepper.interrupt_callback();
 
@@ -3285,7 +3493,7 @@ void __not_in_flash_func(stepper_int_handler)(void)
 #if PPI_ENABLE
 
 // PPI timer interrupt handler
-void __not_in_flash_func(PPI_TIMER_IRQHandler)(void)
+static void __not_in_flash_func(PPI_TIMER_IRQHandler)(void)
 {
     PPI_TIMER->SR = ~TIM_SR_UIF; // clear UIF flag;
 
@@ -3293,6 +3501,16 @@ void __not_in_flash_func(PPI_TIMER_IRQHandler)(void)
 }
 
 #endif
+
+#if SPINDLE_ENCODER_ENABLE
+
+static void __not_in_flash_func(rpm_int_handler)(void)
+{
+    encoder_ovf += 0x10000;
+    pwm_clear_irq(encoder_pwm);
+}
+
+#endif // SPINDLE_ENCODER_ENABLE
 
 void pin_debounce (void *pin)
 {
@@ -3381,6 +3599,19 @@ void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
                 ioports_event(input);
                 break;
 
+#if SPINDLE_ENCODER_ENABLE
+            case PinGroup_SpindleIndex:
+                uint32_t rpm_count = encoder_ovf | pwm_get_counter(encoder_pwm);
+                spindle_encoder.timer.last_index = (uint32_t)(get_absolute_time() - encoder_started);
+
+                if(spindle_encoder.counter.index_count && (uint16_t)(rpm_count - (uint16_t)spindle_encoder.counter.last_index) != spindle_encoder.ppr)
+                    spindle_encoder.error_count++;
+
+                spindle_encoder.counter.last_index = rpm_count;
+                spindle_encoder.counter.index_count++;
+                break;
+#endif
+
     #ifndef AUX_DEVICES
       #ifdef I2C_STROBE_PIN
             case PinGroup_I2C:
@@ -3390,7 +3621,7 @@ void __not_in_flash_func(gpio_int_handler)(uint pin, uint32_t events)
       #endif
       #if MPG_ENABLE == 1
             case PinGroup_MPG:
-                protocol_enqueue_foreground_task(mpg_select, NULL);
+                task_add_immediate(mpg_select, NULL);
                 break;
       #endif
     #endif // !AUX_DEVICES

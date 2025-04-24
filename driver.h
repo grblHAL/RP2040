@@ -146,6 +146,10 @@
 #define PPI_TIMER_IRQHandler        timerHANDLER(PPI_TIMER_N)
 */
 
+#ifndef SERIAL_PORT
+#define SERIAL_PORT 0
+#endif
+
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "boards/cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)

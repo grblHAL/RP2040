@@ -53,7 +53,6 @@ static stream_rx_buffer_t rxbuf = {0};
 static const io_stream_t *serialInit (uint32_t baud_rate);
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 static void uart_interrupt_handler (void);
-#define SERIAL_PORT 0
 
 #ifdef SERIAL1_PORT
 
