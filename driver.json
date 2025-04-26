@@ -7,6 +7,7 @@
     "uart": 1,
     "spindle_pwm": 1,
     "spindle_dir": 1,
+    "spindle_sync": 1,
     "serial_ports": 2,
     "eeprom": 1,
     "i2c_strobe": 1,
@@ -197,7 +198,8 @@
         "sdcard": 1,
         "wifi": 0,
         "wiznet": 1,
-        "bluetooth": 1
+        "bluetooth": 1,
+        "spindle_sync": 1
       },
       "symbols": {
           "RP_MCU": "2350"

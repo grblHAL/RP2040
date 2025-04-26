@@ -126,16 +126,15 @@
 
 //
 
-#define AUXINPUT0_PIN           29
-
 #if SPINDLE_ENCODER_ENABLE
-#define SPINDLE_PULSE_PIN       27  // Must be an odd pin
+#define SPINDLE_PULSE_PIN       29  // Must be an odd pin
 #define SPINDLE_INDEX_PIN       28
 #else
+#define AUXINPUT0_PIN           29
 #define AUXINPUT1_PIN           28
 #endif
 
-#if !(defined(SERIAL1_PORT) || SPINDLE_ENCODER_ENABLE)
+#ifndef SERIAL1_PORT
 #define AUXINPUT2_PIN           27
 #endif
 
