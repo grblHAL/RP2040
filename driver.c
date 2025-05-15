@@ -1781,32 +1781,40 @@ bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 
 inline static void spindle_off (spindle_ptrs_t *spindle)
 {
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     spindle->context.pwm->flags.enable_out = Off;
-#ifdef SPINDLE_DIRECTION_PIN
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned)
         DIGITAL_OUT(SPINDLE_DIRECTION_PIN, Off);
     else
         DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+  #elif defined(SPINDLE_ENABLE_PIN)
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+  #endif
 #elif defined(SPINDLE_ENABLE_PIN)
-        DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
 #endif
 }
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
-#ifdef SPINDLE_DIRECTION_PIN
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned)
         DIGITAL_OUT(SPINDLE_DIRECTION_PIN, On);
     else
         DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
-#elif defined(SPINDLE_ENABLE_PIN)
-        DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
-#endif
-#if SPINDLE_ENCODER_ENABLE
+  #elif defined(SPINDLE_ENABLE_PIN)
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
+  #endif
+  #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
-#endif
+  #endif
     spindle->context.pwm->flags.enable_out = On;
+#elif defined(SPINDLE_ENABLE_PIN)
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
+#endif
 }
 
 inline static void spindle_dir (bool ccw)
@@ -1822,26 +1830,34 @@ inline static void spindle_dir (bool ccw)
 
 inline static void spindle_off (spindle_ptrs_t *spindle)
 {
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     spindle->context.pwm->flags.enable_out = Off;
     if(spindle->context.pwm->flags.cloned) {
         EXPANDER_OUT(SPINDLE_DIRECTION_PIN, settings.pwm_spindle.invert.ccw);
     } else {
         EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
     }
+#else
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
+#endif
 }
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     if(spindle->context.pwm->flags.cloned) {
         EXPANDER_OUT(SPINDLE_DIRECTION_PIN, !settings.pwm_spindle.invert.ccw);
     } else {
         EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
     }
-#if SPINDLE_ENCODER_ENABLE
+  #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
-#endif
+  #endif
     spindle->context.pwm->flags.enable_out = On;
+#else
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
+#endif
 }
 
 inline static void spindle_dir (bool ccw)
@@ -3033,7 +3049,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250424";
+    hal.driver_version = "250514";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
