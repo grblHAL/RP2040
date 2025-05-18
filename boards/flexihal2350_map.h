@@ -43,7 +43,7 @@
 //#define I2C_STROBE_ENABLE 1
 //#define SERIAL1_PORT  0
 
-#define IOEXPAND_ENABLE 2
+#define FLEXGPIO_ENABLE 1
 
 // Define step pulse output pins.
 #define STEP_PORT               GPIO_PIO_1 // Single pin PIO SM
