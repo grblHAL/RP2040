@@ -259,6 +259,28 @@
           "RP_MCU": "2350",
           "RP_BOARD": "pico2"
       }
-    }
+    },
+    {
+      "name": "FLEXIHAL2350",
+      "symbol": "BOARD_FLEXIHAL2350",
+      "URL": "https://github.com/Expatria-Technologies/FlexiHAL-Pro",
+      "MAP": "boards/flexihal2350_map.h",
+      "caps": {
+        "axes": 6,
+        "digital_in": 1,
+        "digital_out": 3,
+        "i2c_strobe": 1,
+        "eeprom": 1,
+        "fram": 0,
+        "i2c": 1,
+        "sdcard": 2,
+        "wifi": 0,
+        "wiznet": 1,
+        "bluetooth": 0
+      },
+      "symbols": {
+          "RP_MCU": "2350"
+      }
+    }    
   ]
 }

@@ -34,6 +34,7 @@
 //#define BOARD_GENERIC_4AXIS
 //#define BOARD_GENERIC_8AXIS
 //#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
+#define BOARD_FLEXIHAL2350
 
 // Configuration
 // Uncomment to enable.
@@ -48,13 +49,13 @@
 // If none are specified the default PWM spindle is instantiated.
 // Spindle definitions can be found in grbl/spindle_control.h.
 // More here https://github.com/grblHAL/Plugins_spindle
-//#define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
-//#define SPINDLE1_ENABLE         SPINDLE_PWM0
+#define SPINDLE0_ENABLE         SPINDLE_GS20
+#define SPINDLE1_ENABLE         SPINDLE_PWM0
 //#define SPINDLE2_ENABLE         SPINDLE_NONE 
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
 //#define SPINDLE_OFFSET          1 // Set to 1 to add offset move when switching between laser and spindle
 // **********************
-//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
+#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
 //#define WIFI_ENABLE             0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define WIFI_SOFTAP             1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
 //#define ETHERNET_ENABLE         0 // Do NOT enable here, enable in CMakeLists.txt!
@@ -63,13 +64,13 @@
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE       1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH           0 // Uncomment to store WebUI files on SD card instead of in flash (littlefs).
-//#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define MPG_ENABLE              2 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
                                     // 1: Mode switching is by handshake pin.
                                     // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
-//#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
+#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
                                     // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
-//#define DISPLAY_ENABLE          9 // Set to 9 for I2C display protocol, 17 for I2C LED protocol.
+#define DISPLAY_ENABLE          9 // Set to 9 for I2C display protocol, 17 for I2C LED protocol.
 //#define ODOMETER_ENABLE         1 // Odometer plugin.
 //#define PLASMA_ENABLE           1 // Plasma (THC) plugin. To be completed.
 //#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
@@ -80,7 +81,7 @@
 //#define TRINAMIC_ENABLE         1 // Trinamic TMC2130 stepper driver support. NOTE: work in progress.
 //#define TRINAMIC_I2C            1 // Trinamic I2C - SPI bridge interface.
 //#define TRINAMIC_DEV            1 // Development mode, adds a few M-codes to aid debugging. Do not enable in production code.
-//#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
+#define EEPROM_ENABLE          32 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
 //#define STEP_INJECT_ENABLE      1
 //#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
@@ -97,12 +98,14 @@
 //#define MCP4725_ENABLE          1 // MCP3221 I2C ADC input, default address is 0xC0 (MCP3221_ADDRESS).
 //#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
 
+#define FLEXGPIO_ENABLE 1
+
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
 // NOTE: If not enough pins are available assignment will silently fail.
 //#define PROBE_ENABLE            0 // Default enabled, remove comment to disable probe input.
 //#define SAFETY_DOOR_ENABLE      1
-//#define MOTOR_FAULT_ENABLE      1
+#define MOTOR_FAULT_ENABLE      1
 //#define MOTOR_WARNING_ENABLE    1
 //#define PROBE_DISCONNECT_ENABLE 1
 //#define STOP_DISABLE_ENABLE     1

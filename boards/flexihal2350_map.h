@@ -33,7 +33,8 @@
 #endif
 
 #define BOARD_NAME "FLEXIHAL2350"
-#define HAS_BOARD_INIT 1
+#define USE_EXPANDERS
+#define HAS_BOARD_INIT
 
 #undef I2C_ENABLE
 #undef EEPROM_ENABLE
@@ -59,7 +60,7 @@
 #define Z_DIRECTION_PIN         17
 
 // Define stepper driver enable/disable output pins.
-#define ENABLE_PORT             GPIO_IOEXPAND
+#define ENABLE_PORT             EXPANDER_PORT
 #define X_ENABLE_PIN            29 //RP2040 pin
 #define Y_ENABLE_PIN            28 //RP2040 pin
 #define Z_ENABLE_PIN            27 //RP2040 pin
@@ -94,25 +95,25 @@
 #define M5_ENABLE_PIN           24 //RP2040 pin
 #endif
 
-#define AUXOUTPUT0_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT0_PORT         EXPANDER_PORT
 #define AUXOUTPUT0_PIN          23 //RP2040 pin
-#define AUXOUTPUT1_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT1_PORT         EXPANDER_PORT
 #define AUXOUTPUT1_PIN          22 //RP2040 pin
-#define AUXOUTPUT2_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT2_PORT         EXPANDER_PORT
 #define AUXOUTPUT2_PIN          21 //RP2040 pin
-#define AUXOUTPUT3_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT3_PORT         EXPANDER_PORT
 #define AUXOUTPUT3_PIN          20 //RP2040 pin
-#define AUXOUTPUT4_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT4_PORT         EXPANDER_PORT
 #define AUXOUTPUT4_PIN          19 //RP2040 pin
-#define AUXOUTPUT5_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT5_PORT         EXPANDER_PORT
 #define AUXOUTPUT5_PIN          18 //RP2040 pin
-#define AUXOUTPUT6_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT6_PORT         EXPANDER_PORT
 #define AUXOUTPUT6_PIN          17 //RP2040 pin
-#define AUXOUTPUT7_PORT         GPIO_IOEXPAND
+#define AUXOUTPUT7_PORT         EXPANDER_PORT
 #define AUXOUTPUT7_PIN          16 //RP2040 pin
 
 #if COOLANT_ENABLE
-#define COOLANT_PORT            GPIO_IOEXPAND
+#define COOLANT_PORT            EXPANDER_PORT
 #endif
 #if COOLANT_ENABLE & COOLANT_MIST
 #define COOLANT_MIST_PIN        13 //RP2040 pin
@@ -122,9 +123,9 @@
 #endif
 
 #if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_PORT               GPIO_IOEXPAND
-#define SPINDLE_ENABLE_PORT        GPIO_IOEXPAND
-#define SPINDLE_DIRECTION_PORT     GPIO_IOEXPAND
+#define SPINDLE_PORT               EXPANDER_PORT
+#define SPINDLE_ENABLE_PORT        EXPANDER_PORT
+#define SPINDLE_DIRECTION_PORT     EXPANDER_PORT
 #define SPINDLE_PWM_PORT           GPIO_OUTPUT // Spindle PWM
 #endif
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
