@@ -142,6 +142,9 @@
 #define SPINDLE_DIRECTION_PIN   12 //RP2040 pin
 #endif
 
+#define RESET_PIN               24
+#define FEED_HOLD_PIN           27
+#define CYCLE_START_PIN         30
 
 #define AUXINPUT0_PIN           47  //Encoder 2
 #define AUXINPUT1_PIN           46  //Encoder 2
@@ -152,16 +155,10 @@
 #define AUXINPUT5_PIN           11  //Encoder 1
 
 #define AUXINPUT6_PIN           32  // Safety door
-#define AUXINPUT7_PIN           8  // I2C strobe pin
-#define AUXINPUT8_PIN           32  // Safety door
-#define AUXINPUT9_PIN           8  // I2C strobe pin ***WRONG!!!***
+//#define AUXINPUT7_PIN           31  // Motor Alarm
+//#define AUXINPUT8_PIN           39  // Probe
 
-#define AUXINPUT10_PIN           31  // Motor Alarm
-//#define AUXINPUT11_PIN           39  // Probe
-
-#define RESET_PIN               24
-#define FEED_HOLD_PIN           27
-#define CYCLE_START_PIN         30
+#define AUXINPUT9_PIN           8  // I2C strobe pin
 
 #if PROBE_ENABLE
 #define PROBE_PORT              GPIO_INPUT
@@ -169,6 +166,7 @@
 #endif
 
 #if MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PORT       GPIO_INPUT
 #define MOTOR_FAULT_PIN        31
 #endif
 
@@ -177,7 +175,7 @@
 #endif
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          AUXINPUT7_PIN
+#define I2C_STROBE_PIN          AUXINPUT9_PIN
 #endif
 
 #if SDCARD_ENABLE || ETHERNET_ENABLE
