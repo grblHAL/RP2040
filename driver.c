@@ -523,7 +523,7 @@ static output_signal_t outputpin[] = {
     add_enable_pin(V)
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
-#if add_aux_pin(SPINDLE, PWM) || SPINDLE_ENABLE_PORT == EXPANDER_PORT
+#if add_aux_pin(SPINDLE, PWM) || (SPINDLE_ENABLE_PORT == EXPANDER_PORT && defined(SPINDLE_PWM_PIN))
     { .id = Output_SpindlePWM,   .port = SPINDLE_PWM_PORT, .pin = SPINDLE_PWM_PIN,       .group = PinGroup_SpindlePWM },
 #endif
 #ifdef RTS_PIN
@@ -3049,7 +3049,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250514";
+    hal.driver_version = "250520";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
