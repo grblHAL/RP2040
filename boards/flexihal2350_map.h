@@ -95,6 +95,8 @@
 #define M5_ENABLE_PIN           24 //RP2040 pin
 #endif
 
+#define NUM_FLEXGPIO_AUXOUT     15+N_ABC_MOTORS //includes enables, coolant and spindle pins
+ //These are set up in the board init
 #define AUXOUTPUT0_PORT         EXPANDER_PORT
 #define AUXOUTPUT0_PIN          23 //RP2040 pin
 #define AUXOUTPUT1_PORT         EXPANDER_PORT
@@ -111,6 +113,8 @@
 #define AUXOUTPUT6_PIN          17 //RP2040 pin
 #define AUXOUTPUT7_PORT         EXPANDER_PORT
 #define AUXOUTPUT7_PIN          16 //RP2040 pin
+
+
 
 #if COOLANT_ENABLE
 #define COOLANT_PORT            EXPANDER_PORT

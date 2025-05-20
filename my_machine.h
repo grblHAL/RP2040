@@ -59,7 +59,7 @@
 //#define WIFI_ENABLE             0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define WIFI_SOFTAP             1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
 //#define ETHERNET_ENABLE         0 // Do NOT enable here, enable in CMakeLists.txt!
-//#define _WIZCHIP_            5500 // Selects WIZnet ethernet breakout connected via SPI.
+#define _WIZCHIP_            5500 // Selects WIZnet ethernet breakout connected via SPI.
                                     // Uncomment to enable W5500 chip, default is W5100S. Requires ethernet enabled in CMakeLists.txt.
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE       1 // Enable ESP3D-WEBUI authentication.

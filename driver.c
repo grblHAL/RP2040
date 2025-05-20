@@ -219,7 +219,7 @@ static input_signal_t *safety_door;
 #endif
 
 #ifdef USE_EXPANDERS
-static xbar_t *iox_out[16] = {};
+static xbar_t *iox_out[32] = {};
 #endif
 
 #ifdef NEOPIXELS_PIN
@@ -565,28 +565,28 @@ static output_signal_t outputpin[] = {
 #ifdef LED_W_PIN
     { .id = Output_LED_W,        .port = GPIO_OUTPUT,      .pin = LED_W_PIN,             .group = PinGroup_LED },
 #endif
-#ifdef AUXOUTPUT0_PORT
+#if add_pin (AUXOUTPUT0_PIN)
     { .id = Output_Aux0,         .port = AUXOUTPUT0_PORT,  .pin = AUXOUTPUT0_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT1_PORT
+#if add_pin (AUXOUTPUT1_PIN)
     { .id = Output_Aux1,         .port = AUXOUTPUT1_PORT,  .pin = AUXOUTPUT1_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT2_PORT
+#if add_pin (AUXOUTPUT2_PIN)
     { .id = Output_Aux2,         .port = AUXOUTPUT2_PORT,  .pin = AUXOUTPUT2_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT3_PORT
+#if add_pin (AUXOUTPUT3_PIN)
     { .id = Output_Aux3,         .port = AUXOUTPUT3_PORT,  .pin = AUXOUTPUT3_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT4_PORT
+#if add_pin (AUXOUTPUT4_PIN)
     { .id = Output_Aux4,         .port = AUXOUTPUT4_PORT,  .pin = AUXOUTPUT4_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT5_PORT
+#if add_pin (AUXOUTPUT5_PIN)
     { .id = Output_Aux5,         .port = AUXOUTPUT5_PORT,  .pin = AUXOUTPUT5_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT6_PORT
+#if add_pin (AUXOUTPUT6_PIN)
     { .id = Output_Aux6,         .port = AUXOUTPUT6_PORT,  .pin = AUXOUTPUT6_PIN,        .group = PinGroup_AuxOutput},
 #endif
-#ifdef AUXOUTPUT7_PORT
+#if add_pin (AUXOUTPUT7_PIN)
     { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT,  .pin = AUXOUTPUT7_PIN,        .group = PinGroup_AuxOutput},
 #endif
 #ifdef AUXOUTPUT0_PWM_PIN

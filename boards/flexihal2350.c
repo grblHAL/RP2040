@@ -32,12 +32,23 @@
 #include "grbl/settings.h"
 #include "grbl/nvs_buffer.h"
 
+#include "flexgpio/flexgpio.h"
+#include "boards/flexihal2350_map.h"
+
+#define AUXOUTPUT0_PIN          23 //RP2040 pin
+#define AUXOUTPUT1_PIN          22 //RP2040 pin
+#define AUXOUTPUT2_PIN          21 //RP2040 pin
+#define AUXOUTPUT3_PIN          20 //RP2040 pin
+#define AUXOUTPUT4_PIN          19 //RP2040 pin
+#define AUXOUTPUT5_PIN          18 //RP2040 pin
+#define AUXOUTPUT6_PIN          17 //RP2040 pin
+#define AUXOUTPUT7_PIN          16 //RP2040 pin
+
 static on_execute_realtime_ptr on_execute_realtime, on_execute_delay;
 static on_reset_ptr on_reset;
 
 static uint32_t debounce_ms = 0;
 static uint32_t polling_ms = 0;
-#define DEBOUNCE_DELAY 25
 #define ALARM_THRESHOLD 3
 
 #define N_MOTOR_ALARMS 5
@@ -113,9 +124,205 @@ static void execute_alarm (sys_state_t state)
     
 }
 
+void board_ports_init(void) {
+    // Initialize the FlexGPIO ports for the board
+    uint_fast8_t idx;
+    uint_fast8_t n_ports = sizeof(flexgpio_aux_out) / sizeof(xbar_t);
+    pin_function_t aux_out_base = Output_Aux0;
+
+    for (idx = 0; idx < n_ports; idx++) {
+        flexgpio_aux_out[idx].id = idx;        
+        flexgpio_aux_out[idx].port = &flexgpio_outpins;
+
+        //need to explicitly assign pin functions for the board as pins are not sequential
+        switch (idx) {
+            case 0:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT0_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 0;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 1:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT1_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 1;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 2:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT2_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 2;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 3:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT3_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 3;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 4:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT4_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 4;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 5:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT5_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 5;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 6:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT6_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 6;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 7:
+                flexgpio_aux_out[idx].pin = AUXOUTPUT7_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 7;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 8:
+                flexgpio_aux_out[idx].pin = SPINDLE_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 8;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;       
+            case 9:
+                flexgpio_aux_out[idx].pin = SPINDLE_DIRECTION_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 9;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;
+            case 10:
+                flexgpio_aux_out[idx].pin = COOLANT_FLOOD_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 10;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;     
+            case 11:
+                flexgpio_aux_out[idx].pin = COOLANT_MIST_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 11;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;  
+            case 12:
+                flexgpio_aux_out[idx].pin = X_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 12;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;   
+            case 13:
+                flexgpio_aux_out[idx].pin = Y_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 13;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;     
+            case 14:
+                flexgpio_aux_out[idx].pin = Z_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 14;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break;  
+#ifdef M3_ENABLE_PIN            
+                case 15:
+                flexgpio_aux_out[idx].pin = M3_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 15;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break; 
+#endif
+#ifdef M4_ENABLE_PIN                     
+            case 16:
+                flexgpio_aux_out[idx].pin = M4_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 16;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break; 
+#endif  
+#ifdef M5_ENABLE_PIN                     
+            case 17:
+                flexgpio_aux_out[idx].pin = M5_ENABLE_PIN;
+                flexgpio_aux_out[idx].function = aux_out_base + 17;
+                flexgpio_aux_out[idx].group = PinGroup_AuxOutput;
+                flexgpio_aux_out[idx].cap.output = On;
+                flexgpio_aux_out[idx].cap.external = On;
+                flexgpio_aux_out[idx].cap.claimable = On;
+                flexgpio_aux_out[idx].mode.output = On;
+                break; 
+#endif                                                                                                                                                      
+            default:
+                flexgpio_aux_out[idx].id = idx;
+                flexgpio_aux_out[idx].function = Input_Unassigned;
+                flexgpio_aux_out[idx].group = PinGroup_Virtual;
+                flexgpio_aux_out[idx].cap.output = Off;
+                flexgpio_aux_out[idx].cap.external = Off;
+                flexgpio_aux_out[idx].cap.claimable = Off;
+                flexgpio_aux_out[idx].mode.output = Off;
+                break;
+        }//close switch statement
+    }//close for statement
+}
+
+
 
 void board_init (void)
 {
+    //board_ports_init();
+    
     /*
     settings.motor_fault_enable
     settings.motor_fault_invert
