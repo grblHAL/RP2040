@@ -50,6 +50,7 @@ static void digital_out_ll (xbar_t *output, float value)
         sr16_out &= ~(1 << (15 - output->pin));
 
     if(last_out != sr16_out) {
+        last_out = sr16_out;
         out_sr16_write(sr16->pio, sr16->sm, sr16_out);
     }
 }
