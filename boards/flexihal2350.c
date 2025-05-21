@@ -130,6 +130,10 @@ void board_ports_init(void) {
     uint_fast8_t n_ports = sizeof(flexgpio_aux_out) / sizeof(xbar_t);
     pin_function_t aux_out_base = Output_Aux0;
 
+    flexgpio_direction_mask = 0;
+    flexgpio_polarity_mask = 0;
+    flexgpio_enable_mask = 0xFFFFFFFF;
+
     for (idx = 0; idx < n_ports; idx++) {
         flexgpio_aux_out[idx].id = idx;        
         flexgpio_aux_out[idx].port = &flexgpio_outpins;
@@ -144,6 +148,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 1:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT1_PIN;
@@ -153,6 +158,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 2:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT2_PIN;
@@ -162,6 +168,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 3:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT3_PIN;
@@ -171,6 +178,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 4:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT4_PIN;
@@ -180,6 +188,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 5:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT5_PIN;
@@ -189,6 +198,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 6:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT6_PIN;
@@ -198,6 +208,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 7:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT7_PIN;
@@ -207,6 +218,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 8:
                 flexgpio_aux_out[idx].pin = SPINDLE_ENABLE_PIN;
@@ -216,6 +228,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;       
             case 9:
                 flexgpio_aux_out[idx].pin = SPINDLE_DIRECTION_PIN;
@@ -225,6 +238,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;
             case 10:
                 flexgpio_aux_out[idx].pin = COOLANT_FLOOD_PIN;
@@ -234,6 +248,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;     
             case 11:
                 flexgpio_aux_out[idx].pin = COOLANT_MIST_PIN;
@@ -243,6 +258,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;  
             case 12:
                 flexgpio_aux_out[idx].pin = X_ENABLE_PIN;
@@ -252,6 +268,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;   
             case 13:
                 flexgpio_aux_out[idx].pin = Y_ENABLE_PIN;
@@ -261,6 +278,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;     
             case 14:
                 flexgpio_aux_out[idx].pin = Z_ENABLE_PIN;
@@ -270,6 +288,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break;  
 #ifdef M3_ENABLE_PIN            
                 case 15:
@@ -280,6 +299,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break; 
 #endif
 #ifdef M4_ENABLE_PIN                     
@@ -291,6 +311,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break; 
 #endif  
 #ifdef M5_ENABLE_PIN                     
@@ -302,6 +323,7 @@ void board_ports_init(void) {
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
+                flexgpio_direction_mask |= (1U << idx);
                 break; 
 #endif                                                                                                                                                      
             default:

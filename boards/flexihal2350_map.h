@@ -155,8 +155,8 @@
 #define AUXINPUT5_PIN           11  //Encoder 1
 
 #define AUXINPUT6_PIN           32  // Safety door
-//#define AUXINPUT7_PIN           31  // Motor Alarm
-//#define AUXINPUT8_PIN           39  // Probe
+#define AUXINPUT7_PIN           31  // Motor Alarm
+#define AUXINPUT8_PIN           39  // Probe
 
 #define AUXINPUT9_PIN           8  // I2C strobe pin
 
