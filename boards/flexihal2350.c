@@ -44,6 +44,7 @@
 #define AUXOUTPUT6_PIN          17 //RP2040 pin
 #define AUXOUTPUT7_PIN          16 //RP2040 pin
 
+static on_settings_changed_ptr on_settings_changed;
 static on_execute_realtime_ptr on_execute_realtime, on_execute_delay;
 static on_reset_ptr on_reset;
 
@@ -51,7 +52,7 @@ static uint32_t debounce_ms = 0;
 static uint32_t polling_ms = 0;
 #define ALARM_THRESHOLD 3
 
-#define N_MOTOR_ALARMS 5
+#define N_MOTOR_ALARMS 6
 
 static int8_t val[N_MOTOR_ALARMS] = {0};
 static bool motor_alarm_active = false;
@@ -66,9 +67,10 @@ static axes_signals_t motor_alarm_pins;
 static nvs_address_t alm_nvs_address;
 motor_alarm_settings_t motor_alarms;
 
+
 static const setting_detail_t motor_alarm_settings[] = {
-    { 744, Group_Stepper, "Motor Alarm enable", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_IsExpanded, &motor_alarms.enable.mask, NULL, NULL},
-    { 745, Group_Stepper, "Motor Alarm invert", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_IsExpanded, &motor_alarms.invert.mask, NULL, NULL},
+    { 744, Group_Stepper, "Motor Alarm enable", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_NonCore, &motor_alarms.enable.mask, NULL, NULL},
+    { 745, Group_Stepper, "Motor Alarm invert", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_NonCore, &motor_alarms.invert.mask, NULL, NULL},
 };
 
 #ifndef NO_SETTINGS_DESCRIPTIONS
@@ -79,6 +81,44 @@ static const setting_descr_t motor_alarm_descriptions[] = {
 };
 
 #endif
+
+// Hal settings API
+// Restore default settings and write to non volatile storage (NVS).
+static void motor_alarm_settings_restore (void)
+{
+    memset(&motor_alarms, 0, sizeof(motor_alarm_settings_t));
+    motor_alarms.enable.mask = 15;
+    motor_alarms.invert.mask = 0;
+
+    hal.nvs.memcpy_to_nvs(alm_nvs_address, (uint8_t *)&motor_alarms, sizeof(motor_alarm_settings_t), true);
+}
+
+// Write settings to non volatile storage (NVS).
+static void motor_alarm_settings_save (void)
+{
+    hal.nvs.memcpy_to_nvs(alm_nvs_address, (uint8_t *)&motor_alarms, sizeof(motor_alarm_settings_t), true);
+}
+
+// Load settings from volatile storage (NVS)
+static void motor_alarm_settings_load (void)
+{
+    if(hal.nvs.memcpy_from_nvs((uint8_t *)&motor_alarms, alm_nvs_address, sizeof(motor_alarm_settings_t), true) != NVS_TransferResult_OK)
+        motor_alarm_settings_restore();
+
+}
+
+static setting_details_t setting_details = {
+    .settings = motor_alarm_settings,
+    .n_settings = sizeof(motor_alarm_settings) / sizeof(setting_detail_t),
+#ifndef NO_SETTINGS_DESCRIPTIONS
+    .descriptions = motor_alarm_descriptions,
+    .n_descriptions = sizeof(motor_alarm_descriptions) / sizeof(setting_descr_t),
+#endif
+    .save = motor_alarm_settings_save,
+    .load = motor_alarm_settings_load,
+    .restore = motor_alarm_settings_restore
+};
+
 static void alarm_reset (void)
 {
     if(on_reset)
@@ -87,7 +127,7 @@ static void alarm_reset (void)
     motor_alarm_active = false;
 }
 
-static void execute_alarm (sys_state_t state)
+static void execute_alarm (sys_state_t state) //when does this run?
 {   
     
     if(!motor_alarm_active){
@@ -124,6 +164,16 @@ static void execute_alarm (sys_state_t state)
     
 }
 
+static void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
+{
+    if(on_settings_changed)
+        on_settings_changed(settings, changed);
+}
+
+static inline uint32_t set_bit_cond(uint32_t mask, bool cond, uint8_t pin) {
+    return cond ? (mask | (1 << pin)) : (mask & ~(1 << pin));
+}
+
 void board_ports_init(void) {
     // Initialize the FlexGPIO ports for the board
     uint_fast8_t idx;
@@ -132,7 +182,31 @@ void board_ports_init(void) {
 
     flexgpio_direction_mask = 0;
     flexgpio_polarity_mask = 0;
-    flexgpio_enable_mask = 0xFFFFFFFF;
+    flexgpio_enable_mask =  0; 
+
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.x, X_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.x,  X_ALARM_PIN);
+
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.y, Y_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.z,  Y_ALARM_PIN);
+
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.z, Z_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.z,  Z_ALARM_PIN);
+
+    #if N_ABC_MOTORS > 0
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.a,  M3_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.a,  M3_ALARM_PIN);
+    #endif
+
+    #if N_ABC_MOTORS >= 2
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.b,  M4_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.b,  M4_ALARM_PIN);
+    #endif
+
+    #if N_ABC_MOTORS >= 2
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.b,  M4_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.b,  M4_ALARM_PIN);
+    #endif        
 
     for (idx = 0; idx < n_ports; idx++) {
         flexgpio_aux_out[idx].id = idx;        
@@ -337,18 +411,18 @@ void board_ports_init(void) {
                 break;
         }//close switch statement
     }//close for statement
+
+
+
+    on_settings_changed = grbl.on_settings_changed;
+    grbl.on_settings_changed = onSettingsChanged;
 }
 
 
 
 void board_init (void)
-{
-    //board_ports_init();
-    
-    /*
-    settings.motor_fault_enable
-    settings.motor_fault_invert
-    */
+{    
+
     #if 1
     hal.driver_cap.toolsetter = 1;
     gpio_set_function(SPI_MOSI_PIN, GPIO_FUNC_SIO);
@@ -388,6 +462,10 @@ void board_init (void)
 
     //sdcard_getfs(); // Mounts SD card if not already mounted      
     #endif
+
+    if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
+        settings_register(&setting_details);
+    }  
 
 }
 

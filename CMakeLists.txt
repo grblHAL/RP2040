@@ -109,6 +109,8 @@ endif()
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
+add_compile_definitions(N_AXIS=6)
+
 if(PICO_BOARD STREQUAL "pico" OR PICO_BOARD STREQUAL "pico_w")
 target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
 if(PICO_SDK_VERSION_STRING VERSION_GREATER_EQUAL "2.1.1")

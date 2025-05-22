@@ -65,6 +65,12 @@
 #define Y_ENABLE_PIN            28 //RP2040 pin
 #define Z_ENABLE_PIN            27 //RP2040 pin
 
+// Define alarm pins.
+#define MOTOR_ALARM_PORT       EXPANDER_PORT
+#define X_ALARM_PIN            5 //RP2040 pin
+#define Y_ALARM_PIN            6 //RP2040 pin
+#define Z_ALARM_PIN            7 //RP2040 pin
+
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN             38
 #define Y_LIMIT_PIN             37
@@ -78,6 +84,7 @@
 #define M3_DIRECTION_PIN        19
 #define M3_LIMIT_PIN            35
 #define M3_ENABLE_PIN           26 //RP2040 pin
+#define M3_ALARM_PIN            8 //RP2040 pin
 #endif
 
 #if N_ABC_MOTORS >= 2
@@ -86,6 +93,7 @@
 #define M4_DIRECTION_PIN        21
 #define M4_LIMIT_PIN            34
 #define M4_ENABLE_PIN           25 //RP2040 pin
+#define M4_ALARM_PIN            9 //RP2040 pin
 #endif
 
 #if N_ABC_MOTORS == 3
@@ -93,6 +101,7 @@
 #define M5_STEP_PIN             22
 #define M5_DIRECTION_PIN        23
 #define M5_ENABLE_PIN           24 //RP2040 pin
+#define M5_ALARM_PIN            10 //RP2040 pin
 #endif
 
 #define NUM_FLEXGPIO_AUXOUT     15+N_ABC_MOTORS //includes enables, coolant and spindle pins
@@ -163,6 +172,8 @@
 #if PROBE_ENABLE
 #define PROBE_PORT              GPIO_INPUT
 #define PROBE_PIN               39
+#define PROBE_EXPANDER_PIN      45 //RP2040 pin
+#define TOOL_EXPANDER_PIN       45 //RP2040 pin
 #endif
 
 #if MOTOR_FAULT_ENABLE

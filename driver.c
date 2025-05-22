@@ -149,7 +149,7 @@ static uint z2_step_sm;
 #endif
 #ifdef A_STEP_PIN
 static PIO a_step_pio;
-static uint a_step_sm;f
+static uint a_step_sm;
 #endif
 #ifdef B_STEP_PIN
 static PIO b_step_pio;
