@@ -31,6 +31,7 @@
 #include "grbl/protocol.h"
 #include "grbl/settings.h"
 #include "grbl/nvs_buffer.h"
+#include "grbl/system.h"
 
 #include "flexgpio/flexgpio.h"
 #include "boards/flexihal2350_map.h"
@@ -45,12 +46,8 @@
 #define AUXOUTPUT7_PIN          16 //RP2040 pin
 
 static on_settings_changed_ptr on_settings_changed;
-static on_execute_realtime_ptr on_execute_realtime, on_execute_delay;
+static on_state_change_ptr on_state_change;
 static on_reset_ptr on_reset;
-
-static uint32_t debounce_ms = 0;
-static uint32_t polling_ms = 0;
-#define ALARM_THRESHOLD 3
 
 #define N_MOTOR_ALARMS 6
 
@@ -69,15 +66,15 @@ motor_alarm_settings_t motor_alarms;
 
 
 static const setting_detail_t motor_alarm_settings[] = {
-    { 744, Group_Stepper, "Motor Alarm enable", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_NonCore, &motor_alarms.enable.mask, NULL, NULL},
-    { 745, Group_Stepper, "Motor Alarm invert", NULL, Format_AxisMask, NULL, NULL, NULL, Setting_NonCore, &motor_alarms.invert.mask, NULL, NULL},
+    { 744, Group_Stepper, "Motor Alarm enable", NULL, Format_Bitfield, "X Motor,Y Motor,Z Motor,A Motor,B Motor,C Motor", NULL, NULL, Setting_NonCore, &motor_alarms.enable.mask, NULL, NULL},
+    { 745, Group_Stepper, "Motor Alarm invert", NULL, Format_Bitfield, "X Motor,Y Motor,Z Motor,A Motor,B Motor,C Motor", NULL, NULL, Setting_NonCore, &motor_alarms.invert.mask, NULL, NULL},
 };
 
 #ifndef NO_SETTINGS_DESCRIPTIONS
 
 static const setting_descr_t motor_alarm_descriptions[] = {
-    { 744, "Enables the motor alarm" },
-    { 745, "Inverts motor alarm signal" },
+    { 744, "Enables the motor alarm on the selected stepper outputs" },
+    { 745, "Inverts motor alarm signals" },
 };
 
 #endif
@@ -87,7 +84,7 @@ static const setting_descr_t motor_alarm_descriptions[] = {
 static void motor_alarm_settings_restore (void)
 {
     memset(&motor_alarms, 0, sizeof(motor_alarm_settings_t));
-    motor_alarms.enable.mask = 15;
+    motor_alarms.enable.mask = 0;
     motor_alarms.invert.mask = 0;
 
     hal.nvs.memcpy_to_nvs(alm_nvs_address, (uint8_t *)&motor_alarms, sizeof(motor_alarm_settings_t), true);
@@ -127,54 +124,65 @@ static void alarm_reset (void)
     motor_alarm_active = false;
 }
 
-static void execute_alarm (sys_state_t state) //when does this run?
+static void execute_alarm (sys_state_t state)
 {   
-    
+
     if(!motor_alarm_active){
 
+        uint32_t pins  = flexgpio_read_inputs();
+
+        motor_alarm_pins.x = (pins >> X_ALARM_PIN) & 1U;
+        motor_alarm_pins.y = (pins >> Y_ALARM_PIN) & 1U;
+        motor_alarm_pins.z = (pins >> Z_ALARM_PIN) & 1U;
+        motor_alarm_pins.a = (pins >> M3_ALARM_PIN) & 1U;
+        motor_alarm_pins.b = (pins >> M4_ALARM_PIN) & 1U;
+        motor_alarm_pins.c = (pins >> M5_ALARM_PIN) & 1U;
+
         if(motor_alarm_pins.x){
-            report_message("Motor Error on X Axis!", Message_Warning);   
+            report_message("Motor Error on X Motor!", Message_Warning);   
         }
 
         if(motor_alarm_pins.y){
-            report_message("Motor Error on Y Axis!", Message_Warning);   
+            report_message("Motor Error on Y Motor!", Message_Warning);   
         }
         
         if(motor_alarm_pins.z){
-            report_message("Motor Error on Z Axis!", Message_Warning);   
+            report_message("Motor Error on Z Motor!", Message_Warning);   
         }
 
         if(motor_alarm_pins.a){
-            report_message("Motor Error on A Axis!", Message_Warning);   
+            report_message("Motor Error on A Motor!", Message_Warning);   
         }
 
         if(motor_alarm_pins.b){
-            report_message("Motor Error on B Axis!", Message_Warning);   
+            report_message("Motor Error on B Motor!", Message_Warning);   
         }
 
         if(motor_alarm_pins.c){
-          report_message("Motor Error on C Axis!", Message_Warning);   
+          report_message("Motor Error on C Motor!", Message_Warning);   
       }        
-
-        if(motor_alarm_pins.value > 0){
-            system_set_exec_alarm(Alarm_EStop);
-        }
         motor_alarm_active = true;
     }         
     
 }
 
-static void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
+static void check_alarm_state (sys_state_t state)
 {
-    if(on_settings_changed)
-        on_settings_changed(settings, changed);
+    if(on_state_change)
+        on_state_change(state);
+
+    if (state == STATE_ALARM){
+        if (sys.alarm == Alarm_MotorFault)
+            execute_alarm (state);
+    }
 }
 
 static inline uint32_t set_bit_cond(uint32_t mask, bool cond, uint8_t pin) {
     return cond ? (mask | (1 << pin)) : (mask & ~(1 << pin));
 }
 
-void board_ports_init(void) {
+static void flexgpio_update_pins (void){
+
     // Initialize the FlexGPIO ports for the board
     uint_fast8_t idx;
     uint_fast8_t n_ports = sizeof(flexgpio_aux_out) / sizeof(xbar_t);
@@ -184,6 +192,7 @@ void board_ports_init(void) {
     flexgpio_polarity_mask = 0;
     flexgpio_enable_mask =  0; 
 
+#if MOTOR_FAULT_ENABLE
     flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.x, X_ALARM_PIN);
     flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.x,  X_ALARM_PIN);
 
@@ -204,9 +213,22 @@ void board_ports_init(void) {
     #endif
 
     #if N_ABC_MOTORS >= 2
-    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.b,  M4_ALARM_PIN);
-    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.b,  M4_ALARM_PIN);
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.b,  M5_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.b,  M5_ALARM_PIN);
     #endif        
+#endif
+
+#if PROBE_ENABLE
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  PROBE_EXPANDER_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.probe.invert_probe_pin,  PROBE_EXPANDER_PIN);
+
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  TOOL_EXPANDER_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.probe.invert_toolsetter_input,  TOOL_EXPANDER_PIN);    
+#else
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  PROBE_EXPANDER_PIN);
+
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  TOOL_EXPANDER_PIN);   
+#endif
 
     for (idx = 0; idx < n_ports; idx++) {
         flexgpio_aux_out[idx].id = idx;        
@@ -412,13 +434,35 @@ void board_ports_init(void) {
         }//close switch statement
     }//close for statement
 
+}
 
+static void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
+{
+    if(on_settings_changed)
+        on_settings_changed(settings, changed);
 
+    flexgpio_update_pins();
+    flexgpio_write_config();
+}
+
+void board_ports_init(void) {
+
+    flexgpio_update_pins();
+    
+    if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
+        settings_register(&setting_details);
+    }  
+#if MOTOR_FAULT_ENABLE
+    on_reset = grbl.on_reset;
+    grbl.on_reset = alarm_reset;
+
+    on_state_change = grbl.on_state_change;
+    grbl.on_state_change = check_alarm_state;
+
+#endif
     on_settings_changed = grbl.on_settings_changed;
     grbl.on_settings_changed = onSettingsChanged;
 }
-
-
 
 void board_init (void)
 {    
@@ -462,10 +506,6 @@ void board_init (void)
 
     //sdcard_getfs(); // Mounts SD card if not already mounted      
     #endif
-
-    if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
-        settings_register(&setting_details);
-    }  
 
 }
 
