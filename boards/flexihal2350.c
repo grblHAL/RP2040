@@ -54,12 +54,14 @@ static on_reset_ptr on_reset;
 static int8_t val[N_MOTOR_ALARMS] = {0};
 static bool motor_alarm_active = false;
 
+static axes_signals_t motor_alarm_pins;
+
+/*
+
 typedef struct {
     axes_signals_t     enable;
     axes_signals_t     invert;
 } motor_alarm_settings_t;
-
-static axes_signals_t motor_alarm_pins;
 
 static nvs_address_t alm_nvs_address;
 motor_alarm_settings_t motor_alarms;
@@ -76,6 +78,8 @@ static const setting_descr_t motor_alarm_descriptions[] = {
     { 744, "Enables the motor alarm on the selected stepper outputs" },
     { 745, "Inverts motor alarm signals" },
 };
+
+
 
 #endif
 
@@ -115,6 +119,8 @@ static setting_details_t setting_details = {
     .load = motor_alarm_settings_load,
     .restore = motor_alarm_settings_restore
 };
+
+*/
 
 static void alarm_reset (void)
 {
@@ -197,7 +203,7 @@ static void flexgpio_update_pins (void){
     flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.x,  X_ALARM_PIN);
 
     flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.y, Y_ALARM_PIN);
-    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.z,  Y_ALARM_PIN);
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.y,  Y_ALARM_PIN);
 
     flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   settings.motor_fault_enable.z, Z_ALARM_PIN);
     flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.motor_fault_invert.z,  Z_ALARM_PIN);
@@ -446,7 +452,7 @@ static void onSettingsChanged (settings_t *settings, settings_changed_flags_t ch
 }
 
 void board_ports_init(void) {
-
+#if 0
     flexgpio_update_pins();
     
     if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
@@ -462,6 +468,7 @@ void board_ports_init(void) {
 #endif
     on_settings_changed = grbl.on_settings_changed;
     grbl.on_settings_changed = onSettingsChanged;
+#endif    
 }
 
 void board_init (void)
@@ -506,6 +513,30 @@ void board_init (void)
 
     //sdcard_getfs(); // Mounts SD card if not already mounted      
     #endif
+
+    //flexgpio_update_pins();
+    
+    /*if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
+        settings_register(&setting_details);
+    }  */
+
+    hal.motor_fault_cap.a.x = 1;
+    hal.motor_fault_cap.a.y = 1;
+    hal.motor_fault_cap.a.z = 1;
+    hal.motor_fault_cap.a.a = 1;
+    hal.motor_fault_cap.a.b = 1;
+    hal.motor_fault_cap.a.c = 1;
+
+#if MOTOR_FAULT_ENABLE
+    on_reset = grbl.on_reset;
+    grbl.on_reset = alarm_reset;
+
+    on_state_change = grbl.on_state_change;
+    grbl.on_state_change = check_alarm_state;
+
+#endif
+    on_settings_changed = grbl.on_settings_changed;
+    grbl.on_settings_changed = onSettingsChanged;    
 
 }
 

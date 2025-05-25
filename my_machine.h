@@ -140,7 +140,7 @@
 #endif
 // The following symbols have the default values as shown, uncomment and change as needed.
 //#define NETWORK_STA_HOSTNAME    "grblHAL"
-//#define NETWORK_STA_IPMODE      1 // 0 = static, 1 = DHCP, 2 = AutoIP
+#define NETWORK_STA_IPMODE      0 // 0 = static, 1 = DHCP, 2 = AutoIP
 //#define NETWORK_STA_IP          "192.168.5.1"
 //#define NETWORK_STA_GATEWAY     "192.168.5.1"
 //#define NETWORK_STA_MASK        "255.255.255.0"
