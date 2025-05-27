@@ -79,7 +79,11 @@
 #endif
 
 #define EXPANDER_IN(pin) (iox_out[pin] && iox_out[pin]->get_value(iox_out[pin]) != 0.0f)
-#define EXPANDER_OUT(pin, state) { if(iox_out[pin]) iox_out[pin]->set_value(iox_out[pin], (float)(state)); }
+#define EXPANDER_OUT(pin, state) \
+    do { \
+        if ((pin) >= 0 && (pin) < 32 && iox_out[(pin)]) \
+            iox_out[(pin)]->set_value(iox_out[(pin)], (float)(state)); \
+    } while (0)
 
 
 #define GPIO_IRQ_ALL (GPIO_IRQ_LEVEL_HIGH|GPIO_IRQ_LEVEL_LOW|GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL)

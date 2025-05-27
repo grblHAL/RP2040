@@ -56,72 +56,6 @@ static bool motor_alarm_active = false;
 
 static axes_signals_t motor_alarm_pins;
 
-/*
-
-typedef struct {
-    axes_signals_t     enable;
-    axes_signals_t     invert;
-} motor_alarm_settings_t;
-
-static nvs_address_t alm_nvs_address;
-motor_alarm_settings_t motor_alarms;
-
-
-static const setting_detail_t motor_alarm_settings[] = {
-    { 744, Group_Stepper, "Motor Alarm enable", NULL, Format_Bitfield, "X Motor,Y Motor,Z Motor,A Motor,B Motor,C Motor", NULL, NULL, Setting_NonCore, &motor_alarms.enable.mask, NULL, NULL},
-    { 745, Group_Stepper, "Motor Alarm invert", NULL, Format_Bitfield, "X Motor,Y Motor,Z Motor,A Motor,B Motor,C Motor", NULL, NULL, Setting_NonCore, &motor_alarms.invert.mask, NULL, NULL},
-};
-
-#ifndef NO_SETTINGS_DESCRIPTIONS
-
-static const setting_descr_t motor_alarm_descriptions[] = {
-    { 744, "Enables the motor alarm on the selected stepper outputs" },
-    { 745, "Inverts motor alarm signals" },
-};
-
-
-
-#endif
-
-// Hal settings API
-// Restore default settings and write to non volatile storage (NVS).
-static void motor_alarm_settings_restore (void)
-{
-    memset(&motor_alarms, 0, sizeof(motor_alarm_settings_t));
-    motor_alarms.enable.mask = 0;
-    motor_alarms.invert.mask = 0;
-
-    hal.nvs.memcpy_to_nvs(alm_nvs_address, (uint8_t *)&motor_alarms, sizeof(motor_alarm_settings_t), true);
-}
-
-// Write settings to non volatile storage (NVS).
-static void motor_alarm_settings_save (void)
-{
-    hal.nvs.memcpy_to_nvs(alm_nvs_address, (uint8_t *)&motor_alarms, sizeof(motor_alarm_settings_t), true);
-}
-
-// Load settings from volatile storage (NVS)
-static void motor_alarm_settings_load (void)
-{
-    if(hal.nvs.memcpy_from_nvs((uint8_t *)&motor_alarms, alm_nvs_address, sizeof(motor_alarm_settings_t), true) != NVS_TransferResult_OK)
-        motor_alarm_settings_restore();
-
-}
-
-static setting_details_t setting_details = {
-    .settings = motor_alarm_settings,
-    .n_settings = sizeof(motor_alarm_settings) / sizeof(setting_detail_t),
-#ifndef NO_SETTINGS_DESCRIPTIONS
-    .descriptions = motor_alarm_descriptions,
-    .n_descriptions = sizeof(motor_alarm_descriptions) / sizeof(setting_descr_t),
-#endif
-    .save = motor_alarm_settings_save,
-    .load = motor_alarm_settings_load,
-    .restore = motor_alarm_settings_restore
-};
-
-*/
-
 static void alarm_reset (void)
 {
     if(on_reset)
@@ -228,12 +162,15 @@ static void flexgpio_update_pins (void){
     flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  PROBE_EXPANDER_PIN);
     flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.probe.invert_probe_pin,  PROBE_EXPANDER_PIN);
 
+    //need to make the inversion match the GRBLHAL setting.  I think this is just the easiest way to handle this.
+    flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.probe.invert_probe_pin,  MCU_PROBE_PIN);
+
     flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  TOOL_EXPANDER_PIN);
     flexgpio_polarity_mask = set_bit_cond(flexgpio_polarity_mask, settings.probe.invert_toolsetter_input,  TOOL_EXPANDER_PIN);    
 #else
-    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  PROBE_EXPANDER_PIN);
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   0,  PROBE_EXPANDER_PIN);
 
-    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   1,  TOOL_EXPANDER_PIN);   
+    flexgpio_enable_mask   = set_bit_cond(flexgpio_enable_mask,   0,  TOOL_EXPANDER_PIN);   
 #endif
 
     for (idx = 0; idx < n_ports; idx++) {
@@ -250,7 +187,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT0_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT0_PIN);
                 break;
             case 1:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT1_PIN;
@@ -260,7 +198,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT1_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT1_PIN);
                 break;
             case 2:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT2_PIN;
@@ -270,7 +209,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT2_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT2_PIN);
                 break;
             case 3:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT3_PIN;
@@ -280,7 +220,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT3_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT3_PIN);
                 break;
             case 4:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT4_PIN;
@@ -290,7 +231,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT4_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT4_PIN);
                 break;
             case 5:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT5_PIN;
@@ -300,7 +242,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT5_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT5_PIN);
                 break;
             case 6:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT6_PIN;
@@ -310,7 +253,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT6_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT6_PIN);
                 break;
             case 7:
                 flexgpio_aux_out[idx].pin = AUXOUTPUT7_PIN;
@@ -320,7 +264,8 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_direction_mask |= (1U << AUXOUTPUT7_PIN);
+                flexgpio_enable_mask |= (1U << AUXOUTPUT7_PIN);
                 break;
             case 8:
                 flexgpio_aux_out[idx].pin = SPINDLE_ENABLE_PIN;
@@ -330,7 +275,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Spindle Enable";
+                flexgpio_direction_mask |= (1U << SPINDLE_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << SPINDLE_ENABLE_PIN);
                 break;       
             case 9:
                 flexgpio_aux_out[idx].pin = SPINDLE_DIRECTION_PIN;
@@ -340,7 +287,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Spindle Direction";                
+                flexgpio_direction_mask |= (1U << SPINDLE_DIRECTION_PIN);
+                flexgpio_enable_mask |= (1U << SPINDLE_DIRECTION_PIN);
                 break;
             case 10:
                 flexgpio_aux_out[idx].pin = COOLANT_FLOOD_PIN;
@@ -350,7 +299,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Flood Coolant";                
+                flexgpio_direction_mask |= (1U << COOLANT_FLOOD_PIN);
+                flexgpio_enable_mask |= (1U << COOLANT_FLOOD_PIN);
                 break;     
             case 11:
                 flexgpio_aux_out[idx].pin = COOLANT_MIST_PIN;
@@ -360,7 +311,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Mist Coolant";                
+                flexgpio_direction_mask |= (1U << COOLANT_MIST_PIN);
+                flexgpio_enable_mask |= (1U << COOLANT_MIST_PIN);
                 break;  
             case 12:
                 flexgpio_aux_out[idx].pin = X_ENABLE_PIN;
@@ -370,7 +323,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "X Stepper Enable";                
+                flexgpio_direction_mask |= (1U << X_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << X_ENABLE_PIN);
                 break;   
             case 13:
                 flexgpio_aux_out[idx].pin = Y_ENABLE_PIN;
@@ -380,7 +335,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Y Stepper Enable";                
+                flexgpio_direction_mask |= (1U << Y_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << Y_ENABLE_PIN);
                 break;     
             case 14:
                 flexgpio_aux_out[idx].pin = Z_ENABLE_PIN;
@@ -390,7 +347,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "Z Stepper Enable";                
+                flexgpio_direction_mask |= (1U << Z_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << Z_ENABLE_PIN);
                 break;  
 #ifdef M3_ENABLE_PIN            
                 case 15:
@@ -401,7 +360,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "A Stepper Enable";                
+                flexgpio_direction_mask |= (1U << M3_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << M3_ENABLE_PIN);
                 break; 
 #endif
 #ifdef M4_ENABLE_PIN                     
@@ -413,7 +374,9 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "B Stepper Enable";                
+                flexgpio_direction_mask |= (1U << M4_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << M4_ENABLE_PIN);
                 break; 
 #endif  
 #ifdef M5_ENABLE_PIN                     
@@ -425,11 +388,12 @@ static void flexgpio_update_pins (void){
                 flexgpio_aux_out[idx].cap.external = On;
                 flexgpio_aux_out[idx].cap.claimable = On;
                 flexgpio_aux_out[idx].mode.output = On;
-                flexgpio_direction_mask |= (1U << idx);
+                flexgpio_aux_out[idx].description = "C Stepper Enable";                
+                flexgpio_direction_mask |= (1U << M5_ENABLE_PIN);
+                flexgpio_enable_mask |= (1U << M5_ENABLE_PIN);
                 break; 
 #endif                                                                                                                                                      
             default:
-                flexgpio_aux_out[idx].id = idx;
                 flexgpio_aux_out[idx].function = Input_Unassigned;
                 flexgpio_aux_out[idx].group = PinGroup_Virtual;
                 flexgpio_aux_out[idx].cap.output = Off;
@@ -452,12 +416,11 @@ static void onSettingsChanged (settings_t *settings, settings_changed_flags_t ch
 }
 
 void board_ports_init(void) {
-#if 0
     flexgpio_update_pins();
+
+#if 1
     
-    if((alm_nvs_address = nvs_alloc(sizeof(motor_alarm_settings_t)))) {
-        settings_register(&setting_details);
-    }  
+    
 #if MOTOR_FAULT_ENABLE
     on_reset = grbl.on_reset;
     grbl.on_reset = alarm_reset;
@@ -466,8 +429,10 @@ void board_ports_init(void) {
     grbl.on_state_change = check_alarm_state;
 
 #endif
+
     on_settings_changed = grbl.on_settings_changed;
     grbl.on_settings_changed = onSettingsChanged;
+
 #endif    
 }
 
@@ -475,7 +440,7 @@ void board_init (void)
 {    
 
     #if 1
-    hal.driver_cap.toolsetter = 1;
+    
     gpio_set_function(SPI_MOSI_PIN, GPIO_FUNC_SIO);
     gpio_set_dir(SPI_MOSI_PIN, 1);
     gpio_put(SPI_MOSI_PIN,1);
@@ -520,24 +485,14 @@ void board_init (void)
         settings_register(&setting_details);
     }  */
 
+    hal.driver_cap.toolsetter = 1;
+
     hal.motor_fault_cap.a.x = 1;
     hal.motor_fault_cap.a.y = 1;
     hal.motor_fault_cap.a.z = 1;
     hal.motor_fault_cap.a.a = 1;
     hal.motor_fault_cap.a.b = 1;
     hal.motor_fault_cap.a.c = 1;
-
-#if MOTOR_FAULT_ENABLE
-    on_reset = grbl.on_reset;
-    grbl.on_reset = alarm_reset;
-
-    on_state_change = grbl.on_state_change;
-    grbl.on_state_change = check_alarm_state;
-
-#endif
-    on_settings_changed = grbl.on_settings_changed;
-    grbl.on_settings_changed = onSettingsChanged;    
-
 }
 
 

@@ -41,9 +41,6 @@
 #define I2C_ENABLE    1
 #define EEPROM_ENABLE 2
 
-//#define I2C_STROBE_ENABLE 1
-//#define SERIAL1_PORT  0
-
 #define FLEXGPIO_ENABLE 1
 
 // Define step pulse output pins.
@@ -83,6 +80,7 @@
 #define M3_STEP_PIN             18
 #define M3_DIRECTION_PIN        19
 #define M3_LIMIT_PIN            35
+#define M3_ENABLE_PORT          EXPANDER_PORT
 #define M3_ENABLE_PIN           26 //RP2040 pin
 #define M3_ALARM_PIN            8 //RP2040 pin
 #endif
@@ -91,6 +89,7 @@
 #define M4_AVAILABLE
 #define M4_STEP_PIN             20
 #define M4_DIRECTION_PIN        21
+#define M4_ENABLE_PORT          EXPANDER_PORT
 #define M4_LIMIT_PIN            34
 #define M4_ENABLE_PIN           25 //RP2040 pin
 #define M4_ALARM_PIN            9 //RP2040 pin
@@ -100,6 +99,7 @@
 #define M5_AVAILABLE
 #define M5_STEP_PIN             22
 #define M5_DIRECTION_PIN        23
+#define M5_ENABLE_PORT          EXPANDER_PORT
 #define M5_ENABLE_PIN           24 //RP2040 pin
 #define M5_ALARM_PIN            10 //RP2040 pin
 #endif
@@ -122,8 +122,6 @@
 #define AUXOUTPUT6_PIN          17 //RP2040 pin
 #define AUXOUTPUT7_PORT         EXPANDER_PORT
 #define AUXOUTPUT7_PIN          16 //RP2040 pin
-
-
 
 #if COOLANT_ENABLE
 #define COOLANT_PORT            EXPANDER_PORT
@@ -165,15 +163,16 @@
 
 #define AUXINPUT6_PIN           32  // Safety door
 #define AUXINPUT7_PIN           31  // Motor Alarm
-#define AUXINPUT8_PIN           39  // Probe
+//#define AUXINPUT8_PIN           39  // Probe
 
-#define AUXINPUT9_PIN           8  // I2C strobe pin
+//#define AUXINPUT9_PIN           8  // I2C strobe pin
 
 #if PROBE_ENABLE
 #define PROBE_PORT              GPIO_INPUT
 #define PROBE_PIN               39
-#define PROBE_EXPANDER_PIN      45 //RP2040 pin
-#define TOOL_EXPANDER_PIN       45 //RP2040 pin
+#define PROBE_EXPANDER_PIN      4 //RP2040 pin
+#define TOOL_EXPANDER_PIN       3 //RP2040 pin
+#define MCU_PROBE_PIN           15 //rp2040 output pin
 #endif
 
 #if MOTOR_FAULT_ENABLE
@@ -186,7 +185,8 @@
 #endif
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          AUXINPUT9_PIN
+#define I2C_STROBE_PORT         GPIO_INPUT
+#define I2C_STROBE_PIN          8
 #endif
 
 #if SDCARD_ENABLE || ETHERNET_ENABLE
