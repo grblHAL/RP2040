@@ -43,3 +43,6 @@
 [submodule "plasma"]
 	path = plasma
 	url = https://github.com/grblHAL/Plugin_plasma/
+[submodule "flexgpio"]
+	path = flexgpio
+	url = https://github.com/Expatria-Technologies/plugin_FlexGPIO.git

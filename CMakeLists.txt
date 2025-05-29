@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 option(ADD_HPGL "Add HPGL plugin" OFF)
  # Note: WiFi and Ethernet cannot be enabled at the same time!
 option(ADD_WIFI "Add WiFi networking" OFF)
-option(ADD_ETHERNET "Add Ethernet networking" OFF)
+option(ADD_ETHERNET "Add Ethernet networking" ON)
 option(ADD_BLUETOOTH "Add Bluetooth" OFF)
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
 option(ADD_mDNS "Add mDNS service" OFF) 
@@ -26,7 +26,7 @@ option(ADD_MQTT "Add MQTT client API" OFF)
 option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
 # Select the correct board in VSCode, the following line will be updated accordingly
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD pimoroni_pga2350 CACHE STRING "Board type")
 
 include(pico_sdk_import.cmake)
 
@@ -57,6 +57,8 @@ if(ADD_HPGL)
     include(hpgl/CMakeLists.txt)
 endif()
 
+include(flexgpio/CMakeLists.txt)
+
 project(grblHAL)
 pico_sdk_init()
 
@@ -77,6 +79,7 @@ if(AddMyPlugin)
     my_plugin.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
+    boards/flexihal2350.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -97,6 +100,7 @@ else()
     tmc_uart.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
+    boards/flexihal2350.c    
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -104,6 +108,8 @@ else()
 endif()
 
 pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
+
+add_compile_definitions(N_AXIS=6)
 
 if(PICO_BOARD STREQUAL "pico" OR PICO_BOARD STREQUAL "pico_w")
 target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
@@ -231,6 +237,7 @@ target_link_libraries(grblHAL PRIVATE
  plasma
  misc_plugins
  embroidery
+ flexgpio
  tinyusb_device_unmarked
  pico_stdlib
  pico_unique_id
