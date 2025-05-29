@@ -55,7 +55,7 @@
 #include "driverPIO.pio.h"
 #include "ws2812.pio.h"
 
-#define AUX_DEVICES // until all drivers are converted?
+//#define AUX_DEVICES // until all drivers are converted?  **AM Could not get the board to properly enumerate the ports without removing this.
 #ifndef AUX_CONTROLS
 #define AUX_CONTROLS (AUX_CONTROL_SPINDLE|AUX_CONTROL_COOLANT)
 #endif
