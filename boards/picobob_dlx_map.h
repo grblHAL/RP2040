@@ -111,20 +111,22 @@
 #endif
 #endif
 
-// Define user-control controls (cycle start, reset, feed hold) input pins.  Only Estop is supported on the Mach3 BOB.
-#if I2C_STROBE_ENABLE
-//reset pin is swapped to keypad when present, frees up additional input.
-#define RESET_PIN             15
-#define AUXINPUT1_PIN         3
-#else
-#define RESET_PIN             3
-#define AUXINPUT1_PIN         15
-#endif
-
 // Define Aux inputs
 #define AUXINPUT0_PIN         6
 #define AUXINPUT2_PIN         27 // I2C strobe
 #define AUXINPUT3_PIN         4  // Probe
+#ifndef I2C_STROBE_ENABLE
+  #define AUXINPUT1_PIN       3
+  #define AUXINPUT4_PIN       15 // Reset
+#else
+  //reset pin is swapped to keypad when present, frees up additional input.
+  #define AUXINPUT1_PIN       15
+  #define AUXINPUT4_PIN       3  // Reset
+#endif
+
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN             AUXINPUT4_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN             AUXINPUT3_PIN

@@ -90,6 +90,9 @@
 #define AUXINPUT2_PIN           28 // CNC shield A4 (ADC capable, 3.3V max)
 #define AUXINPUT3_PIN           29 // CNC shield A5 (ADC capable, 3.3V max)
 
+#undef CONTROL_ENABLE
+#define CONTROL_ENABLE 0
+
 #if PROBE_ENABLE
 #define PROBE_PIN               AUXINPUT3_PIN
 #endif
@@ -99,7 +102,7 @@
 #define SERIAL1_PORT 1
 
 #if MODBUS_ENABLE
-#define MODBUS_SERIAL_PORT          1
+#define MODBUS_SERIAL_PORT      1
 #endif
 
 // UART 0

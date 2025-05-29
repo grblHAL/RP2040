@@ -503,15 +503,15 @@ static void enet_poll (sys_state_t state)
             switch(status) {
 
                 case CYW43_LINK_FAIL:
-                    protocol_enqueue_foreground_task(report_plain, "LINK FAIL");
+                    task_add_immediate(report_plain, "LINK FAIL");
                     break;
                     
                 case CYW43_LINK_BADAUTH:
-                    protocol_enqueue_foreground_task(report_plain, "BAD AUTH");
+                    task_add_immediate(report_plain, "BAD AUTH");
                     break;
 
 //                case CYW43_LINK_JOIN:
-//                    protocol_enqueue_foreground_task(report_plain, "WIFI JOIN OK");
+//                    task_add_immediate(report_plain, "WIFI JOIN OK");
 //                    break;
 
 #ifdef WIFI_SOFTAP
@@ -527,11 +527,11 @@ static void enet_poll (sys_state_t state)
 #endif
 
 //                case CYW43_LINK_NOIP:
-//                    protocol_enqueue_foreground_task(report_plain, "WIFI NOIP");
+//                    task_add_immediate(report_plain, "WIFI NOIP");
 //                    break;
  
                 case CYW43_LINK_NONET:
-                    protocol_enqueue_foreground_task(report_plain, "WIFI NONET");
+                    task_add_immediate(report_plain, "WIFI NONET");
                     break;
  
                 default:
@@ -556,7 +556,7 @@ static void enet_poll (sys_state_t state)
                 ap_list_found.timestamp = hal.get_elapsed_ticks();
                 memset(&ap_list, 0, sizeof(ap_list_t));
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI AP SCAN COMPLETED");
+            task_add_immediate(report_plain, "WIFI AP SCAN COMPLETED");
         }
     }
 
@@ -612,7 +612,7 @@ static void netif_sta_status_callback (struct netif *netif)
                 sta_status.ip_aquired = Off;
                 status_event_publish((network_flags_t){ .ip_aquired = On });
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI STA DISCONNECTED");
+            task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
 
         case CYW43_LINK_FAIL:
@@ -622,19 +622,19 @@ static void netif_sta_status_callback (struct netif *netif)
                 sta_status.ip_aquired = Off;
                 status_event_publish((network_flags_t){ .ip_aquired = On });
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI STA CONNECT FAILED");
+            task_add_immediate(report_plain, "WIFI STA CONNECT FAILED");
             break;
 
 //        case CYW43_LINK_JOIN:
-//            protocol_enqueue_foreground_task(report_plain, "WIFI JOIN OK");
+//            task_add_immediate(report_plain, "WIFI JOIN OK");
 //            break;
 
 //        case CYW43_LINK_NOIP:
-//            protocol_enqueue_foreground_task(report_plain, "WIFI NOIP");
+//            task_add_immediate(report_plain, "WIFI NOIP");
 //            break;
  
         case CYW43_LINK_NONET:
-            protocol_enqueue_foreground_task(report_plain, "WIFI NONET");
+            task_add_immediate(report_plain, "WIFI NONET");
             break;
 
         default:
@@ -668,7 +668,7 @@ static void link_sta_status_callback (struct netif *netif)
                 sta_status.ip_aquired = Off;
                 status_event_publish((network_flags_t){ .ip_aquired = On });
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI STA DISCONNECTED");
+            task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
 
         case CYW43_LINK_FAIL:
@@ -678,19 +678,19 @@ static void link_sta_status_callback (struct netif *netif)
                 sta_status.ip_aquired = Off;
                 status_event_publish((network_flags_t){ .ip_aquired = On });
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI STA CONNECT FAILED");
+            task_add_immediate(report_plain, "WIFI STA CONNECT FAILED");
             break;
 
  //       case CYW43_LINK_JOIN:
- //           protocol_enqueue_foreground_task(report_plain, "WIFI JOIN OK");
+ //           task_add_immediate(report_plain, "WIFI JOIN OK");
  //           break;
 
  //       case CYW43_LINK_NOIP:
- //           protocol_enqueue_foreground_task(report_plain, "WIFI NOIP");
+ //           task_add_immediate(report_plain, "WIFI NOIP");
  //           break;
 
         case CYW43_LINK_NONET:
-            protocol_enqueue_foreground_task(report_plain, "WIFI NONET");
+            task_add_immediate(report_plain, "WIFI NONET");
             break;
 
         default:
@@ -714,12 +714,12 @@ static void link_ap_status_callback (struct netif *netif)
                 start_services();
  //               wifi_ap_scan();
             }
-            protocol_enqueue_foreground_task(msg_ap_ready, NULL);
+            task_add_immediate(msg_ap_ready, NULL);
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
-            protocol_enqueue_foreground_task(msg_sta_disconnected);
+            task_add_immediate(msg_sta_disconnected);
             break;
     }
 }
@@ -737,12 +737,12 @@ static void netif_ap_status_callback (struct netif *netif)
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
             }
-            protocol_enqueue_foreground_task(report_plain, "WIFI AP READY");
+            task_add_immediate(report_plain, "WIFI AP READY");
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
-            protocol_enqueue_foreground_task(report_plain, "WIFI STA DISCONNECTED");
+            task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
 
         default:
@@ -795,7 +795,7 @@ bool wifi_start (void)
         ret = cyw43_arch_init();
 
     if (ret != 0) {
-        protocol_enqueue_foreground_task(report_plain, "WIFI STARTUP FAILED");
+        task_add_immediate(report_plain, "WIFI STARTUP FAILED");
         return false;
     }
 
@@ -850,7 +850,7 @@ bool wifi_start (void)
                                                     networking_ismemnull(wifi.ap.bssid, sizeof(bssid_t)) ? NULL : wifi.ap.bssid,
                                                      *wifi.sta.password ? wifi.sta.password : NULL,
                                                       *wifi.sta.password ? CYW43_AUTH_WPA2_MIXED_PSK : CYW43_AUTH_OPEN)) != 0)
-            protocol_enqueue_foreground_task(report_plain, "WIFI STARTUP FAILED");
+            task_run_on_startup(report_plain, "WIFI STARTUP FAILED");
     }
 
 #if PICO_CYW43_ARCH_POLL

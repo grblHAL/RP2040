@@ -110,6 +110,10 @@
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA   
 #define SPINDLE_ENABLE_PIN      AUXOUTPUT0_PIN
 #endif
+
+#undef CONTROL_ENABLE
+#define CONTROL_ENABLE 0
+
 /*
 // Define flood and mist coolant enable output pins.
 #if COOLANT_ENABLE

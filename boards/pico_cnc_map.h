@@ -154,11 +154,20 @@ typedef union {
 #endif
 #define AUXINPUT3_PIN       9
 #define AUXINPUT4_PIN       28
+#define AUXINPUT6_PIN       22 // Reset/EStop
+#define AUXINPUT7_PIN       7  // Feed hold
+#define AUXINPUT8_PIN       8  // Cycle start
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN           22
-#define FEED_HOLD_PIN       7
-#define CYCLE_START_PIN     8
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN           AUXINPUT6_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PIN       AUXINPUT7_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PIN     AUXINPUT8_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN           AUXINPUT4_PIN

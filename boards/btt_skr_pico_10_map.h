@@ -89,6 +89,8 @@
 #define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
 #define AUXOUTPUT4_PIN              23 // HE PWM
 
+#define AUXOUTPUT0_PWM_PIN          29 // Servo
+
 // Define driver spindle pins
 
 #if DRIVER_SPINDLE_ENABLE
@@ -116,7 +118,9 @@
 #endif
 
 #define AUXINPUT0_PIN               22 // Probe
-#define AUXOUTPUT0_PWM_PIN          29 // Servo
+
+#undef CONTROL_ENABLE
+#define CONTROL_ENABLE 0
 
 #if PROBE_ENABLE
 #define PROBE_PIN                   AUXINPUT0_PIN

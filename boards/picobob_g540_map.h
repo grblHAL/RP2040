@@ -92,10 +92,16 @@
 #endif
 
 #define AUXINPUT0_PIN         4
+#define AUXINPUT1_PIN         5 // Reset/EStop
+#define AUXINPUT2_PIN         1 // Feed hold
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN             5
-#define FEED_HOLD_PIN         1
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN             AUXINPUT1_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PIN         AUXINPUT2_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN             AUXINPUT0_PIN

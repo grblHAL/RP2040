@@ -57,18 +57,7 @@
 #define Z_LIMIT_PIN             11
 #define LIMIT_INMODE            GPIO_MAP
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_PORT            GPIO_OUTPUT
-#define SPINDLE_ENABLE_PIN      17
-
-#define AUXINPUT0_PIN           18 // Y-
-#define AUXINPUT1_PIN           19 // Y+
-#define AUXINPUT2_PIN           20 // X-
-#define AUXINPUT3_PIN           21 // X+
-#define AUXINPUT4_PIN           26 // Pen U/D
-#define AUXINPUT5_PIN           22 // Online
-
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT  // Pen LED
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT // Pen LED
 #define AUXOUTPUT0_PIN          8
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT // Alert LED
 #define AUXOUTPUT1_PIN          28
@@ -84,8 +73,27 @@
 #define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN 
 #endif
 
-#define RESET_PIN               10
-#define PROBE_PIN               12
+// Define spindle enable and spindle direction output pins.
+#define SPINDLE_PORT            GPIO_OUTPUT
+#define SPINDLE_ENABLE_PIN      17
+
+#define AUXINPUT0_PIN           18 // Y-
+#define AUXINPUT1_PIN           19 // Y+
+#define AUXINPUT2_PIN           20 // X-
+#define AUXINPUT3_PIN           21 // X+
+#define AUXINPUT4_PIN           26 // Pen U/D
+#define AUXINPUT5_PIN           22 // Online
+#define AUXINPUT6_PIN           12 // Probe
+#define AUXINPUT7_PIN           10 // Reset/EStop
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN               AUXINPUT7_PIN
+#endif
+
+#if PROBE_ENABLE
+#define PROBE_PIN               AUXINPUT6_PIN
+#endif
 
 #if !USB_SERIAL_CDC
 #define RTS_PIN                 2

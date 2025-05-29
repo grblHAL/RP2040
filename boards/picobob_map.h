@@ -102,9 +102,12 @@
 #endif
 
 #define AUXINPUT0_PIN         4
+#define AUXINPUT1_PIN         3  // Reset
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.  Only Estop is supported on the Mach3 BOB.
-#define RESET_PIN             3
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN             AUXINPUT1_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN             AUXINPUT0_PIN

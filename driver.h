@@ -150,6 +150,10 @@
 #define SERIAL_PORT 0
 #endif
 
+#ifndef CONTROL_ENABLE
+#define CONTROL_ENABLE (CONTROL_HALT|CONTROL_FEED_HOLD|CONTROL_CYCLE_START)
+#endif
+
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "boards/cnc_boosterpack_map.h"
 #elif defined(BOARD_PICO_CNC)

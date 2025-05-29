@@ -102,11 +102,20 @@
 #define AUXINPUT1_PIN           21
 #define AUXINPUT2_PIN           28
 #define AUXINPUT3_PIN           22 // Probe
+#define AUXINPUT4_PIN           18 // Reset/EStop
+#define AUXINPUT5_PIN           19 // Feed hold
+#define AUXINPUT6_PIN           20 // Cycle start
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
-#define RESET_PIN               18
-#define FEED_HOLD_PIN           19
-#define CYCLE_START_PIN         20
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN               AUXINPUT4_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PIN           AUXINPUT5_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PIN         AUXINPUT6_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN               AUXINPUT3_PIN

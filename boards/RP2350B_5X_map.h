@@ -138,13 +138,23 @@
 #define AUXINPUT2_PIN           27
 #endif
 
-#define AUXINPUT3_PIN           7   // Probe
-#define AUXINPUT4_PIN           8   // Safety door or motor fault
-#define AUXINPUT5_PIN           32  // I2C strobe pin
+#define AUXINPUT3_PIN           7  // Probe
+#define AUXINPUT4_PIN           8  // Safety door or motor fault
+#define AUXINPUT5_PIN           32 // I2C strobe pin
+#define AUXINPUT7_PIN           11 // Reset/EStop
+#define AUXINPUT8_PIN           10 // Feed hold
+#define AUXINPUT9_PIN           9  // Cycle start
 
-#define RESET_PIN               11
-#define FEED_HOLD_PIN           10
-#define CYCLE_START_PIN         9
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN               AUXINPUT7_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PIN           AUXINPUT8_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PIN         AUXINPUT9_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN               AUXINPUT3_PIN
@@ -154,6 +164,8 @@
 #define SAFETY_DOOR_PIN         AUXINPUT4_PIN
 #elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN         AUXINPUT4_PIN // set Door as alternate Motor Fault input
+#elif TOOLSETTER_ENABLE
+#define TOOLSETTER_PIN          AUXINPUT4_PIN // set Door as alternate Toolsetter input
 #endif
 
 #if I2C_STROBE_ENABLE
