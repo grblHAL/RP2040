@@ -304,6 +304,13 @@ static bool serialSetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+static bool serialSetFormat (serial_format_t format)
+{
+    uart_set_format(UART_PORT, format.width == Serial_8bit ? 8 : 7, format.stopbits == Serial_StopBits2 ? 2 : 1, (uart_parity_t)format.parity);
+
+    return true;
+}
+
 static bool serialDisable (bool disable)
 {
     if(disable)
@@ -346,6 +353,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         .suspend_read = serialSuspendInput,
         .disable_rx = serialDisable,
         .set_baud_rate = serialSetBaudRate,
+        .set_format = serialSetFormat,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
 
@@ -529,6 +537,13 @@ static bool serial1SetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+static bool serial1SetFormat (serial_format_t format)
+{
+    uart_set_format(UART_1_PORT, format.width == Serial_8bit ? 8 : 7, format.stopbits == Serial_StopBits2 ? 2 : 1, (uart_parity_t)format.parity);
+
+    return true;
+}
+
 static bool serial1Disable (bool disable)
 {
     if(disable)
@@ -572,6 +587,7 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         .disable_rx = serial1Disable,
         .suspend_read = serial1SuspendInput,
         .set_baud_rate = serial1SetBaudRate,
+        .set_format = serial1SetFormat,
         .set_enqueue_rt_handler = serial1SetRtHandler
     };
 
