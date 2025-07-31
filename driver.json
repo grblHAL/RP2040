@@ -73,6 +73,7 @@
         "fram": 1,
         "i2c": 1,
         "sdcard": 1,
+		"rgb_out": 1,
         "wifi": 1,
         "wiznet": 1,
         "bluetooth": 1
@@ -92,6 +93,7 @@
         "fram": 1,
         "i2c": 1,
         "sdcard": 1,
+		"rgb_out": 1,
         "wifi": 1,
         "wiznet": 1,
         "bluetooth": 1
@@ -178,6 +180,7 @@
       "caps": {
         "axes": 4,
         "analog_pwm_out": 1,
+		"rgb_out": 1,
         "trinamic": 2209,
         "trinamic_uart_addr": 1
       }
