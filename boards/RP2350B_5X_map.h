@@ -82,8 +82,12 @@
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
 #define AUXOUTPUT0_PIN          36
+#if RGB_LED_ENABLE
+#define NEOPIXELS_PIN           37
+#else
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
 #define AUXOUTPUT1_PIN          37
+#endif
 #ifndef SERIAL1_PORT
 #define AUXOUTPUT2_PORT         GPIO_OUTPUT
 #define AUXOUTPUT2_PIN          38

@@ -199,6 +199,7 @@
         "fram": 0,
         "i2c": 1,
         "sdcard": 1,
+		"rgb_out": 1,
         "wifi": 0,
         "wiznet": 1,
         "bluetooth": 1,

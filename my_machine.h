@@ -96,6 +96,7 @@
 //#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
 //#define MCP4725_ENABLE          1 // MCP3221 I2C ADC input, default address is 0xC0 (MCP3221_ADDRESS).
 //#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
+//#define THCAD2_ENABLE           1 // Mesa THCAD2 analog to frequency converter. Not yet completed!
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.

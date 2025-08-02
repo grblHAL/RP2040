@@ -70,6 +70,7 @@ if(AddMyPlugin)
     flash.c
     i2c.c
     spi.c
+    thcad2.c
     sr16_out.c
     ioports.c
     ioports_analog.c
@@ -91,6 +92,7 @@ else()
     flash.c
     i2c.c
     spi.c
+    thcad2.c
     sr16_out.c
     ioports.c
     ioports_analog.c

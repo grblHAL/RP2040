@@ -3037,7 +3037,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250706";
+    hal.driver_version = "250802";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3399,7 +3399,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 
 #ifdef NEOPIXELS_PIN
 
-    if(pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_program, &neop_pio, &neop_sm, &pio_offset, NEOPIXELS_PIN, 1, false)) {
+    if(pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_program, &neop_pio, &neop_sm, &pio_offset, NEOPIXELS_PIN, 1, true)) {
 
         ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
 
