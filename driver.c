@@ -1222,7 +1222,7 @@ static inline __attribute__((always_inline)) void stepper_set_dir (uint_fast8_t 
             break;
 
         case Z_AXIS:
-            DIGITAL_OUT(Z_DIRECTION_PIN, dir_out.x);
+            DIGITAL_OUT(Z_DIRECTION_PIN, dir_out.z);
 #if Z_GANGED
             DIGITAL_OUT(Z2_DIRECTION_PIN, dir_out.z);
 #endif
