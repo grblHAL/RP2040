@@ -113,7 +113,7 @@ static void onEnumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
     memcpy(&pin, &thcad2, sizeof(xbar_t));
 
     if(!low_level)
-        pin.port = "thcad2:";
+        pin.port = "THCAD2:";
 
     pin_info(&pin, data);
 }

@@ -1647,7 +1647,7 @@ static bool probe_add (probe_id_t probe_id, uint8_t port, pin_irq_mode_t irq_mod
     hal.probe.configure = probeConfigure;
     hal.probe.connected_toggle = probeConnectedToggle;
 
-    if(i == 1)
+    if(i == 2)
         hal.probe.select = probeSelect;
 
     return true;
@@ -3037,7 +3037,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250802";
+    hal.driver_version = "250814";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
