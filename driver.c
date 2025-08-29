@@ -3037,7 +3037,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250814";
+    hal.driver_version = "250827";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3073,6 +3073,7 @@ bool driver_init (void)
 #endif
 #if STEP_INJECT_ENABLE
     hal.stepper.output_step = stepperOutputStep;
+    hal.stepper.claim_motor = stepperClaimMotor;
 #endif
 
     hal.limits.enable = limitsEnable;
