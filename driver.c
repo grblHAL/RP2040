@@ -1366,7 +1366,7 @@ void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
         uint_fast8_t idx = N_AXIS - 1;
         axes_signals_t axes = { .bits = (step_out.bits & AXES_BITMASK) };
 #if STEP_PORT == GPIO_SR8
-        step_dir_sr_t sd_sr;
+        step_dir_sr_t sd_sr_inject;
 #else
         pio_steps_t steps = pio_steps;
         steps.set = 0;
@@ -1391,22 +1391,24 @@ void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
 
 #elif STEP_PORT == GPIO_SR8
 
+        sd_sr_inject.value = sd_sr.value;
+
         step_out.bits ^= settings.steppers.step_invert.bits;
 
-        sd_sr.set.x_step = step_out.x;
-        sd_sr.set.y_step = step_out.y;
-        sd_sr.set.z_step = step_out.z;
+        sd_sr_inject.set.x_step = step_out.x;
+        sd_sr_inject.set.y_step = step_out.y;
+        sd_sr_inject.set.z_step = step_out.z;
   #ifdef A_AXIS
-        sd_sr.set.m3_step = step_out.a;
+        sd_sr_inject.set.m3_step = step_out.a;
   #elif X_GANGED
-        sd_sr.set.m3_step = step_out.x;
+        sd_sr_inject.set.m3_step = step_out.x;
   #elif Y_GANGED
-        sd_sr.set.m3_step = step_out.y;
+        sd_sr_inject.set.m3_step = step_out.y;
   #elif Z_GANGED
-        sd_sr.set.m3_step = step_out.z;
+        sd_sr_inject.set.m3_step = step_out.z;
   #endif
 
-    step_dir_sr4_write(sr8_pio, sr8_sm, sd_sr.value);
+        step_dir_sr4_write(sr8_pio, sr8_sm, sd_sr_inject.value);
 
 #endif
     }
@@ -3037,7 +3039,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250827";
+    hal.driver_version = "250830";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
