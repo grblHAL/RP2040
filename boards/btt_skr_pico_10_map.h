@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022-2024 Terje Io
+  Copyright (c) 2022-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -68,9 +68,9 @@
 #define M3_STEP_PIN                 14
 #define M3_DIRECTION_PIN            13
 #define M3_ENABLE_PIN               15
+#if N_AXIS > 3 || N_AUTO_SQUARED
 #define M3_LIMIT_PIN                16
-#else
-#define RESET_PIN                   16  // E0 limit
+#endif
 #endif
 
 // Define homing/hard limit switch input pins.
@@ -88,8 +88,6 @@
 #define AUXOUTPUT3_PIN              21 // HB PWM
 #define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
 #define AUXOUTPUT4_PIN              23 // HE PWM
-
-#define AUXOUTPUT0_PWM_PIN          29 // Servo
 
 // Define driver spindle pins
 
@@ -118,9 +116,23 @@
 #endif
 
 #define AUXINPUT0_PIN               22 // Probe
+#ifndef M3_LIMIT_PIN
+#define AUXINPUT1_PIN               16 // E0 limit
+#define AUXOUTPUT0_PWM_PIN          29 // Servo
+#else
+#if CONTROL_ENABLE & CONTROL_HALT
+#define AUXINPUT1_PIN               29 // Reset/E-Stop (Servo - NOTE: this pin has no input filtering/protection)
+#else
+#define AUXOUTPUT0_PWM_PIN          29 // Servo
+#endif
+#endif
 
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
 #undef CONTROL_ENABLE
-#define CONTROL_ENABLE 0
+#define CONTROL_ENABLE              CONTROL_HALT
+#define RESET_PIN                   AUXINPUT1_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN                   AUXINPUT0_PIN
