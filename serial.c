@@ -79,6 +79,29 @@ static void uart1_interrupt_handler (void);
 #define SERIAL1_PORT -1
 #endif
 
+static const io_stream_status_t *get_uart_status (uint8_t instance);
+
+static io_stream_status_t stream_status[] = {
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    },
+#if SERIAL1_PORT >= 0
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    },
+#endif
+};
+
 static io_stream_properties_t serial[] = {
     {
       .type = StreamType_Serial,
@@ -90,7 +113,8 @@ static io_stream_properties_t serial[] = {
 #ifdef RTS_PIN
       .flags.rts_handshake = On,
 #endif
-      .claim = serialInit
+      .claim = serialInit,
+      .get_status = get_uart_status
     },
 #if SERIAL1_PORT >= 0
     {
@@ -100,7 +124,8 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
-      .claim = serial1Init
+      .claim = serial1Init,
+      .get_status = get_uart_status
     }
 #endif
 };
@@ -116,16 +141,14 @@ void serialRegisterStreams (void)
         .function = Output_TX,
         .group = PinGroup_UART,
         .pin = UART_TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "Primary UART"
+        .mode = { .mask = PINMODE_OUTPUT }
     };
 
     static const periph_pin_t rx0 = {
         .function = Input_RX,
         .group = PinGroup_UART,
         .pin = UART_RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "Primary UART"
+        .mode = { .mask = PINMODE_NONE }
     };
 
     hal.periph_port.register_pin(&rx0);
@@ -137,16 +160,14 @@ void serialRegisterStreams (void)
         .function = Output_TX,
         .group = PinGroup_UART2,
         .pin = UART_1_TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "Secondary UART"
+        .mode = { .mask = PINMODE_OUTPUT }
     };
 
     static const periph_pin_t rx1 = {
         .function = Input_RX,
         .group = PinGroup_UART2,
         .pin = UART_1_RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "Secondary UART"
+        .mode = { .mask = PINMODE_NONE }
     };
 
     hal.periph_port.register_pin(&rx1);
@@ -157,21 +178,11 @@ void serialRegisterStreams (void)
     stream_register_streams(&streams);
 }
 
-static bool serialClaimPort (uint8_t instance)
+static const io_stream_status_t *get_uart_status (uint8_t instance)
 {
-    bool ok = false;
-    uint_fast8_t idx = sizeof(serial) / sizeof(io_stream_properties_t);
+    stream_status[instance].flags = serial[instance].flags;
 
-    do {
-        if(serial[--idx].instance == instance) {
-            if((ok = serial[idx].flags.claimable && !serial[idx].flags.claimed))
-                serial[idx].flags.claimed = On;
-            break;
-        }
-
-    } while(idx);
-
-    return ok;
+    return &stream_status[instance];
 }
 
 // ---
@@ -299,6 +310,8 @@ static uint16_t serialTxCount (void) {
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
+    stream_status[0].baud_rate = baud_rate;
+
     uart_set_baudrate(UART_PORT, baud_rate);
 
     return true;
@@ -306,6 +319,8 @@ static bool serialSetBaudRate (uint32_t baud_rate)
 
 static bool serialSetFormat (serial_format_t format)
 {
+    stream_status[0].format = format;
+
     uart_set_format(UART_PORT, format.width == Serial_8bit ? 8 : 7, format.stopbits == Serial_StopBits2 ? 2 : 1, (uart_parity_t)format.parity);
 
     return true;
@@ -357,8 +372,11 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         .set_enqueue_rt_handler = serialSetRtHandler
     };
 
-    if(!serialClaimPort(stream.instance))
+    if(!serial[0].flags.claimable || serial[0].flags.claimed)
         return NULL;
+
+    serial[0].flags.claimed = On;
+    stream_status[0].baud_rate = baud_rate;
 
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
@@ -532,6 +550,8 @@ static uint16_t serial1TxCount (void) {
 
 static bool serial1SetBaudRate (uint32_t baud_rate)
 {
+    stream_status[1].baud_rate = baud_rate;
+
     uart_set_baudrate(UART_1_PORT, baud_rate);
 
     return true;
@@ -539,6 +559,8 @@ static bool serial1SetBaudRate (uint32_t baud_rate)
 
 static bool serial1SetFormat (serial_format_t format)
 {
+    stream_status[1].format = format;
+
     uart_set_format(UART_1_PORT, format.width == Serial_8bit ? 8 : 7, format.stopbits == Serial_StopBits2 ? 2 : 1, (uart_parity_t)format.parity);
 
     return true;
@@ -591,8 +613,11 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         .set_enqueue_rt_handler = serial1SetRtHandler
     };
 
-    if(!serialClaimPort(stream.instance))
+    if(!serial[1].flags.claimable || serial[1].flags.claimed)
         return NULL;
+
+    serial[1].flags.claimed = On;
+    stream_status[1].baud_rate = baud_rate;
 
     gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART);
 #if UART_1_RX_PIN == 27 // RP2350 - for now...

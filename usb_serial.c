@@ -196,19 +196,6 @@ static void usb_serialRxCancel (void)
     rxbuf.head = BUFNEXT(rxbuf.head, rxbuf);
 }
 
-//
-// Writes a character to the USB output stream
-//
-static bool usb_serialPutC (const char c)
-{
-    static uint8_t buf[1];
-
-    *buf = c;
-    usb_out_chars(buf, 1);
-
-    return true;
-}
-
 bool _usb_write (void)
 {
     size_t txfree, length;
@@ -273,6 +260,23 @@ static void usb_serialWriteS (const char *s)
         }
     } else
         usb_serialWrite(s, length);
+}
+
+//
+// Writes a character to the USB output stream
+//
+static bool usb_serialPutC (const char c)
+{
+    static uint8_t s[2] = "";
+
+    *s = c;
+
+    if(txbuf.length)
+        usb_serialWriteS(s);
+    else
+        usb_out_chars(s, 1);
+
+    return true;
 }
 
 //

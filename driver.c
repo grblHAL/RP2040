@@ -2694,7 +2694,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
         pin.function = ppin->pin.function;
         pin.group = ppin->pin.group;
         pin.mode = ppin->pin.mode;
-        pin.description = ppin->pin.description;
+        pin.description = ppin->pin.description == NULL ? xbar_group_to_description(ppin->pin.group) : ppin->pin.description;
 
         pin_info(&pin, data);
     } while(ppin = ppin->next);
@@ -3039,7 +3039,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "250830";
+    hal.driver_version = "251005";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
