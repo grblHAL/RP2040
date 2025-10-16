@@ -84,7 +84,7 @@ static bool digital_in_cfg (xbar_t *input, gpio_in_config_t *config, bool persis
         aux_in[input->id].mode.debounce = config->debounce;
         aux_in[input->id].mode.pull_mode = config->pull_mode;
         gpio_set_pulls(input->pin, config->pull_mode == PullMode_Up, config->pull_mode != PullMode_Up);
-        gpio_set_inover(input->pin, config->inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
+        gpio_set_inover(input->pin, config->inverted && !xbar_is_probe_in(input->function) ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
 
         if(persistent)
             ioport_save_input_settings(input, config);
