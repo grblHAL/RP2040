@@ -145,3 +145,10 @@
 #if MODBUS_ENABLE
 #define MODBUS_RTU_STREAM           0
 #endif
+
+// SERIAL1 is on TX 8 and RX 9 by default.
+// SKR Pico has a connector (labeled "Laser" in the Bigtreetech documentation)
+// which has two IO pins, GND, and +5V, making it ideal for MPG etc.
+#define UART1_TX_PIN 0
+#define UART1_RX_PIN 1
+
