@@ -167,8 +167,6 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
                 .invert = Off
             };
 
-            hal.port.analog_out = analog_out;
-
             for(i = 0; i < analog.out.n_ports; i++) {
                 if(aux_out_analog[i].mode.pwm)
                     n_pwm++;
