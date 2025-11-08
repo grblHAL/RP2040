@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2023 Terje Io
+  Copyright (c) 2023-2025 Terje Io
 
   Some parts of the code is based on example code by Espressif, in the public domain
 
@@ -65,7 +65,7 @@ const int RFCOMM_SERVER_CHANNEL = 1;
 
 static const io_stream_t *claim_stream (uint32_t baud_rate);
 
-static bool is_up = false;
+static bool is_up = false, bt_connected = false;
 static bluetooth_settings_t bluetooth;
 static stream_rx_buffer_t rxbuffer = {0};
 static stream_tx_buffer_t txbuffer;
@@ -78,7 +78,7 @@ static io_stream_properties_t bt_stream = {
   .instance = 20,
   .flags.claimable = On,
   .flags.claimed = Off,
-  .flags.connected = Off,
+ // .flags.connected = Off,
   .flags.can_set_baud = On,
   .flags.modbus_ready = Off,
   .claim = claim_stream
@@ -110,11 +110,10 @@ static uint16_t BTStreamRXFree (void)
     return (RX_BUFFER_SIZE - 1) - BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-static int16_t BTStreamGetC (void)
+static int32_t BTStreamGetC (void)
 {
     BT_MUTEX_LOCK();
 
-    int16_t data;
     uint16_t bptr = rxbuffer.tail;
 
     if(bptr == rxbuffer.head) {
@@ -122,8 +121,8 @@ static int16_t BTStreamGetC (void)
         return -1; // no data available else EOF
     }
 
-    data = rxbuffer.data[bptr++];                 // Get next character, increment tmp pointer
-    rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);  // and update pointer
+    int32_t data = (int32_t)rxbuffer.data[bptr++];  // Get next character, increment tmp pointer
+    rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
 
     BT_MUTEX_UNLOCK();
 
@@ -131,7 +130,7 @@ static int16_t BTStreamGetC (void)
 }
 
 // Since grbl always sends cr/lf terminated strings we try to send complete strings to improve throughput
-static bool BTStreamPutC (const char c)
+static bool BTStreamPutC (const uint8_t c)
 {
     uint_fast16_t next_head = BUFNEXT(txbuffer.head, txbuffer);
 
@@ -151,7 +150,7 @@ static bool BTStreamPutC (const char c)
 
 static void BTStreamWriteS (const char *data)
 {
-    char c, *ptr = (char *)data;
+    uint8_t c, *ptr = (uint8_t *)data;
 
     while((c = *ptr++) != '\0')
         BTStreamPutC(c);
@@ -166,14 +165,12 @@ static void BTStreamFlush (void)
     BT_MUTEX_UNLOCK();
 }
 
-static int16_t btTxGetC (void)
+static int32_t btTxGetC (void)
 {
-    int16_t data;
-
     if(txbuffer.tail == txbuffer.head)
         return -1; // no data available else EOF
 
-    data = txbuffer.data[txbuffer.tail];                          // Get next character
+    int32_t data = (int32_t)txbuffer.data[txbuffer.tail];                          // Get next character
     txbuffer.tail = BUFNEXT(txbuffer.tail, txbuffer);  // and update pointer
 
     return data;
@@ -240,7 +237,7 @@ static void unlockBluetooth()
     async_context_release_lock(cyw43_arch_async_context());
 }
 
-static void msg_bt_open_failed (sys_state_t state)
+static void msg_bt_open_failed (void *data)
 {
     hal.stream.write_all("[MSG:BT RFCOMM channel open failed, status ");
     hal.stream.write_all(uitoa(session.status));
@@ -249,25 +246,16 @@ static void msg_bt_open_failed (sys_state_t state)
 
 #if PICO_CYW43_ARCH_POLL && !WIFI_ENABLE
 
-static void bt_poll (sys_state_t state)
+static void bt_poll (void *data)
 {
-    static uint32_t last_ms0;
-
-    uint32_t ms = hal.get_elapsed_ticks();
-
-    if(last_ms0 != ms) {
-        last_ms0 = ms;
-        cyw43_arch_poll();
-    }
-
-    on_execute_realtime(state);
+    cyw43_arch_poll();
 }
 
 #endif
 
 static bool is_connected (void)
 {
-    return bt_stream.flags.connected;
+    return bt_connected; // return session.connected?
 }
 
 static const io_stream_t *claim_stream (uint32_t baud_rate)
@@ -284,7 +272,7 @@ static const io_stream_t *claim_stream (uint32_t baud_rate)
         .set_enqueue_rt_handler = BTSetRtHandler
     };
 
-    if(bt_stream.flags.claimed || bt_stream.flags.connected)
+    if(bt_stream.flags.claimed || bt_connected)
         return NULL;
 
     if(baud_rate != 0)
@@ -323,21 +311,21 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
 
                 case RFCOMM_EVENT_CHANNEL_OPENED:
                     if((session.status = rfcomm_event_channel_opened_get_status(packet)))
-                        protocol_enqueue_rt_command(msg_bt_open_failed);
+                        task_add_immediate(msg_bt_open_failed, NULL);
                     else {
-                        if(!bt_stream.flags.connected) {
+                        if(!bt_connected) {
 
                             rxbuffer.tail = rxbuffer.head;  // Flush rx & tx
                             txbuffer.tail = txbuffer.head;  // buffers.
 
                             if(bt_stream.flags.claimed)
-                                bt_stream.flags.connected = On;
-                            else if(!bt_stream.flags.connected && (stream = claim_stream(0)))
-                                bt_stream.flags.connected = stream_connect(stream);
+                                bt_connected = On;
+                            else if(!bt_connected && (stream = claim_stream(0)))
+                                bt_connected = stream_connect(stream);
 
                             mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
                             session.channel = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
-                            session.connected = bt_stream.flags.connected;
+                            session.connected = bt_connected;
                         } // else deny connection...
                     
                         // if(!bt_stream.flags.connected) deny connection...
@@ -371,7 +359,7 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
                         stream_disconnect(stream);
                         stream = NULL;
                     }
-                    bt_stream.flags.connected = Off;
+                    bt_connected = Off;
                     break;
 
                 default:
@@ -453,8 +441,7 @@ bool bluetooth_start_local (void)
     is_up = true;
 
 #if PICO_CYW43_ARCH_POLL && !WIFI_ENABLE
-    on_execute_realtime = grbl.on_execute_realtime;
-    grbl.on_execute_realtime = bt_poll;
+    task_add_systick(bt_poll, NULL);
 #endif
 
     return is_up;
@@ -543,4 +530,4 @@ bool bluetooth_init_local (void)
     return nvs_address != 0;
 }
 
-#endif
+#endif // BLUETOOTH_ENABLE

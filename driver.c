@@ -1898,7 +1898,7 @@ static void spindlePulseOn (spindle_ptrs_t *spindle, uint_fast16_t pulse_length)
     //    PPI_TIMER->ARR = pulse_length;
     //    PPI_TIMER->EGR = TIM_EGR_UG;
     //    PPI_TIMER->CR1 |= TIM_CR1_CEN;
-    spindle_on((ppi_spindle = spindle));
+    spindle_on(spindle);
 }
 
 #endif // PPI_ENABLE

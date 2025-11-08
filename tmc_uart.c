@@ -37,7 +37,7 @@ TMC_uart_write_datagram_t *tmc_uart_read (trinamic_motor_t driver, TMC_uart_read
     volatile uint32_t dly = 50, ms = hal.get_elapsed_ticks();
 
 //    tmc_uart.reset_write_buffer();
-    tmc_uart.write_n((char *)dgr->data, sizeof(TMC_uart_read_datagram_t));
+    tmc_uart.write_n(dgr->data, sizeof(TMC_uart_read_datagram_t));
 
     while(tmc_uart.get_tx_buffer_count());
 
@@ -76,7 +76,7 @@ TMC_uart_write_datagram_t *tmc_uart_read (trinamic_motor_t driver, TMC_uart_read
 
 void tmc_uart_write (trinamic_motor_t driver, TMC_uart_write_datagram_t *dgr)
 {
-    tmc_uart.write_n((char *)dgr->data, sizeof(TMC_uart_write_datagram_t));
+    tmc_uart.write_n(dgr->data, sizeof(TMC_uart_write_datagram_t));
     while(tmc_uart.get_tx_buffer_count());
 }
 
