@@ -400,6 +400,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         uart_set_format(UART_PORT, 8, 1, UART_PARITY_NONE);
         uart_set_fifo_enabled(UART_PORT, true);
 
+        serialRxFlush();
         irq_set_exclusive_handler(UART_IRQ, uart_interrupt_handler);
         irq_set_enabled(UART_IRQ, true);
     
@@ -648,7 +649,8 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         uart_set_hw_flow(UART_1_PORT, false, false);
         uart_set_format(UART_1_PORT, 8, 1, UART_PARITY_NONE);
         uart_set_fifo_enabled(UART_1_PORT, true);
-
+ 
+        serial1RxFlush();
         irq_set_exclusive_handler(UART_1_IRQ, uart1_interrupt_handler);
         irq_set_enabled(UART_1_IRQ, true);
     
