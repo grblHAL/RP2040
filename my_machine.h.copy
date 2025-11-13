@@ -37,25 +37,10 @@
 
 // Configuration
 // Uncomment to enable.
-//ig
-#define BOARD_MY_MACHINE      // Add my_machine_map.h before enabling this!
 
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
-
-
-// UART 0 
-#define UART_TX_PIN 12
-#define UART_RX_PIN 13
-
-// UART 1 (Modbus)
-#define UART_1_TX_PIN 8
-#define UART_1_RX_PIN 9
-
-
-
-
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
@@ -105,9 +90,6 @@
 //#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
 //#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
 //#define HOMING_PULLOFF_ENABLE   1 // Enable per axis homing pulloff distance settings.
-
-
-                                 // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
 
 // IO expanders:
 //
@@ -182,14 +164,3 @@
 #endif // WIFI_ENABLE
 
 /**/
-
-
-//ig added for MPG
-#define SERIAL1_PORT 1 
-#define MPG_MODE 2
-#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
-                                 // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
-#define VFD_ENABLE             1 // Set to 1 works or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
-#define MODBUS_ENABLE          1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-#define MODBUS_BAUDRATE 2 // 9600
-#define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
