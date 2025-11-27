@@ -20,6 +20,7 @@ option(ADD_HPGL "Add HPGL plugin" OFF)
 option(ADD_WIFI "Add WiFi networking" ON)
 option(ADD_ETHERNET "Add Ethernet networking" OFF)
 option(ADD_BLUETOOTH "Add Bluetooth" OFF)
+#option(ADD_BLUETOOTH "Add Bluetooth" ON)
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
 
 #ig option(ADD_mDNS "Add mDNS service" OFF) 
@@ -30,7 +31,7 @@ option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
 # Select the correct board in VSCode, the following line will be updated accordingly
 #igset(PICO_BOARD pico CACHE STRING "Board type")
-set(PICO_BOARD pico2_w CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "pico 2W")
 
 include(pico_sdk_import.cmake)
 
@@ -122,6 +123,8 @@ endif()
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
 #target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
+#ig uncomment
+target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=2)
 
 if(ADD_WIFI)
     target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)

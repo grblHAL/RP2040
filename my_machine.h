@@ -46,13 +46,19 @@
 
 
 // UART 0 
-#define UART_TX_PIN 12
-#define UART_RX_PIN 13
+//#define UART_TX_PIN 12
+//#define UART_RX_PIN 13
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
+
+
 
 // UART 1 (Modbus)
-#define UART_1_TX_PIN 8
-#define UART_1_RX_PIN 9
+//#define UART_1_TX_PIN 8
+//#define UART_1_RX_PIN 9
 
+#define UART_1_TX_PIN 4
+#define UART_1_RX_PIN 5
 
 
 
@@ -72,12 +78,18 @@
 //#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
 //#define WIFI_ENABLE             0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define WIFI_SOFTAP             1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
+//ig uncomment
+//#define WIFI_SOFTAP             1 // Use Soft AP mode for WiFi. NOTE: WIP - not yet complete!
 //#define ETHERNET_ENABLE         0 // Do NOT enable here, enable in CMakeLists.txt!
 //#define _WIZCHIP_            5500 // Selects WIZnet ethernet breakout connected via SPI.
                                     // Uncomment to enable W5500 chip, default is W5100S. Requires ethernet enabled in CMakeLists.txt.
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
+//ig uncomment
+#define WEBUI_ENABLE            1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE       1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH           0 // Uncomment to store WebUI files on SD card instead of in flash (littlefs).
+//ig uncomment
+#define WEBUI_INFLASH           1 // Uncomment to store WebUI files on SD card instead of in flash (littlefs).
 //#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define MPG_ENABLE              2 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
                                     // 1: Mode switching is by handshake pin.
@@ -151,10 +163,16 @@
 #define WEBSOCKET_ENABLE     1 // Websocket daemon - requires WiFi streaming enabled.
 //#define MDNS_ENABLE          0 // mDNS daemon. Do NOT enable here, enable in CMakeLists.txt!
 //#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
+//ig uncomment
+#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
 #if SDCARD_ENABLE || WEBUI_ENABLE
 #define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled.
 //#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.
+//ig uncomment
+#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.
 //#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
+//ig uncomment
+#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
 #endif
 // The following symbols have the default values as shown, uncomment and change as needed.
 //#define NETWORK_STA_HOSTNAME    "grblHAL"
@@ -187,9 +205,31 @@
 //ig added for MPG
 #define SERIAL1_PORT 1 
 #define MPG_MODE 2
-#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
+//igo comment #define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2 
                                  // and MPG_ENABLE is uncommented then the serial stream is shared with the MPG.
-#define VFD_ENABLE             1 // Set to 1 works or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+#define VFD_ENABLE             0 // Set to 1 works or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+//#define VFD_ENABLE             1 // Set to 1 works or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+#if VFD_ENABLE > 0
 #define MODBUS_ENABLE          1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-#define MODBUS_BAUDRATE 2 // 9600
+#define MODBUS_BAUDRATE 2 // 960
 #define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
+#else // VFD_ENABLE == 0
+#define MODBUS_ENABLE          0
+#define SPINDLE_PORT                GPIO_OUTPUT
+#define SPINDLE_ENABLE_PIN          AUXOUTPUT1_PIN 
+#define SPINDLE_PWM_PIN             AUXOUTPUT0_PIN
+//ig #define SPINDLE_DIRECTION_PIN       AUXOUTPUT1_PIN
+#endif
+
+
+#define NETWORK_STA_HOSTNAME    "grblHAL"
+#define NETWORK_STA_IPMODE      1 // 0 = static, 1 = DHCP, 2 = AutoIP
+#define COMPATIBILITY_LEVEL 2
+
+
+#define TELNET_ENABLE        1
+
+//ig uncomment
+
+#define PROBE_ENABLE              1 // Default enabled, remove comment to disable probe input.
+#define PROBE_PIN             AUXINPUT0_PIN 
