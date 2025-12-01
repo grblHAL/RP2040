@@ -9,18 +9,18 @@
 
   Some parts of the code is based on example code by Espressif, in the public domain
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "driver.h"
@@ -54,63 +54,76 @@ static SemaphoreHandle_t lock = NULL;
 #define BT_MUTEX_UNLOCK()
 #endif
 
-typedef struct {
-    bool connected;
-    uint16_t channel;
-    uint8_t status;
-    char client_mac[18];
-} bt_session_t;
-
 const int RFCOMM_SERVER_CHANNEL = 1;
 
-static const io_stream_t *claim_stream (uint32_t baud_rate);
+static const io_stream_t *btStreamOpen (uint32_t baud_rate);
+static const io_stream_status_t *get_status (uint8_t instance);
 
-static bool is_up = false, bt_connected = false;
+static bool is_up = false;
 static bluetooth_settings_t bluetooth;
 static stream_rx_buffer_t rxbuffer = {0};
 static stream_tx_buffer_t txbuffer;
 static nvs_address_t nvs_address;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
-static bt_session_t session;
 static uint8_t spp_service_buffer[150];
+static struct {
+    uint16_t channel;
+    uint8_t status;
+    serial_linestate_t linestate;
+    const io_stream_t *stream;
+    char client_mac[18];
+} session = {0};
+
 static io_stream_properties_t bt_stream = {
-  .type = StreamType_Bluetooth,
-  .instance = 20,
-  .flags.claimable = On,
-  .flags.claimed = Off,
- // .flags.connected = Off,
-  .flags.can_set_baud = On,
-  .flags.modbus_ready = Off,
-  .claim = claim_stream
+    .type = StreamType_Bluetooth,
+    .instance = 20,
+    .flags.claimable = On,
+    .flags.claimed = Off,
+    .flags.can_set_baud = On,
+    .flags.modbus_ready = Off,
+    .claim = btStreamOpen,
+    .get_status = get_status
 };
+
+static io_stream_status_t stream_status = {
+    .baud_rate = 115200,
+    .format = {
+        .width = Serial_8bit,
+        .stopbits = Serial_StopBits1,
+        .parity = Serial_ParityNone,
+    }
+};
+
 static on_report_options_ptr on_report_options;
 static on_execute_realtime_ptr on_execute_realtime;
 
-static enqueue_realtime_command_ptr BTSetRtHandler (enqueue_realtime_command_ptr handler)
+static const io_stream_status_t *get_status (uint8_t instance)
 {
-    enqueue_realtime_command_ptr prev = enqueue_realtime_command;
+    stream_status.flags = bt_stream.flags;
 
-    if(handler)
-        enqueue_realtime_command = handler;
-
-    return prev;
+    return &stream_status;
 }
 
-static uint32_t BTStreamAvailable (void)
+static bool is_connected (void)
+{
+    return session.linestate.dtr;
+}
+
+static uint32_t btStreamAvailable (void)
 {
     uint16_t head = rxbuffer.head, tail = rxbuffer.tail;
 
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-static uint16_t BTStreamRXFree (void)
+static uint16_t btStreamRXFree (void)
 {
     uint16_t head = rxbuffer.head, tail = rxbuffer.tail;
 
     return (RX_BUFFER_SIZE - 1) - BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-static int32_t BTStreamGetC (void)
+static int32_t btStreamGetC (void)
 {
     BT_MUTEX_LOCK();
 
@@ -129,10 +142,13 @@ static int32_t BTStreamGetC (void)
     return data;
 }
 
-// Since grbl always sends cr/lf terminated strings we try to send complete strings to improve throughput
-static bool BTStreamPutC (const uint8_t c)
+// Since grblHAL always sends cr/lf terminated strings we try to send complete strings to improve throughput
+static bool btStreamPutC (const uint8_t c)
 {
     uint_fast16_t next_head = BUFNEXT(txbuffer.head, txbuffer);
+ 
+    if(txbuffer.tail == next_head && session.linestate.dtr)
+        rfcomm_request_can_send_now_event(session.channel);
 
     while(txbuffer.tail == next_head) {         // Buffer full, block until space is available...
         if(!hal.stream_blocking_callback())
@@ -142,21 +158,29 @@ static bool BTStreamPutC (const uint8_t c)
     txbuffer.data[txbuffer.head] = c;           // Add data to buffer
     txbuffer.head = next_head;                  // and update head pointer
 
-    if(c == ASCII_LF && session.connected)
+    if(c == ASCII_LF && session.linestate.dtr)
         rfcomm_request_can_send_now_event(session.channel);
 
     return true;
 }
 
-static void BTStreamWriteS (const char *data)
+static void btStreamWriteS (const char *data)
 {
     uint8_t c, *ptr = (uint8_t *)data;
 
     while((c = *ptr++) != '\0')
-        BTStreamPutC(c);
+        btStreamPutC(c);
 }
 
-static void BTStreamFlush (void)
+static void btStreamWrite (const uint8_t *s, uint16_t length)
+{
+    uint8_t *ptr = (uint8_t *)s;
+
+    while(length--)
+        btStreamPutC(*ptr++);
+}
+
+static void btStreamFlush (void)
 {
     BT_MUTEX_LOCK();
 
@@ -170,13 +194,13 @@ static int32_t btTxGetC (void)
     if(txbuffer.tail == txbuffer.head)
         return -1; // no data available else EOF
 
-    int32_t data = (int32_t)txbuffer.data[txbuffer.tail];                          // Get next character
-    txbuffer.tail = BUFNEXT(txbuffer.tail, txbuffer);  // and update pointer
+    int32_t data = (int32_t)txbuffer.data[txbuffer.tail];   // Get next character
+    txbuffer.tail = BUFNEXT(txbuffer.tail, txbuffer);       // and update pointer
 
     return data;
 }
 
-static void BTStreamCancel (void)
+static void btStreamCancel (void)
 {
     BT_MUTEX_LOCK();
 
@@ -185,6 +209,59 @@ static void BTStreamCancel (void)
     rxbuffer.head = (rxbuffer.tail + 1) & (RX_BUFFER_SIZE - 1);
 
     BT_MUTEX_UNLOCK();
+}
+
+static bool btRxDisable (bool disable)
+{
+    session.linestate.dsr = !disable;
+
+    return true;
+}
+
+static bool btStreamSetBaudRate (uint32_t baud_rate)
+{
+    stream_status.baud_rate = baud_rate;
+
+    return true;
+}
+
+static enqueue_realtime_command_ptr btSetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command;
+
+    if(handler)
+        enqueue_realtime_command = handler;
+
+    return prev;
+}
+
+static const io_stream_t *btStreamOpen (uint32_t baud_rate)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Bluetooth,
+        .is_connected = is_connected,
+        .read = btStreamGetC,
+        .write = btStreamWriteS,
+        .write_char = btStreamPutC,
+        .write_n = btStreamWrite,
+        .get_rx_buffer_free = btStreamRXFree,
+        .reset_read_buffer = btStreamFlush,
+        .cancel_read_buffer = btStreamCancel,
+        .disable_rx = btRxDisable,
+        .set_baud_rate = btStreamSetBaudRate,
+        .set_enqueue_rt_handler = btSetRtHandler
+    };
+
+    if(bt_stream.flags.claimed)
+        return NULL;
+
+    if(baud_rate)
+       btStreamSetBaudRate(baud_rate);
+
+    session.stream = &stream;
+    bt_stream.flags.claimed = On;
+
+    return session.linestate.dtr ? NULL : session.stream;
 }
 
 char *bluetooth_get_device_mac (void)
@@ -253,34 +330,6 @@ static void bt_poll (void *data)
 
 #endif
 
-static bool is_connected (void)
-{
-    return bt_connected; // return session.connected?
-}
-
-static const io_stream_t *claim_stream (uint32_t baud_rate)
-{
-    static const io_stream_t stream = {
-        .type = StreamType_Bluetooth,
-        .is_connected = is_connected,
-        .read = BTStreamGetC,
-        .write = BTStreamWriteS,
-        .write_char = BTStreamPutC,
-        .get_rx_buffer_free = BTStreamRXFree,
-        .reset_read_buffer = BTStreamFlush,
-        .cancel_read_buffer = BTStreamCancel,
-        .set_enqueue_rt_handler = BTSetRtHandler
-    };
-
-    if(bt_stream.flags.claimed || bt_connected)
-        return NULL;
-
-    if(baud_rate != 0)
-        bt_stream.flags.claimed = On;
-
-    return &stream;
-}
-
 static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
     static uint16_t mtu;
@@ -313,19 +362,21 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
                     if((session.status = rfcomm_event_channel_opened_get_status(packet)))
                         task_add_immediate(msg_bt_open_failed, NULL);
                     else {
-                        if(!bt_connected) {
+                        if(!session.linestate.dtr) {
 
                             rxbuffer.tail = rxbuffer.head;  // Flush rx & tx
                             txbuffer.tail = txbuffer.head;  // buffers.
 
-                            if(bt_stream.flags.claimed)
-                                bt_connected = On;
-                            else if(!bt_connected && (stream = claim_stream(0)))
-                                bt_connected = stream_connect(stream);
+                            if(!bt_stream.flags.claimed && stream_connect(btStreamOpen(0)))
+                                stream = session.stream;
 
                             mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
                             session.channel = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
-                            session.connected = bt_connected;
+                            session.linestate.dtr = On;
+				            session.linestate.dsr = hal.stream.type != StreamType_MPG;
+
+ //                           if(session.stream && session.stream->on_linestate_changed)
+ //                               session.stream->on_linestate_changed(session.linestate);
                         } // else deny connection...
                     
                         // if(!bt_stream.flags.connected) deny connection...
@@ -353,13 +404,17 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
 
                 case RFCOMM_EVENT_CHANNEL_CLOSED:
                     session.channel = 0;
-                    session.connected = false;
                     *session.client_mac = '\0';
+                    session.linestate.dtr = session.linestate.dsr = Off;
                     if(stream) {
                         stream_disconnect(stream);
-                        stream = NULL;
-                    }
-                    bt_connected = Off;
+                        stream = session.stream = NULL;
+                        bt_stream.flags.claimed = Off;
+                    } else if(hal.stream.type == StreamType_MPG && hal.stream.read == session.stream->read)
+                        stream_mpg_enable(false);    
+                 
+ //                   if(session.stream && session.stream->on_linestate_changed)
+ //                       session.stream->on_linestate_changed(session.linestate);
                     break;
 
                 default:
@@ -369,21 +424,17 @@ static void packetHandler (uint8_t type, uint16_t channel, uint8_t *packet, uint
 
         case RFCOMM_DATA_PACKET:;
             char c;
-            while(size) {
+            if(session.linestate.dsr) while(size) {
                 c = (char)*packet++;
-                // discard input if MPG has taken over...
-                if(hal.stream.type != StreamType_MPG) {
+                if(!enqueue_realtime_command(c)) {
 
-                    if(!enqueue_realtime_command(c)) {
+                    uint_fast16_t bptr = (rxbuffer.head + 1) & (RX_BUFFER_SIZE - 1);  // Get next head pointer
 
-                        uint_fast16_t bptr = (rxbuffer.head + 1) & (RX_BUFFER_SIZE - 1);  // Get next head pointer
-
-                        if(bptr == rxbuffer.tail)               // If buffer full
-                            rxbuffer.overflow = 1;              // flag overflow,
-                        else {
-                            rxbuffer.data[rxbuffer.head] = c;   // else add data to buffer
-                            rxbuffer.head = bptr;               // and update pointer
-                        }
+                    if(bptr == rxbuffer.tail)               // If buffer full
+                        rxbuffer.overflow = 1;              // flag overflow,
+                    else {
+                        rxbuffer.data[rxbuffer.head] = c;   // else add data to buffer
+                        rxbuffer.head = bptr;               // and update pointer
                     }
                 }
                 size--;

@@ -29,6 +29,7 @@
 
 #include "pico/time.h"
 #include "pico/bootrom.h"
+#include "hardware/dma.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "hardware/pwm.h"
@@ -161,9 +162,13 @@ static uint c_step_sm;
 #ifndef NEOPIXELS_NUM
 #define NEOPIXELS_NUM 0
 #endif
-
-static PIO neop_pio;
-static uint neop_sm;
+static struct {
+    PIO pio;
+    uint sm;
+    int dma_ch;
+    dma_channel_config dma_cfg;
+    volatile alarm_id_t busy;
+} neop;
 
 #endif
 
@@ -1856,9 +1861,19 @@ bool spindleConfig (spindle_ptrs_t *spindle)
     if (spindle == NULL)
         return false;
 
-    uint32_t prescaler = settings.pwm_spindle.pwm_freq > 2000.0f ? 1 : (settings.pwm_spindle.pwm_freq > 200.0f ? 12 : 50);
+    uint32_t prescaler = 1, clock_hz = clock_get_hz(clk_sys);
 
-    if(spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, clock_get_hz(clk_sys) / prescaler)) {
+    if(spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, clock_hz / prescaler)) {
+
+        while(spindle_pwm.period > 65534 && prescaler < 255) {
+            prescaler++;
+            spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, clock_hz / prescaler);
+        }
+
+        while(spindle_pwm.period > 65534) {
+            settings.pwm_spindle.pwm_freq += 1.0f;
+            spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, clock_hz / prescaler);
+        }
 
         spindle->set_state = spindleSetStateVariable;
 
@@ -2231,8 +2246,13 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 #endif
 
 #if BLUETOOTH_ENABLE == 1
-        if(!net.bluetooth)
+        if(!net.bluetooth) {
             net.bluetooth = bluetooth_start_local();
+  #if MPG_ENABLE == 2 &&  MPG_STREAM == 20
+            if(net.bluetooth && !hal.driver_cap.mpg_mode)
+                hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
+  #endif
+        }
 #endif
 
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
@@ -2285,7 +2305,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
 #ifdef NEOPIXELS_PIN
 
-        if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip.length0) {
+        if(hal.rgb0.out && (neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip.length0)) {
 
             if(settings->rgb_strip.length0 == 0)
                 settings->rgb_strip.length0 = hal.rgb0.num_devices;
@@ -2301,6 +2321,8 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                 neopixel.num_bytes = hal.rgb0.num_devices * sizeof(uint32_t);
                 if((neopixel.leds = calloc(neopixel.num_bytes, sizeof(uint8_t))) == NULL)
                     hal.rgb0.num_devices = 0;
+                else
+                    dma_channel_configure(neop.dma_ch, &neop.dma_cfg, &neop.pio->txf[neop.sm], neopixel.leds, hal.rgb0.num_devices, true);
             }
 
             neopixel.num_leds = hal.rgb0.num_devices;
@@ -2606,15 +2628,9 @@ void setPeriphPinDescription (const pin_function_t function, const pin_group_t g
 
 static void _write (void)
 {
-    // 50 us delay if busy? DMA?
-    uint32_t *led = (uint32_t *)neopixel.leds;
-//    uint64_t now = getElapsedMicros();
-    
-    while(pio_sm_get_tx_fifo_level(neop_pio, neop_sm) != 0);
-//    while(getElapsedMicros() - now < 200);
+    while(neop.busy);
 
-    for(uint_fast16_t i = 0; i < neopixel.num_leds; i++)
-        pio_sm_put_blocking(neop_pio, neop_sm, *led++);
+    dma_channel_set_read_addr(neop.dma_ch, (void*)neopixel.leds, true);
 }
 
 static void neopixels_write (void)
@@ -2693,6 +2709,21 @@ static uint8_t neopixels_set_intensity (uint8_t intensity)
     }
 
     return prev;
+}
+
+static int64_t neop_transfer_complete (alarm_id_t id, void *user_data)
+{
+    neop.busy = 0;
+
+    return 0;
+}
+
+void neop_dma_complete (void)
+{
+  if(dma_hw->ints0 & (1<< neop.dma_ch)) {
+    dma_hw->ints0 = (1<< neop.dma_ch);
+    neop.busy = add_alarm_in_us(400, neop_transfer_complete, &neop, true);
+  }
 }
 
 #elif defined(LED_G_PIN)
@@ -2908,7 +2939,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "251005";
+    hal.driver_version = "251128";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3266,25 +3297,38 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 
 #ifdef NEOPIXELS_PIN
 
-    if(pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_program, &neop_pio, &neop_sm, &pio_offset, NEOPIXELS_PIN, 1, true)) {
+    if(pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_program, &neop.pio, &neop.sm, &pio_offset, NEOPIXELS_PIN, 1, true)) {
 
-        ws2812_program_init(neop_pio, neop_sm, pio_offset, NEOPIXELS_PIN, 800000, false);
+        ws2812_program_init(neop.pio, neop.sm, pio_offset, NEOPIXELS_PIN, 800000, false);
 
-        hal.rgb0.out = neopixel_out;
-        hal.rgb0.out_masked = neopixel_out_masked;
-        hal.rgb0.set_intensity = neopixels_set_intensity;
-        hal.rgb0.write = neopixels_write;
-        hal.rgb0.num_devices = NEOPIXELS_NUM;
-        hal.rgb0.flags = (rgb_properties_t){ .is_blocking = On, .is_strip = On };
-        hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+        if((neop.dma_ch = dma_claim_unused_channel(false))) {
 
-        const periph_pin_t neopin = {
-            .group = PinGroup_LED,
-            .function = Output_LED_Adressable,
-            .pin = NEOPIXELS_PIN
-        };
+            neop.dma_cfg = dma_channel_get_default_config(neop.dma_ch);
+            channel_config_set_read_increment(&neop.dma_cfg, true);
+            channel_config_set_write_increment(&neop.dma_cfg, false);
+            channel_config_set_transfer_data_size(&neop.dma_cfg, DMA_SIZE_32);
+            channel_config_set_dreq(&neop.dma_cfg, pio_get_dreq(neop.pio, neop.sm, true));
 
-        registerPeriphPin(&neopin);
+            irq_set_exclusive_handler(DMA_IRQ_0, neop_dma_complete);
+            dma_channel_set_irq0_enabled(neop.dma_ch, true);
+            irq_set_enabled(DMA_IRQ_0, true);
+
+            hal.rgb0.out = neopixel_out;
+            hal.rgb0.out_masked = neopixel_out_masked;
+            hal.rgb0.set_intensity = neopixels_set_intensity;
+            hal.rgb0.write = neopixels_write;
+            hal.rgb0.num_devices = NEOPIXELS_NUM;
+            hal.rgb0.flags = (rgb_properties_t){ .is_strip = On };
+            hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+
+            const periph_pin_t neopin = {
+                .group = PinGroup_LED,
+                .function = Output_LED_Adressable,
+                .pin = NEOPIXELS_PIN
+            };
+
+            registerPeriphPin(&neopin);
+        }
     } // else report unavailable?
 
 #elif defined(LED_G_PIN)
@@ -3314,7 +3358,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
     if(hal.driver_cap.mpg_mode)
         task_run_on_startup(mpg_enable, NULL);
-#elif MPG_ENABLE == 2
+#elif MPG_ENABLE == 2 && MPG_STREAM != 20
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
 #endif
