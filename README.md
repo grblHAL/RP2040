@@ -9,5 +9,10 @@ The project has been updated to/now uses [SDK version 2.1.1](https://github.com/
 
 The default build environment is Visual Studio Code, it is surprisingly easy to set up on Raspberry Pi - see the [Getting started](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) documentation for how to for this and other platforms.
 
+> [!NOTE]
+> The RP2350B_5X board uses a RP2350B processor, to build the firmware with Visual Studio Code choose the _pimoroni_pga2350_ board.
+For other boards choose the _pico_, _pico\_w_,_pico2_ or _pico2\_w_ board that matches the processor or Pico board used.  
+The board is selected in the lower right corner of the UI.
+
 ---
-2025-03-06
+2025-12-31
