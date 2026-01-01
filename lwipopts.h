@@ -95,3 +95,22 @@
 #define PPP_DEBUG                   LWIP_DBG_OFF
 #define SLIP_DEBUG                  LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
+
+#define HTTP_HDR_WASM          HTTP_CONTENT_TYPE("application/wasm")
+#define HTTP_HDR_WOFF          HTTP_CONTENT_TYPE("font/woff")
+#define HTTP_HDR_WOFF2         HTTP_CONTENT_TYPE("font/woff2")
+#define HTTP_HDR_TTF           HTTP_CONTENT_TYPE("font/ttf")
+#define HTTP_HDR_OTF           HTTP_CONTENT_TYPE("font/otf")
+#define HTTP_HDR_MAP           HTTP_CONTENT_TYPE("application/json") /* sourcemap */
+#define HTTP_HDR_MJS           HTTP_CONTENT_TYPE("application/javascript")
+
+/* --- WebUI MIME extensions --- */
+#define HTTPD_ADDITIONAL_CONTENT_TYPES \
+  { "wasm",  HTTP_CONTENT_TYPE("application/wasm") }, \
+  { "svg",   HTTP_CONTENT_TYPE("image/svg+xml") }, \
+  { "mjs",   HTTP_CONTENT_TYPE("application/javascript") }, \
+  { "map",   HTTP_CONTENT_TYPE("application/json") }, \
+  { "woff",  HTTP_CONTENT_TYPE("font/woff") }, \
+  { "woff2", HTTP_CONTENT_TYPE("font/woff2") }, \
+  { "ttf",   HTTP_CONTENT_TYPE("font/ttf") }, \
+  { "otf",   HTTP_CONTENT_TYPE("font/otf") }
