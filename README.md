@@ -11,7 +11,7 @@ The default build environment is Visual Studio Code, it is surprisingly easy to 
 
 > [!NOTE]
 > The RP2350B_5X board uses a RP2350B processor, to build the firmware with Visual Studio Code choose the _pimoroni_pga2350_ board.
-For other boards choose the _pico_, _pico\_w_,_pico2_ or _pico2\_w_ board that matches the processor or Pico board used.  
+For other boards choose the _pico_, _pico\_w_, _pico2_ or _pico2\_w_ board that matches the processor or Pico board used.  
 The board is selected in the lower right corner of the UI.
 
 ---
