@@ -78,16 +78,16 @@
 #define Y_LIMIT_PIN                 3
 #define Z_LIMIT_PIN                 25
 
-#define AUXOUTPUT0_PORT             GPIO_OUTPUT // Spindle PWM
+#define AUXOUTPUT0_PORT             GPIO_OUTPUT // None
 #define AUXOUTPUT0_PIN              20
-#define AUXOUTPUT1_PORT             GPIO_OUTPUT // Spindle direction
+#define AUXOUTPUT1_PORT             GPIO_OUTPUT // None
 #define AUXOUTPUT1_PIN              18
-#define AUXOUTPUT2_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT2_PORT             GPIO_OUTPUT // None
 #define AUXOUTPUT2_PIN              17   
-#define AUXOUTPUT3_PORT             GPIO_OUTPUT // Coolant flood
-#define AUXOUTPUT3_PIN              21 // HB PWM
-#define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
-#define AUXOUTPUT4_PIN              23 // HE PWM
+#define AUXOUTPUT3_PORT             GPIO_OUTPUT // None
+#define AUXOUTPUT3_PIN              21 // None
+#define AUXOUTPUT4_PORT             GPIO_OUTPUT // None
+#define AUXOUTPUT4_PIN              23 // None
 
 // Define driver spindle pins
 
