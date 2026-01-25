@@ -5,7 +5,7 @@
   Part of grblHAL
 
   Copyright (c) 2021 Volksolive
-  Copyright (c) 2021-2025 Terje Io
+  Copyright (c) 2021-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -155,6 +155,18 @@ static uint b_step_sm;
 static PIO c_step_pio;
 static uint c_step_sm;
 #endif
+#ifdef U_STEP_PIN
+static PIO u_step_pio;
+static uint u_step_sm;
+#endif
+#ifdef V_STEP_PIN
+static PIO v_step_pio;
+static uint v_step_sm;
+#endif
+#ifdef W_STEP_PIN
+static PIO w_step_pio;
+static uint w_step_sm;
+#endif
 #endif // GPIO_PIO_1
 
 #ifdef NEOPIXELS_PIN
@@ -284,6 +296,9 @@ static input_signal_t inputpin[] = {
 #endif
 #if add_in_pin(V_LIMIT)
     add_limit_pin(V)
+#endif
+#if add_in_pin(W_LIMIT)
+    add_limit_pin(W)
 #endif
 #ifdef A_LIMIT_PIN_MAX
     { .id = Input_LimitA_Max,     .port = GPIO_INPUT, .pin = A_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
@@ -433,6 +448,9 @@ static output_signal_t outputpin[] = {
 #if add_pin(V_STEP)
     add_step_pin(V)
 #endif
+#if add_pin(W_STEP)
+    add_step_pin(W)
+#endif
     add_dir_pin(X)
     add_dir_pin(Y)
     add_dir_pin(Z)
@@ -457,8 +475,11 @@ static output_signal_t outputpin[] = {
 #if add_pin(U_DIRECTION)
     add_dir_pin(U)
 #endif
-#if add_pin(U_DIRECTION)
+#if add_pin(V_DIRECTION)
     add_dir_pin(V)
+#endif
+#if add_pin(W_DIRECTION)
+    add_dir_pin(W)
 #endif
 #if !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #if add_pin(STEPPERS_ENABLE)
@@ -499,6 +520,9 @@ static output_signal_t outputpin[] = {
 #endif
 #if add_pin(V_ENABLE)
     add_enable_pin(V)
+#endif
+#if add_pin(W_ENABLE)
+    add_enable_pin(W)
 #endif
 #endif // !(TRINAMIC_ENABLE && TRINAMIC_I2C)
 #if add_aux_pin(SPINDLE, PWM) || (SPINDLE_ENABLE_PORT == EXPANDER_PORT && defined(SPINDLE_PWM_PIN))
@@ -781,6 +805,30 @@ static void stepperEnable (axes_signals_t enable, bool hold)
     DIGITAL_OUT(C_ENABLE_PIN, enable.c);
   #endif
  #endif
+
+ #ifdef U_ENABLE_PIN
+  #if U_ENABLE_PORT == EXPANDER_PORT
+     EXPANDER_OUT(U_ENABLE_PIN, enable.u);
+  #else
+    DIGITAL_OUT(U_ENABLE_PIN, enable.u);
+  #endif
+ #endif
+
+ #ifdef V_ENABLE_PIN
+  #if V_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(V_ENABLE_PIN, enable.v);
+  #else
+   DIGITAL_OUT(V_ENABLE_PIN, enable.v);
+  #endif
+ #endif
+
+ #ifdef W_ENABLE_PIN
+  #if W_ENABLE_PORT == EXPANDER_PORT
+    EXPANDER_OUT(W_ENABLE_PIN, enable.w);
+  #else
+    DIGITAL_OUT(W_ENABLE_PIN, enable.w);
+  #endif
+ #endif
 #endif
 }
 
@@ -892,6 +940,15 @@ static inline __attribute__((always_inline)) void stepper_set_step (uint_fast8_t
   #endif
             break;
 #endif
+#ifdef W_AXIS
+        case W_AXIS:
+  #if STEP_PORT == GPIO_PIO_1
+            step_pulse_generate(w_step_pio, w_step_sm, pio_steps->value);
+  #else
+            pio_steps->set |= (1 << (W_STEP_PIN - STEP_PINS_BASE));
+  #endif
+            break;
+#endif
     }
 }
 
@@ -975,6 +1032,15 @@ static inline __attribute__((always_inline)) void stepper_step_out1 (uint_fast8_
   #endif
             break;
 #endif
+#ifdef W_AXIS
+        case W_AXIS:
+  #if STEP_PORT == GPIO_PIO_1
+            step_pulse_generate(w_step_pio, w_step_sm, pio_steps->value);
+  #else
+            pio_steps->set |= (1 << (W_STEP_PIN - STEP_PINS_BASE));
+  #endif
+            break;
+#endif
     }
 }
 
@@ -1033,8 +1099,8 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     sd_sr.set.x_step = step_out1.x;
     sd_sr.set.y_step = step_out1.y;
     sd_sr.set.z_step = step_out1.z;
-#ifdef A_AXIS
-    sd_sr.set.m3_step = step_out1.a;
+#if N_AXIS == 4
+    sd_sr.set.m3_step = step_out1.a3;
 #elif X_GANGED
     sd_sr.set.m3_step = step_out2.x;
 #elif Y_GANGED
@@ -1097,8 +1163,8 @@ inline static __attribute__((always_inline)) void stepperSetStepOutputs (axes_si
     sd_sr.set.x_step = step_out.x;
     sd_sr.set.y_step = step_out.y;
     sd_sr.set.z_step = step_out.z;
-  #ifdef A_AXIS
-    sd_sr.set.m3_step = step_out.a;
+  #if N_AXIS == 4
+    sd_sr.set.m3_step = step_out.a3;
   #elif X_GANGED
     sd_sr.set.m3_step = step_out.x;
   #elif Y_GANGED
@@ -1198,9 +1264,9 @@ static inline __attribute__((always_inline)) void stepper_set_dir (uint_fast8_t 
             sd_sr->set.m3_dir = sd_sr->reset.m3_dir = dir_out.z ^ settings.steppers.ganged_dir_invert.z;
 #endif
             break;
-#ifdef A_AXIS
-        case A_AXIS:
-            sd_sr->set.m3_dir = sd_sr->reset.m3_dir = dir_out.a;
+#if N_AXIS == 4
+        default:
+            sd_sr->set.m3_dir = sd_sr->reset.m3_dir = dir_out.a3;
             break;
 #endif
     }
@@ -1247,6 +1313,21 @@ static inline __attribute__((always_inline)) void stepper_set_dir (uint_fast8_t 
             DIGITAL_OUT(C_DIRECTION_PIN, dir_out.c);
             break;
 #endif
+#ifdef U_AXIS
+        case U_AXIS:
+            DIGITAL_OUT(U_DIRECTION_PIN, dir_out.u);
+            break;
+#endif
+#ifdef V_AXIS
+        case V_AXIS:
+            DIGITAL_OUT(V_DIRECTION_PIN, dir_out.v);
+            break;
+#endif
+#ifdef W_AXIS
+        case W_AXIS:
+            DIGITAL_OUT(W_DIRECTION_PIN, dir_out.w);
+            break;
+#endif
     }
 }
 
@@ -1281,18 +1362,16 @@ static void stepperSetDirOutputs (axes_signals_t dir_out)
     sd_sr.set.x_dir = sd_sr.reset.x_dir = dir_out.x;
     sd_sr.set.y_dir = sd_sr.reset.y_dir = dir_out.y;
     sd_sr.set.z_dir = sd_sr.reset.z_dir = dir_out.z;
-  #ifdef X2_DIRECTION_PIN
+  #if N_AXIS == 4
+    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_out.a3;
+  #elif X_GANGED
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = (dir_out.x ^ settings.steppers.ganged_dir_invert.x);
-  #endif
-  #ifdef Y2_DIRECTION_PIN
+  #elif Y_GANGED
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = (dir_out.y ^ settings.steppers.ganged_dir_invert.y);
-  #endif
-  #ifdef Z2_DIRECTION_PIN
+  #elif Z_GANGED
     sd_sr.set.m3_dir = sd_sr.reset.m3_dir = (dir_out.z ^ settings.steppers.ganged_dir_invert.z);
   #endif
-  #ifdef A_DIRECTION_PIN
-    sd_sr.set.m3_dir = sd_sr.reset.m3_dir = dir_out.a;
-  #endif
+
 
 #elif DIRECTION_PORT == GPIO_OUTPUT
 
@@ -1403,8 +1482,8 @@ void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
         sd_sr_inject.set.x_step = step_out.x;
         sd_sr_inject.set.y_step = step_out.y;
         sd_sr_inject.set.z_step = step_out.z;
-  #ifdef A_AXIS
-        sd_sr_inject.set.m3_step = step_out.a;
+  #if N_AXIS == 4
+        sd_sr_inject.set.m3_step = step_out.a3;
   #elif X_GANGED
         sd_sr_inject.set.m3_step = step_out.x;
   #elif Y_GANGED
@@ -1499,10 +1578,16 @@ inline static limit_signals_t limitsGetState (void)
     signals.max.u = DIGITAL_IN(U_LIMIT_PIN_MAX);
 #endif
 #ifdef V_LIMIT_PIN
-    signals.min.v = DIGITAL_IN(U_LIMIT_PIN);
+    signals.min.v = DIGITAL_IN(V_LIMIT_PIN);
 #endif
 #ifdef V_LIMIT_PIN_MAX
-    signals.max.v = DIGITAL_IN(U_LIMIT_PIN_MAX);
+    signals.max.v = DIGITAL_IN(V_LIMIT_PIN_MAX);
+#endif
+#ifdef W_LIMIT_PIN
+    signals.min.w = DIGITAL_IN(W_LIMIT_PIN);
+#endif
+#ifdef W_LIMIT_PIN_MAX
+    signals.max.w = DIGITAL_IN(W_LIMIT_PIN_MAX);
 #endif
 
     return signals;
@@ -2449,23 +2534,48 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                     input->mode.inverted = limit_fei.z;
                     break;
 
+#ifdef A_AXIS
                 case Input_LimitA:
                 case Input_LimitA_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.a ? PullMode_Down : PullMode_Up;
-                    input->mode.inverted = limit_fei.a;
+                    input->mode.pull_mode = settings->limits.disable_pullup.a ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.a ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
-
+#endif
+#ifdef B_AXIS
                 case Input_LimitB:
                 case Input_LimitB_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.b ? PullMode_Down : PullMode_Up;
-                    input->mode.inverted = limit_fei.b;
+                    input->mode.pull_mode = !settings->limits.disable_pullup.b ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
-
+#endif
+#ifdef C_AXIS
                 case Input_LimitC:
                 case Input_LimitC_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.c ? PullMode_Down : PullMode_Up;
-                    input->mode.inverted = limit_fei.c;
+                    input->mode.pull_mode = settings->limits.disable_pullup.c ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.c ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
+#endif
+#ifdef U_AXIS
+                case Input_LimitU:
+                case Input_LimitU_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
+#ifdef V_AXIS
+                case Input_LimitV:
+                case Input_LimitV_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
+#ifdef W_AXIS
+                case Input_LimitW:
+                case Input_LimitW_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
 
                 case Input_SPIIRQ:
                     input->mode.pull_mode = PullMode_Up;
@@ -2939,7 +3049,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "251128";
+    hal.driver_version = "260122";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3018,7 +3128,8 @@ bool driver_init (void)
 #endif
 
 #if EEPROM_ENABLE
-    i2c_eeprom_init();
+    if(!i2c_eeprom_init())
+        task_run_on_startup(task_raise_alarm, (void *)Alarm_NVS_Failed);
 #elif FLASH_ENABLE
     hal.nvs.type = NVS_Flash;
     hal.nvs.memcpy_from_flash = memcpy_from_flash;
@@ -3220,36 +3331,46 @@ bool driver_init (void)
     irq_set_priority(PIO1_IRQ_0, PICO_HIGHEST_IRQ_PRIORITY);
 
 #if STEP_PORT == GPIO_PIO_1
+
     assign_step_sm(&x_step_pio, &x_step_sm, X_STEP_PIN);
     assign_step_sm(&y_step_pio, &y_step_sm, Y_STEP_PIN);
     assign_step_sm(&z_step_pio, &z_step_sm, Z_STEP_PIN);
 
-#if N_ABC_MOTORS
+ #if N_ABC_MOTORS
 
-#if WIFI_ENABLE && N_ABC_MOTORS > 2
-#error "Max number of motors with WIFI_ENABLE is 5"
-#endif
+  #if WIFI_ENABLE && N_ABC_MOTORS > 2
+  #error "Max number of motors with WIFI_ENABLE is 5"
+  #endif
 
-#ifdef X2_STEP_PIN
+  #ifdef X2_STEP_PIN
     assign_step_sm(&x2_step_pio, &x2_step_sm, X2_STEP_PIN);
-#endif
-#ifdef Y2_STEP_PIN
+  #endif
+  #ifdef Y2_STEP_PIN
     assign_step_sm(&y2_step_pio, &y2_step_sm, Y2_STEP_PIN);
-#endif
-#ifdef Z2_STEP_PIN
+  #endif
+  #ifdef Z2_STEP_PIN
     assign_step_sm(&z2_step_pio, &z2_step_sm, Z2_STEP_PIN);
-#endif
-#ifdef A_STEP_PIN
+  #endif
+  #ifdef A_STEP_PIN
     assign_step_sm(&a_step_pio, &a_step_sm, A_STEP_PIN);
-#endif
-#ifdef B_STEP_PIN
+  #endif
+  #ifdef B_STEP_PIN
     assign_step_sm(&b_step_pio, &b_step_sm, B_STEP_PIN);
-#endif
-#ifdef C_STEP_PIN
+  #endif
+  #ifdef C_STEP_PIN
     assign_step_sm(&c_step_pio, &c_step_sm, C_STEP_PIN);
-#endif
+  #endif
+  #ifdef U_STEP_PIN
+    assign_step_sm(&u_step_pio, &u_step_sm, U_STEP_PIN);
+  #endif
+  #ifdef V_STEP_PIN
+    assign_step_sm(&v_step_pio, &v_step_sm, V_STEP_PIN);
+  #endif
+  #ifdef W_STEP_PIN
+    assign_step_sm(&w_step_pio, &w_step_sm, W_STEP_PIN);
+  #endif
 
-#endif // N_ABC_MOTORS
+ #endif // N_ABC_MOTORS for STEP_PORT == GPIO_PIO_1
 
 #elif STEP_PORT == GPIO_PIO
 
@@ -3301,7 +3422,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 
         ws2812_program_init(neop.pio, neop.sm, pio_offset, NEOPIXELS_PIN, 800000, false);
 
-        if((neop.dma_ch = dma_claim_unused_channel(false))) {
+        if((neop.dma_ch = dma_claim_unused_channel(false)) >= 0) {
 
             neop.dma_cfg = dma_channel_get_default_config(neop.dma_ch);
             channel_config_set_read_increment(&neop.dma_cfg, true);

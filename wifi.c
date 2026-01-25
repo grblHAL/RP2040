@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022-2025 Terje Io
+  Copyright (c) 2022-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@
 
 #include "wifi.h"
 //#include "dnsserver.h"
-#include "dhcpserver.h"
 #include "grbl/report.h"
 #include "grbl/task.h"
 #include "grbl/nvs_buffer.h"

@@ -203,5 +203,5 @@
 
 #ifdef SERIAL1_PORT
 #define UART_1_RX_PIN           27
-#define UART_1_TX_PIN           36
+#define UART_1_TX_PIN           38
 #endif

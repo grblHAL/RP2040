@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2024 Terje Io
+  Copyright (c) 2021-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -403,8 +403,6 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         serialRxFlush();
         irq_set_exclusive_handler(UART_IRQ, uart_interrupt_handler);
         irq_set_enabled(UART_IRQ, true);
-    
-        hw_set_bits(&UART->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
 
         serial[0].flags.init_ok = On;
     }
@@ -638,9 +636,13 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
 
     if(!serial[1].flags.init_ok) {
 
+#if UART_1_TX_PIN == 38 // RP2350 
+        gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART_AUX);
+#else
         gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART);
-#if UART_1_RX_PIN == 27 // RP2350 - for now...
-        gpio_set_function(UART_1_RX_PIN, 11);
+#endif
+#if UART_1_RX_PIN == 27 // RP2350
+        gpio_set_function(UART_1_RX_PIN, GPIO_FUNC_UART_AUX);
 #else
         gpio_set_function(UART_1_RX_PIN, GPIO_FUNC_UART);
 #endif
@@ -649,14 +651,12 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         uart_set_hw_flow(UART_1_PORT, false, false);
         uart_set_format(UART_1_PORT, 8, 1, UART_PARITY_NONE);
         uart_set_fifo_enabled(UART_1_PORT, true);
- 
+
         serial1RxFlush();
         irq_set_exclusive_handler(UART_1_IRQ, uart1_interrupt_handler);
         irq_set_enabled(UART_1_IRQ, true);
-    
-        hw_set_bits(&UART_1->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
 
-        serial[0].flags.init_ok = On;
+        serial[1].flags.init_ok = On;
     }
 
     stream_set_defaults(&stream, baud_rate);
@@ -676,7 +676,7 @@ static void __not_in_flash_func(uart1_interrupt_handler)(void)
                 if(next_head == rx1buf.tail)                            // If buffer full
                     rx1buf.overflow = true;                             // flag overflow
                 else {
-                    rx1buf.data[rx1buf.head] = (uint8_t)data;              // Add data to buffer
+                    rx1buf.data[rx1buf.head] = (uint8_t)data;           // Add data to buffer
                     rx1buf.head = next_head;                            // and update pointer
                 }
             }
