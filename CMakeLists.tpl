@@ -111,7 +111,6 @@ if(ADD_WIFI)
     target_compile_definitions(grblHAL PUBLIC NDEBUG)
     target_sources(grblHAL PRIVATE
      wifi.c
-     dhcpserver.c
     )
     target_link_libraries(grblHAL PRIVATE
      pico_cyw43_arch_lwip_poll
