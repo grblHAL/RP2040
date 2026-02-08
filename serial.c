@@ -389,7 +389,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 
     serial[0].flags.claimed = On;
 
-    if(!serial[1].flags.init_ok) {
+    if(!serial[0].flags.init_ok) {
 
         gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
         gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
