@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2025 Terje Io
+  Copyright (c) 2021-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,8 @@
 //#define BOARD_PICOBOB_DLX
 //#define BOARD_PICOBOB_DLX_G540
 //#define BOARD_PICOHAL
-//#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
+//#define BOARD_BTT_SKR_PICO_10
+//#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_CITOH_CX6000    // C.ITOH CX-6000 HPGL plotter
 //#define BOARD_GENERIC_4AXIS

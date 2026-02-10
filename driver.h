@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2025 Terje Io
+  Copyright (c) 2021-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -170,7 +170,7 @@
   #include "boards/picobob_dlx_g540_map.h"
 #elif defined(BOARD_PICOHAL)
   #include "boards/picohal_map.h"        
-#elif defined(BOARD_BTT_SKR_PICO_10)
+#elif defined(BOARD_BTT_SKR_PICO_10) || defined(BOARD_BTT_SKR_PICO_10_HOTWIRE)
   #include "boards/btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
   #include "boards/citoh_cx6000_map.h"

@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2022-2025 Terje Io
+  Copyright (c) 2022-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,9 +27,11 @@
 #error "Wireless networking is not supported!"
 #endif
 
-//#define AUX_CONTROLS_OUT
-
+#ifdef BOARD_BTT_SKR_PICO_10_HOTWIRE
+#define BOARD_NAME "BTT SKR Pico 1.0 Hotwire"
+#else
 #define BOARD_NAME "BTT SKR Pico 1.0"
+#endif
 #define BOARD_URL "https://github.com/bigtreetech/SKR-Pico"
 
 #define SERIAL1_PORT 1
@@ -78,16 +80,29 @@
 #define Y_LIMIT_PIN                 3
 #define Z_LIMIT_PIN                 25
 
+#ifdef BOARD_BTT_SKR_PICO_10_HOTWIRE
 #define AUXOUTPUT0_PORT             GPIO_OUTPUT // Spindle PWM
-#define AUXOUTPUT0_PIN              20
+#define AUXOUTPUT0_PIN              21 // HB PWM
 #define AUXOUTPUT1_PORT             GPIO_OUTPUT // Spindle direction
-#define AUXOUTPUT1_PIN              18
+#define AUXOUTPUT1_PIN              18 // FAN2 PWM
 #define AUXOUTPUT2_PORT             GPIO_OUTPUT // Spindle enable
-#define AUXOUTPUT2_PIN              17   
+#define AUXOUTPUT2_PIN              17 // FAN1 PWM  
+#define AUXOUTPUT3_PORT             GPIO_OUTPUT // Coolant flood
+#define AUXOUTPUT3_PIN              20 // FAN3 PWM, Laser PWM
+#define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
+#define AUXOUTPUT4_PIN              23 // HE PWM
+#else
+#define AUXOUTPUT0_PORT             GPIO_OUTPUT // Spindle PWM
+#define AUXOUTPUT0_PIN              20 // FAN3 PWM, Laser PWM
+#define AUXOUTPUT1_PORT             GPIO_OUTPUT // Spindle direction
+#define AUXOUTPUT1_PIN              18 // FAN2 PWM
+#define AUXOUTPUT2_PORT             GPIO_OUTPUT // Spindle enable
+#define AUXOUTPUT2_PIN              17 // FAN1 PWM  
 #define AUXOUTPUT3_PORT             GPIO_OUTPUT // Coolant flood
 #define AUXOUTPUT3_PIN              21 // HB PWM
 #define AUXOUTPUT4_PORT             GPIO_OUTPUT // Coolant mist
 #define AUXOUTPUT4_PIN              23 // HE PWM
+#endif
 
 // Define driver spindle pins
 

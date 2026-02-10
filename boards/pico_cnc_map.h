@@ -104,7 +104,7 @@ typedef union {
 #define M3_STEP_PIN         0 // Not referenced by driver code
 #define M3_DIRECTION_PIN    0 // Not referenced by driver code
 #define M3_LIMIT_PIN        3
-#define M3_ENABLE_PIN       3
+#define M3_ENABLE_PIN       3 // Not referenced by driver code
 #endif
 
 // Define homing/hard limit switch input pins.

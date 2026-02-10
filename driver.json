@@ -185,6 +185,21 @@
         "trinamic": 2209,
         "trinamic_uart_addr": 1
       }
+    },    
+    {
+      "name": "BTT SKR Pico 1.0 Hotwire",
+      "symbol": "BOARD_BTT_SKR_PICO_10_HOTWIRE",
+      "notes": "Maps spindle PWM to the bed heater (HB) output",
+      "URL": "https://github.com/bigtreetech/SKR-Pico",
+      "MAP": "boards/btt_skr_pico_10_map.h",
+      "caps": {
+        "axes": 4,
+        "serial_ports": 2,
+        "analog_pwm_out": 1,
+		    "rgb_out": 1,
+        "trinamic": 2209,
+        "trinamic_uart_addr": 1
+      }
     },
     {
       "name": "RP23U5XBB",
