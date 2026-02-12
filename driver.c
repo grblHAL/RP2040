@@ -3035,7 +3035,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260208";
+    hal.driver_version = "260211";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3268,10 +3268,6 @@ bool driver_init (void)
     if(aux_outputs_analog.n_pins)
         ioports_init_analog(&aux_inputs_analog, &aux_outputs_analog);
 
-    io_expanders_init();
-    aux_ctrl_claim_ports(aux_claim_explicit, NULL);
-    aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
-
 #if USB_SERIAL_CDC
 
 // Register $UF2 bootloader command
@@ -3290,6 +3286,10 @@ bool driver_init (void)
     system_register_commands(&boot_commands);
 
 #endif // USB_SERIAL_CDC
+
+    io_expanders_init();
+    aux_ctrl_claim_ports(aux_claim_explicit, NULL);
+    aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 
 #if WIFI_ENABLE
     wifi_init();
