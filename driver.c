@@ -2524,42 +2524,42 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                 case Input_LimitA:
                 case Input_LimitA_Max:
                     input->mode.pull_mode = settings->limits.disable_pullup.a ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.a ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.inverted = limit_fei.a;
                     break;
 #endif
 #ifdef B_AXIS
                 case Input_LimitB:
                 case Input_LimitB_Max:
-                    input->mode.pull_mode = !settings->limits.disable_pullup.b ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.pull_mode = settings->limits.disable_pullup.b ? PullMode_None : PullMode_Up;
+                    input->mode.inverted = limit_fei.b;
                     break;
 #endif
 #ifdef C_AXIS
                 case Input_LimitC:
                 case Input_LimitC_Max:
                     input->mode.pull_mode = settings->limits.disable_pullup.c ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.c ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.inverted = limit_fei.c;
                     break;
 #endif
 #ifdef U_AXIS
                 case Input_LimitU:
                 case Input_LimitU_Max:
                     input->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.inverted = limit_fei.u;
                     break;
 #endif
 #ifdef V_AXIS
                 case Input_LimitV:
                 case Input_LimitV_Max:
                     input->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.inverted = limit_fei.v;
                     break;
 #endif
 #ifdef W_AXIS
                 case Input_LimitW:
                 case Input_LimitW_Max:
                     input->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    input->mode.inverted = limit_fei.w;
                     break;
 #endif
 
@@ -3035,7 +3035,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260216";
+    hal.driver_version = "260224";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
