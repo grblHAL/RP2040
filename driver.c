@@ -1680,6 +1680,11 @@ static void aux_irq_handler (uint8_t port, bool state)
     }
 }
 
+__attribute__((weak)) void motor_fault_add_pin (input_signal_t *input, xbar_t *pin)
+{
+    // NOOP
+}
+
 static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 {
     xbar_t *pin;
@@ -1697,7 +1702,10 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
     if((pin = aux_ctrl_claim_port(aux_ctrl))) {
 
-        switch(aux_ctrl->function) {
+        if(xbar_is_motor_fault_in(aux_ctrl->function))
+            motor_fault_add_pin(aux_ctrl->input, pin);
+
+        else switch(aux_ctrl->function) {
 #if PROBE_ENABLE
             case Input_Probe:
                 hal.driver_cap.probe = probe_add(Probe_Default, aux_ctrl->port, pin->cap.irq_mode, aux_ctrl->input, probeGetState);
@@ -3035,7 +3043,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260224";
+    hal.driver_version = "260308";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
