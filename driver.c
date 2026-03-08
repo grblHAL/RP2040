@@ -301,19 +301,13 @@ static input_signal_t inputpin[] = {
     add_limit_pin(W)
 #endif
 #ifdef A_LIMIT_PIN_MAX
-    { .id = Input_LimitA_Max,     .port = GPIO_INPUT, .pin = A_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
-#endif
-#ifdef B_LIMIT_PIN
-    { .id = Input_LimitB,         .port = GPIO_INPUT, .pin = B_LIMIT_PIN,         .group = PinGroup_Limit },
+    add_maxlimit_pin(A)
 #endif
 #ifdef B_LIMIT_PIN_MAX
-    { .id = Input_LimitB_Max,     .port = GPIO_INPUT, .pin = B_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
-#endif
-#ifdef C_LIMIT_PIN
-    { .id = Input_LimitC,         .port = GPIO_INPUT, .pin = C_LIMIT_PIN,         .group = PinGroup_Limit },
+    add_maxlimit_pin(B)
 #endif
 #ifdef C_LIMIT_PIN_MAX
-    { .id = Input_LimitC_Max,     .port = GPIO_INPUT, .pin = C_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+   add_maxlimit_pin(C)
 #endif
 #ifdef SPI_IRQ_PIN
     { .id = Input_SPIIRQ,    .port = GPIO_INPUT, .pin = SPI_IRQ_PIN,    .group = PinGroup_SPI },
