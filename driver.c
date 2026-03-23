@@ -349,7 +349,19 @@ static input_signal_t inputpin[] = {
     { .id = Input_Aux10, .port = GPIO_INPUT, .pin = AUXINPUT10_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT11_PIN
-    { .id = Input_Aux11, .port = GPIO_INPUT, .pin = AUXINPUT11_PIN, .group = PinGroup_AuxInput }
+    { .id = Input_Aux11, .port = GPIO_INPUT, .pin = AUXINPUT11_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT12_PIN
+    { .id = Input_Aux12, .port = GPIO_INPUT, .pin = AUXINPUT12_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT13_PIN
+    { .id = Input_Aux13, .port = GPIO_INPUT, .pin = AUXINPUT13_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT14_PIN
+    { .id = Input_Aux14, .port = GPIO_INPUT, .pin = AUXINPUT14_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT15_PIN
+    { .id = Input_Aux15, .port = GPIO_INPUT, .pin = AUXINPUT15_PIN, .group = PinGroup_AuxInput }
 #endif
 };
 
@@ -3195,6 +3207,7 @@ bool driver_init (void)
 
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
+    hal.motor_fault_cap = get_motor_fault_cap();
 #if defined(COOLANT_FLOOD_PIN) || OUT_SHIFT_REGISTER
     hal.coolant_cap.flood = On;
 #endif
