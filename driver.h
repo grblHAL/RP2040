@@ -169,7 +169,9 @@
 #elif defined(BOARD_PICOBOB_DLX_G540)
   #include "boards/picobob_dlx_g540_map.h"
 #elif defined(BOARD_PICOHAL)
-  #include "boards/picohal_map.h"        
+  #include "boards/picohal_map.h"
+#elif defined(BOARD_FLEXIHAL2350)
+  #include "boards/flexihal2350_map.h"             
 #elif defined(BOARD_BTT_SKR_PICO_10) || defined(BOARD_BTT_SKR_PICO_10_HOTWIRE)
   #include "boards/btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000

@@ -225,7 +225,25 @@
           "RP_MCU": "2350"
       }
     },
-	{
+    {
+      "name": "FlexiHAL2350",
+      "symbol": "BOARD_FLEXIHAL2350",
+      "URL": "https://github.com/Expatria-Technologies/FlexiHAL_2350",
+      "MAP": "boards/flexihal2350_map.h",
+      "caps": {
+        "axes": 6,
+        "digital_in": 14,
+        "digital_out": 12,
+        "i2c_strobe": 1,
+        "eeprom": 1,
+        "fram": 1,
+        "i2c": 1,
+        "sdcard": 1,
+        "serial_ports": 2,
+        "wiznet": 5500
+      }
+    },
+    {
       "name": "Generic",
       "symbol": "",
       "MAP": "boards/generic_map.h",
@@ -248,7 +266,7 @@
         "bluetooth": 1
       }
     },
-	{
+    {
       "name": "Generic w/RP2350",
       "symbol": "",
       "MAP": "boards/generic_map.h",
