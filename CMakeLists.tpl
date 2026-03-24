@@ -45,6 +45,7 @@ if(AddMyPlugin)
     my_plugin.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
+    boards/flexihal2350.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -77,6 +78,7 @@ else()
     tmc_uart.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
+    boards/flexihal2350.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c

@@ -1691,9 +1691,21 @@ __attribute__((weak)) void motor_fault_add_pin (input_signal_t *input, xbar_t *p
     // NOOP
 }
 
+#ifdef USE_EXPANDERS
+__attribute__((weak)) bool input_add_expander_pin (xbar_t *pin)
+{
+    return false;
+}
+#endif
+
 static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 {
     xbar_t *pin;
+
+#ifdef USE_EXPANDERS
+    if(aux_ctrl->gpio.port == (void *)EXPANDER_PORT)
+        return input_add_expander_pin((xbar_t *)aux_ctrl->input);
+#endif
 
     if(aux_ctrl->input == NULL) {
 
@@ -3049,7 +3061,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260308";
+    hal.driver_version = "260324";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
