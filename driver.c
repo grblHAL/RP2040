@@ -301,19 +301,13 @@ static input_signal_t inputpin[] = {
     add_limit_pin(W)
 #endif
 #ifdef A_LIMIT_PIN_MAX
-    { .id = Input_LimitA_Max,     .port = GPIO_INPUT, .pin = A_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
-#endif
-#ifdef B_LIMIT_PIN
-    { .id = Input_LimitB,         .port = GPIO_INPUT, .pin = B_LIMIT_PIN,         .group = PinGroup_Limit },
+    add_maxlimit_pin(A)
 #endif
 #ifdef B_LIMIT_PIN_MAX
-    { .id = Input_LimitB_Max,     .port = GPIO_INPUT, .pin = B_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
-#endif
-#ifdef C_LIMIT_PIN
-    { .id = Input_LimitC,         .port = GPIO_INPUT, .pin = C_LIMIT_PIN,         .group = PinGroup_Limit },
+    add_maxlimit_pin(B)
 #endif
 #ifdef C_LIMIT_PIN_MAX
-    { .id = Input_LimitC_Max,     .port = GPIO_INPUT, .pin = C_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+   add_maxlimit_pin(C)
 #endif
 #ifdef SPI_IRQ_PIN
     { .id = Input_SPIIRQ,    .port = GPIO_INPUT, .pin = SPI_IRQ_PIN,    .group = PinGroup_SPI },
@@ -355,7 +349,19 @@ static input_signal_t inputpin[] = {
     { .id = Input_Aux10, .port = GPIO_INPUT, .pin = AUXINPUT10_PIN, .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT11_PIN
-    { .id = Input_Aux11, .port = GPIO_INPUT, .pin = AUXINPUT11_PIN, .group = PinGroup_AuxInput }
+    { .id = Input_Aux11, .port = GPIO_INPUT, .pin = AUXINPUT11_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT12_PIN
+    { .id = Input_Aux12, .port = GPIO_INPUT, .pin = AUXINPUT12_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT13_PIN
+    { .id = Input_Aux13, .port = GPIO_INPUT, .pin = AUXINPUT13_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT14_PIN
+    { .id = Input_Aux14, .port = GPIO_INPUT, .pin = AUXINPUT14_PIN, .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT15_PIN
+    { .id = Input_Aux15, .port = GPIO_INPUT, .pin = AUXINPUT15_PIN, .group = PinGroup_AuxInput }
 #endif
 };
 
@@ -3201,6 +3207,7 @@ bool driver_init (void)
 
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
+    hal.motor_fault_cap = get_motor_fault_cap();
 #if defined(COOLANT_FLOOD_PIN) || OUT_SHIFT_REGISTER
     hal.coolant_cap.flood = On;
 #endif

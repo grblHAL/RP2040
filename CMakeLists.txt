@@ -77,6 +77,7 @@ if(AddMyPlugin)
     tmc_uart.c
     my_plugin.c
     boards/pico_cnc.c
+    boards/flexihal2350.c
     boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
@@ -98,6 +99,7 @@ else()
     ioports_analog.c
     tmc_uart.c
     boards/pico_cnc.c
+    boards/flexihal2350.c
     boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
