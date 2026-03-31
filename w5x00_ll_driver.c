@@ -35,11 +35,7 @@ static volatile bool spin_lock = false;
 
 static void __not_in_flash_func(wizchip_select) (void)
 {
-    if(spi_freq != WIZCHIP_SPI_FREQ) {
-        uint32_t freq = spi_set_speed(WIZCHIP_SPI_FREQ);
-        if(freq != WIZCHIP_SPI_FREQ)
-            spi_freq = freq;
-    }
+    spi_set_speed(WIZCHIP_SPI_FREQ);
 
     DIGITAL_OUT(hw.cs, 0);
 }
@@ -47,9 +43,6 @@ static void __not_in_flash_func(wizchip_select) (void)
 static void __not_in_flash_func(wizchip_deselect) (void)
 {
     DIGITAL_OUT(hw.cs, 1);
-
-    if(spi_freq != WIZCHIP_SPI_FREQ && spi_freq)
-        spi_set_speed(spi_freq);
 }
 
 static void __not_in_flash_func(wizchip_critical_section_lock) (void)

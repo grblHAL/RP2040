@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #define _GRBL_SPI_H_
 
 void spi_start (void);
-uint32_t spi_set_speed (uint32_t freq_hz);
+void spi_set_speed (uint32_t freq_hz);
 uint8_t spi_get_byte (void);
 void spi_put_byte (uint8_t byte);
 void spi_write (uint8_t *data, uint16_t len);

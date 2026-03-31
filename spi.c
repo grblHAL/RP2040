@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,8 +38,7 @@
 #define SPIDMARX SPIdreqRX(SPI_PORT)
 #define SPIDMATX SPIdreqTX(SPI_PORT)
 
-
-static uint32_t spi_freq = 400000;
+#define SPI_CLK 8000000
 
 typedef struct
 {
@@ -79,7 +78,7 @@ void spi_start (void)
 
     if(!init) {
 
-        spi_init(SPIPORT, spi_freq);
+        spi_init(SPIPORT, SPI_CLK);
         gpio_set_function(SPI_SCK_PIN, GPIO_FUNC_SPI);
         gpio_set_function(SPI_MISO_PIN, GPIO_FUNC_SPI);
         gpio_set_function(SPI_MOSI_PIN, GPIO_FUNC_SPI);
@@ -107,14 +106,12 @@ void spi_start (void)
     }
 }
 
-uint32_t spi_set_speed (uint32_t freq_hz)
+void spi_set_speed (uint32_t freq_hz)
 {
-    uint32_t cur = spi_freq;
+    uint32_t spi_freq = SPI_CLK;
 
-    if(freq_hz != 0)
-  	    spi_set_baudrate(SPIPORT, spi_freq = freq_hz);
-
-    return cur;
+    if(freq_hz && freq_hz != spi_freq)
+  	    spi_set_baudrate(SPIPORT, (spi_freq = freq_hz));
 }
 
 uint8_t spi_get_byte (void)

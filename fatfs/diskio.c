@@ -49,10 +49,13 @@
 #define SDCARD_USE_DMA 1
 #endif
 
+uint32_t f_spi = 400000;
+
 /* asserts the CS pin to the card */
 static inline
 void SELECT (void)
 {
+    spi_set_speed(f_spi);
     DIGITAL_OUT(SD_CS_PIN, 0);
 }
 
@@ -192,7 +195,7 @@ void power_on (void)
         init = true;
     }
 
-    spi_set_speed(400000);
+    spi_set_speed((f_spi = 400000));
 
 #endif
 
@@ -205,7 +208,7 @@ static
 void set_max_speed(void)
 {
 #if SDCARD_ENABLE
-  	spi_set_speed(12000000); // 12 MHz
+  	spi_set_speed((f_spi = 12000000)); // 12 MHz
 #endif
 }
 
