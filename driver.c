@@ -3108,6 +3108,8 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
+    hal.reboot = __NVIC_SystemReset;
+    
 #if I2C_STROBE_ENABLE || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
