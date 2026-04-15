@@ -27,6 +27,12 @@
 #ifndef __DRIVER_H__
 #define __DRIVER_H__
 
+#if RP_MCU == 2040
+#include "RP2040.h"
+#elif RP_MCU == 2350
+#include "RP2350.h"
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -309,19 +315,19 @@ void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
 // While waiting for CMSIS headers...:
 
-static inline void __enable_irq(void)
-{
-  __asm volatile ("cpsie i" : : : "memory");
-}
+// static inline void __enable_irq(void)
+// {
+//   __asm volatile ("cpsie i" : : : "memory");
+// }
 
 /**
   \brief   Disable IRQ Interrupts
   \details Disables IRQ interrupts by setting the I-bit in the CPSR.
            Can only be executed in Privileged modes.
  */
-static inline  void __disable_irq(void)
-{
-  __asm volatile ("cpsid i" : : : "memory");
-}
+// static inline  void __disable_irq(void)
+// {
+//   __asm volatile ("cpsid i" : : : "memory");
+// }
 
 #endif // __DRIVER_H__
