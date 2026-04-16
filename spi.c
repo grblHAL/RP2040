@@ -51,7 +51,7 @@ typedef struct
 static spi_dma_t dma_tx;
 static spi_dma_t dma_rx;
 
-void spi_start (void)
+spi_cap_t spi_start (spi_slave_t *device)
 {
     static const periph_pin_t sck = {
         .function = Output_SPICLK,
@@ -104,14 +104,8 @@ void spi_start (void)
 
         init = true;
     }
-}
 
-void spi_set_speed (uint32_t freq_hz)
-{
-    uint32_t spi_freq = SPI_CLK;
-
-    if(freq_hz && freq_hz != spi_freq)
-  	    spi_set_baudrate(SPIPORT, (spi_freq = freq_hz));
+    return (spi_cap_t){ .started = On };
 }
 
 uint8_t spi_get_byte (void)
@@ -123,12 +117,14 @@ uint8_t spi_get_byte (void)
     return byte;
 }
 
-void spi_put_byte (uint8_t byte)
+uint8_t spi_put_byte (uint8_t byte)
 {
 	spi_write_blocking(SPIPORT, &byte, 1);
+
+    return 0;
 }
 
-void spi_write (uint8_t *data, uint16_t len)
+bool spi_write (uint8_t *data, uint16_t len)
 {
     if(len <= 2)
     	spi_write_blocking(SPIPORT, data, len);
@@ -142,9 +138,11 @@ void spi_write (uint8_t *data, uint16_t len)
         dma_start_channel_mask((1 << dma_tx.channel) | (1 << dma_rx.channel));
         dma_channel_wait_for_finish_blocking(dma_rx.channel);
     }
+
+    return true;
 }
 
-void spi_read (uint8_t *data, uint16_t len)
+bool spi_read (uint8_t *data, uint16_t len)
 {
     if(len <= 2) {
     	spi_read_blocking(SPIPORT, 0xFF, data, len);
@@ -158,6 +156,27 @@ void spi_read (uint8_t *data, uint16_t len)
         dma_start_channel_mask((1 << dma_tx.channel) | (1 << dma_rx.channel));
         dma_channel_wait_for_finish_blocking(dma_rx.channel);
     }
+
+    return true;
+}
+
+bool spi_select (spi_slave_t *device)
+{
+    static uint32_t spi_freq = SPI_CLK;
+
+    if(device->f_clock && device->f_clock != spi_freq)
+  	    spi_set_baudrate(SPIPORT, (spi_freq = device->f_clock));
+
+    DIGITAL_OUT(device->cs_pin, 0);
+
+    return true;
+}
+
+bool spi_deselect (spi_slave_t *device)
+{
+    DIGITAL_OUT(device->cs_pin, 1);
+
+    return true;
 }
 
 #endif // SPI_ENABLE

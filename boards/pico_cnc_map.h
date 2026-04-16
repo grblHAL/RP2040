@@ -130,7 +130,7 @@ typedef union {
 
 // Define flood and mist coolant enable output pins.
 #if COOLANT_ENABLE & COOLANT_FLOOD
-#define COOLANT_FLOOD_PIN           7
+#define COOLANT_FLOOD_PIN           21
 #endif
 #if COOLANT_ENABLE & COOLANT_MIST
 #define COOLANT_MIST_PIN            6
@@ -202,6 +202,8 @@ typedef union {
     #define SPI_IRQ_PIN       26
     #define SPI_RST_PORT      EXPANDER_PORT
     #define SPI_RST_PIN       15
+    #define WIZNET_CS_PIN     SPI_CS_PIN
+
 #else
     #define AUXINPUT5_PIN     26
   #if RGB_LED_ENABLE
@@ -246,3 +248,6 @@ typedef union {
 #error "I2C strobe pin not available, is assigned as Ethernet IRQ!" 
 #endif
 #endif
+
+#define MOTOR_FAULT_PORT EXPANDER_PORT
+#define X_MOTOR_FAULT_PIN 6

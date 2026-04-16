@@ -211,6 +211,7 @@
 #if ETHERNET_ENABLE
 #define SPI_CS_PIN              33
 #define SPI_IRQ_PIN             25
+#define WIZNET_CS_PIN           SPI_CS_PIN
 #endif
 
 #endif // SDCARD_ENABLE || ETHERNET_ENABLE

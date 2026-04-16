@@ -307,27 +307,4 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
 void ioports_event (input_signal_t *input);
 void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
-/**
-  \brief   Enable IRQ Interrupts
-  \details Enables IRQ interrupts by clearing the I-bit in the CPSR.
-           Can only be executed in Privileged modes.
- */
-
-// While waiting for CMSIS headers...:
-
-// static inline void __enable_irq(void)
-// {
-//   __asm volatile ("cpsie i" : : : "memory");
-// }
-
-/**
-  \brief   Disable IRQ Interrupts
-  \details Disables IRQ interrupts by setting the I-bit in the CPSR.
-           Can only be executed in Privileged modes.
- */
-// static inline  void __disable_irq(void)
-// {
-//   __asm volatile ("cpsid i" : : : "memory");
-// }
-
 #endif // __DRIVER_H__

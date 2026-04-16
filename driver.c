@@ -536,10 +536,19 @@ static output_signal_t outputpin[] = {
     { .id = Output_RTS,          .port = GPIO_OUTPUT,      .pin = RTS_PIN,               .group = PinGroup_UART },
 #endif
 #ifdef SD_CS_PIN
-    { .id = Output_SdCardCS,     .port = GPIO_OUTPUT,      .pin = SD_CS_PIN,             .group = PinGroup_SdCard },
+    { .id = Output_SdCardCS,     .port = GPIO_OUTPUT,      .pin = SD_CS_PIN,             .group = PinGroup_SPICS },
 #endif
 #ifdef SPI_CS_PIN
-    { .id = Output_SPICS,        .port = GPIO_OUTPUT,      .pin = SPI_CS_PIN,            .group = PinGroup_SPI },
+    { .id = Output_SPICS0,        .port = GPIO_OUTPUT,      .pin = SPI_CS_PIN,           .group = PinGroup_SPICS },
+#endif
+#ifdef SPI_CS1_PIN
+    { .id = Output_SPICS1,        .port = GPIO_OUTPUT,      .pin = SPI_CS1_PIN,          .group = PinGroup_SPICS },
+#endif
+#ifdef SPI_CS2_PIN
+    { .id = Output_SPICS2,        .port = GPIO_OUTPUT,      .pin = SPI_CS2_PIN,          .group = PinGroup_SPICS },
+#endif
+#ifdef SPI_CS3_PIN
+    { .id = Output_SPICS3,        .port = GPIO_OUTPUT,      .pin = SPI_CS3_PIN,          .group = PinGroup_SPICS },
 #endif
 #if add_pin(SPI_RST)
     { .id = Output_SPIRST,       .port = SPI_RST_PORT,     .pin = SPI_RST_PIN,           .group = PinGroup_SPI },
@@ -2890,7 +2899,7 @@ static bool driver_setup (settings_t *settings)
                 continue;
 
             gpio_init(outputpin[i].pin);
-            if(outputpin[i].id == PinGroup_StepperEnable || outputpin[i].id == Output_SdCardCS)
+            if(outputpin[i].group == PinGroup_StepperEnable || outputpin[i].group == PinGroup_SPICS)
                 DIGITAL_OUT(outputpin[i].pin, 1);
 
             gpio_set_dir_out_masked64(1ULL << outputpin[i].pin);
@@ -3061,7 +3070,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260324";
+    hal.driver_version = "260410";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME

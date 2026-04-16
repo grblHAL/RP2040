@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Some parts are copyright (c) 2021-2024 Terje Io
+  Some parts are copyright (c) 2021-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -315,11 +315,26 @@ static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_com
     return prev;
 }
 
+void tud_cdc_line_state_cb (uint8_t itf, bool dtr, bool rts)
+{
+    (void)itf;
+
+    if(hal.stream.on_linestate_changed) {
+ 
+        serial_linestate_t state = {
+            .dtr = dtr,
+            .rts = rts
+        };
+
+        hal.stream.on_linestate_changed(state);
+    }
+}
 const io_stream_t *usb_serialInit (void)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
         .state.is_usb = On,
+        .state.linestate_event = On,
         .is_connected = usb_is_connected,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,

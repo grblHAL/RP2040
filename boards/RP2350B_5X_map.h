@@ -37,7 +37,7 @@
 #undef I2C_ENABLE
 #define I2C_ENABLE    1
 #if !SPINDLE_ENCODER_ENABLE
-//#define SERIAL1_PORT  1
+#define SERIAL1_PORT  1
 #endif
 
 // Define step pulse output pins.
@@ -191,6 +191,7 @@
 #define SPI_CS_PIN              41
 #define SPI_IRQ_PIN             42
 //#define SPI_RST_PORT          43
+#define WIZNET_CS_PIN           SPI_CS_PIN
 #endif
 
 #endif // SDCARD_ENABLE || ETHERNET_ENABLE
