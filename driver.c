@@ -1891,6 +1891,23 @@ inline static void spindle_dir (bool ccw)
  //   UNUSED(ccw);
 }
 
+#else // no spindle on/dir signals
+
+inline static void spindle_on (spindle_ptrs_t *spindle)
+{
+    UNUSED(spindle);
+}
+
+inline static void spindle_off (spindle_ptrs_t *spindle)
+{
+    UNUSED(spindle);
+}
+
+inline static void spindle_dir (bool ccw)
+{
+    UNUSED(ccw);
+}
+
 #endif
 
 // Start or stop spindle
@@ -3031,17 +3048,17 @@ static void onReportOptions (bool newopt)
 
 #endif // USB_SERIAL_CDC
 
-#ifdef SD_SHIFT_REGISTER
+#if OUT_SHIFT_REGISTER
 
 extern void sr16_init (sr_reg_t *reg);
 
 void board_ports_init (void)
 {
+    sr16_init(&sr16);
+/*
     xbar_t *se;
     uint8_t port = 0;
 
-    sr16_init(&sr16);
-/*
     if(hal.port.claim(Port_Analog, Port_Output, &port, "")) {
         se = hal.port.get_pin_info(Port_Analog, Port_Output, port);
         se->set_function(se, Output_StepperEnable);
@@ -3070,7 +3087,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260410";
+    hal.driver_version = "260416";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3118,7 +3135,8 @@ bool driver_init (void)
     hal.control.get_state = systemGetState;
 
     hal.reboot = __NVIC_SystemReset;
-    
+    hal.irq_enable = __enable_irq;
+    hal.irq_disable = __disable_irq;
 #if I2C_STROBE_ENABLE || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
@@ -3432,7 +3450,7 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 #endif
 
 #if OUT_SHIFT_REGISTER
-    if(pio_claim_free_sm_and_add_program_for_gpio_range(&out_sr16_program, &sr16.pio, &sr16.sm, &pio_offset, OUT_SR_DATA_PIN, 3, false)) {
+    if(pio_claim_free_sm_and_add_program_for_gpio_range(&out_sr16_program, &sr16.pio, &sr16.sm, &pio_offset, OUT_SR_DATA_PIN, 3, OUT_SR_DATA_PIN > 29)) {
         out_sr16_program_init(sr16.pio, sr16.sm, pio_offset, OUT_SR_DATA_PIN, OUT_SR_SCK_PIN);
   #if SPI_RST_PORT == EXPANDER_PORT
         spi_reset_out(1);

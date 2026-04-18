@@ -44,6 +44,9 @@
 
 #if SDCARD_ENABLE
 
+#ifndef SDCARD_SPI_FREQ
+#define SDCARD_SPI_FREQ 12000000 // 12MHz
+#endif
 #ifndef SDCARD_USE_DMA
 #define SDCARD_USE_DMA 1
 #endif
@@ -162,7 +165,9 @@ void send_initial_clock_train(void)
 {
     unsigned int i = 10;
 
+#if SDCARD_ENABLE
     dev.f_clock = 400000;
+#endif
     SELECT();
 
     /* Ensure CS is held high. */
@@ -212,7 +217,7 @@ static
 void set_max_speed(void)
 {
 #if SDCARD_ENABLE
-    dev.f_clock = 12000000; // 12 MHz
+    dev.f_clock = SDCARD_SPI_FREQ;
 #endif
 }
 

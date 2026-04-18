@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2018-2025 Terje Io
+  Copyright (c) 2018-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #include "driver.h"
 
-#ifdef SD_SHIFT_REGISTER
+#ifdef OUT_SHIFT_REGISTER
 
 #include "hardware/pio.h"
 
@@ -32,7 +32,7 @@
 static uint16_t sr16_out = 0;
 static sr_reg_t *sr16;
 static io_ports_data_t digital;
-static xbar_t aux_out[16] = {};
+static xbar_t aux_out[OUT_SHIFT_REGISTER] = {};
 static enumerate_pins_ptr on_enumerate_pins;
 
 static void digital_out_ll (xbar_t *output, float value)
@@ -51,7 +51,8 @@ static void digital_out_ll (xbar_t *output, float value)
 
     if(last_out != sr16_out) {
         last_out = sr16_out;
-        out_sr16_write(sr16->pio, sr16->sm, sr16_out);
+        if(sr16->pio)
+            out_sr16_write(sr16->pio, sr16->sm, sr16_out);
     }
 }
 
@@ -161,10 +162,14 @@ void sr16_init (sr_reg_t *reg)
 
     hal.enumerate_pins(false, get_aux_max, &aux_out_base);
 
-    digital.out.n_ports = 16;
+    digital.out.n_ports = OUT_SHIFT_REGISTER;
 
     for(idx = 0; idx < digital.out.n_ports; idx++) {
+#if OUT_SHIFT_REGISTER == 8
+        uint8_t id = idx;
+#else
         uint8_t id = (idx > 7 ? idx - 8 : idx + 8);
+#endif
         aux_out[id].pin = id;
         aux_out[id].port = &sr16_out;
         aux_out[id].id = id;
