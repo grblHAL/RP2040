@@ -19,7 +19,7 @@
   You should have received a copy of the GNU General Public License
   along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
-
+#define USE_EXPANDERS
 #if TRINAMIC_ENABLE
 #error Trinamic plugin not supported!
 #endif
@@ -62,8 +62,8 @@
 #else
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
 #define AUXOUTPUT1_PIN          26
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-#define AUXOUTPUT2_PIN          27
+//#define AUXOUTPUT2_PORT         GPIO_OUTPUT
+//#define AUXOUTPUT2_PIN          27
 #endif
 #define AUXOUTPUT3_PORT         GPIO_OUTPUT // Spindle PWM
 #define AUXOUTPUT3_PIN          15
@@ -96,18 +96,23 @@
 
 // Define flood and mist coolant enable output pins.
 #if COOLANT_ENABLE
-#define COOLANT_PORT            GPIO_OUTPUT
+#define COOLANT_PORT            EXPANDER_PORT
 #endif
 #if COOLANT_ENABLE & COOLANT_FLOOD
-#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#define COOLANT_FLOOD_PIN       12
 #endif
 #if COOLANT_ENABLE & COOLANT_MIST
-#define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
+#define COOLANT_MIST_PIN        13
 #endif
 
 // Define auxiliary I/O
+#if SPINDLE_ENCODER_ENABLE
+#define SPINDLE_PULSE_PIN       21  // Must be an odd pin
+#define SPINDLE_INDEX_PIN       22
+#else
 #define AUXINPUT0_PIN           22
 #define AUXINPUT1_PIN           21
+#endif
 #define AUXINPUT2_PIN           28 // Probe
 #define AUXINPUT3_PIN           18 // Reset/EStop
 #define AUXINPUT4_PIN           19 // Feed hold
@@ -128,12 +133,14 @@
 #define PROBE_PIN               AUXINPUT2_PIN
 #endif
 
-#if SAFETY_DOOR_ENABLE
+#if SAFETY_DOOR_ENABLE && defined(AUXINPUT1_PIN)
 #define SAFETY_DOOR_PIN         AUXINPUT1_PIN
 #endif
 
+#if defined(AUXINPUT0_PIN)
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN          AUXINPUT0_PIN
 #elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN         AUXINPUT0_PIN
+#endif
 #endif
