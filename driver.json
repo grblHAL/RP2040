@@ -253,7 +253,8 @@
         "digital_out": 3,
         "i2c_strobe": 1,
         "wifi": 1,
-        "bluetooth": 1
+        "bluetooth": 1,
+        "spindle_sync": 1
       }
     },
     {
