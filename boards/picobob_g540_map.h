@@ -1,108 +1,143 @@
 /*
-  picobob_g540_map.h - driver code for RP2040 ARM processors
-
-  Part of grblHAL
-
-  Copyright (c) 2021-2023 Andrew Marles
-
-  grblHAL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  grblHAL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
+ENC运动控制器的头文件
 */
-
-#if TRINAMIC_ENABLE
-#error Trinamic plugin not supported!
-#endif
-
-#if N_ABC_MOTORS > 1
-#error "Axis configuration is not supported!"
-#endif
-
 #define BOARD_NAME "PicoBOB_G540"
-#define BOARD_URL "https://github.com/Expatria-Technologies/PicoBOB"
 
-// Define step pulse output pins.
-#define STEP_PORT             GPIO_PIO  // N_AXIS pin PIO SM
-#define STEP_PINS_BASE        17        // N_AXIS number of consecutive pins are used by PIO
+// MPG 串口定义
+#define SERIAL1_PORT 1
+#ifdef SERIAL1_PORT
+#define UART_1_RX_PIN 27
+#define UART_1_TX_PIN 99
+#endif
+// ###
 
-// Define step direction output pins.
-#define DIRECTION_PORT        GPIO_OUTPUT
-#define DIRECTION_OUTMODE     GPIO_MAP
-#define X_DIRECTION_PIN       9
-#define Y_DIRECTION_PIN       10
-#define Z_DIRECTION_PIN       11
+// P_IO 脉冲 17-21 ok
+#define STEP_PORT GPIO_PIO
+#define STEP_PINS_BASE 17
 
-// Define ganged axis or A axis step pulse and step direction output pins.
-#if N_ABC_MOTORS == 1
+// 轴方向      ok
+#define DIRECTION_PORT GPIO_OUTPUT
+#define X_DIRECTION_PIN 12
+#define Y_DIRECTION_PIN 13
+#define Z_DIRECTION_PIN 14
+#define M3_DIRECTION_PIN 15
+#define M4_DIRECTION_PIN 16
+#define DIRECTION_OUTMODE GPIO_SHIFT12
+
+// 限位组  ok
+#define X_LIMIT_PIN 23
+#define Y_LIMIT_PIN 24
+#define Z_LIMIT_PIN 25
+#define M3_LIMIT_PIN 26
+#define M4_LIMIT_PIN 30
+#define LIMIT_INMODE GPIO_MAP
+
 #define M3_AVAILABLE
-#define M3_DIRECTION_PIN      12
-#define M3_LIMIT_PIN          2
+#define M4_AVAILABLE
+
+// 轴 信号定义结束
+
+// 以上IO与PCB验证ok
+
+// //M3 M4 PWM M7 M8
+#define SPINDLE_PORT GPIO_OUTPUT
+#define SPINDLE_ENABLE_PIN 46
+
+#define SPINDLE_PWM_PIN 22
+
+#define SPINDLE_DIRECTION_PORT EXPANDER_PORT
+#define SPINDLE_DIRECTION_PIN 13
+// 然后 辅助输出1=P16
+// 辅助输出2=P13,辅助输出3到10等于PO-P7
+// TCA9535是 P0-P7端口 然后P10-P17端口
+//  //##
+
+#define HAS_BOARD_INIT
+#define USE_EXPANDERS // 必须宏展开
+
+#define COOLANT_PORT EXPANDER_PORT
+#define COOLANT_FLOOD_PIN 15
+#define COOLANT_MIST_PIN 12
+
+#define AUXOUTPUT0_PORT EXPANDER_PORT
+#define AUXOUTPUT0_PIN 14
+
+#define AUXOUTPUT1_PORT EXPANDER_PORT
+#define AUXOUTPUT1_PIN 11
+
+#define AUXOUTPUT2_PORT EXPANDER_PORT
+#define AUXOUTPUT2_PIN 0
+
+#define AUXOUTPUT3_PORT EXPANDER_PORT
+#define AUXOUTPUT3_PIN 1
+
+#define AUXOUTPUT4_PORT EXPANDER_PORT
+#define AUXOUTPUT4_PIN 2
+
+#define AUXOUTPUT5_PORT EXPANDER_PORT
+#define AUXOUTPUT5_PIN 3
+
+#define AUXOUTPUT6_PORT EXPANDER_PORT
+#define AUXOUTPUT6_PIN 4
+
+#define AUXOUTPUT7_PORT EXPANDER_PORT
+#define AUXOUTPUT7_PIN 5
+
+#define AUXOUTPUT8_PORT EXPANDER_PORT
+#define AUXOUTPUT8_PIN 6
+
+#define AUXOUTPUT9_PORT EXPANDER_PORT
+#define AUXOUTPUT9_PIN 7
+
+// 输入 启动 暂停 复位 急停  探测
+
+#define RESET_PIN AUXINPUT16_PIN   //急停
+
+#define FEED_HOLD_PIN AUXINPUT17_PIN //暂停
+
+#define PROBE_PIN AUXINPUT18_PIN   //探测
+
+#define AUXINPUT16_PIN 38
+#define AUXINPUT17_PIN 37
+#define AUXINPUT18_PIN 34
+//我的添加
+#define AUXINPUT23_PIN 36  //我的启动 AUXINPUT23_PIN 36号引脚
+#define AUXINPUT22_PIN 35  //我的复位 AUXINPUT22_PIN 35号引脚
+
+// 启动36 复位 35 我自行处理
+// ##
+
+// ok
+
+#if SPINDLE_ENCODER_ENABLE
+#define SPINDLE_PULSE_PIN 29 // Must be an odd pin
+#define SPINDLE_INDEX_PIN 28
 #endif
 
-// Define stepper driver enable/disable output pin.  This is not used on PicoBOB.
+// 输入 AUXINPUT0-15 使用本地IO ok
 
-// Define homing/hard limit switch input pins.  Currently configured so that X, Y and Z limit pins are shared.
-#define X_LIMIT_PIN           3
-#define Y_LIMIT_PIN           3
-#define Z_LIMIT_PIN           3
+#define AUXINPUT0_PIN 11
+#define AUXINPUT1_PIN 42
+#define AUXINPUT2_PIN 43
 
-// Define driver spindle pins
-// No direction signal on the Mach3 BOB.
-#define AUXOUTPUT0_PORT       GPIO_OUTPUT // Spindle PWM
-#define AUXOUTPUT0_PIN        16
-#define AUXOUTPUT1_PORT       GPIO_OUTPUT // Spindle enable
-#define AUXOUTPUT1_PIN        14
-#define AUXOUTPUT2_PORT       GPIO_OUTPUT // Coolant flood
-#define AUXOUTPUT2_PIN        13
+#define AUXINPUT3_PIN 44
+#define AUXINPUT4_PIN 45
 
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_PORT          GPIO_OUTPUT
-#endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
-#define SPINDLE_PWM_PIN       AUXOUTPUT0_PIN
-#endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
-#define SPINDLE_ENABLE_PIN    AUXOUTPUT1_PIN
-#endif
+#define AUXINPUT5_PIN 41
 
-//Stepper enable is replaced with coolant control
+#define AUXINPUT6_PIN 31
+#define AUXINPUT7_PIN 32
+#define AUXINPUT8_PIN 33
 
-#if COOLANT_ENABLE
-#define COOLANT_PORT        GPIO_OUTPUT
-#endif
-#if COOLANT_ENABLE & COOLANT_FLOOD
-#define COOLANT_FLOOD_PIN   AUXOUTPUT2_PIN
-#endif
-#if COOLANT_ENABLE & COOLANT_MIST
-#undef COOLANT_ENABLE
-#ifdef COOLANT_FLOOD_PIN
-#define COOLANT_ENABLE COOLANT_FLOOD
-#else
-#define COOLANT_ENABLE 0
-#endif
-#endif
+#define AUXINPUT9_PIN 39
+#define AUXINPUT10_PIN 40
 
-#define AUXINPUT0_PIN         4
-#define AUXINPUT1_PIN         5 // Reset/EStop
-#define AUXINPUT2_PIN         1 // Feed hold
+#define AUXINPUT11_PIN 2
+#define AUXINPUT12_PIN 3
 
-// Define user-control controls (cycle start, reset, feed hold) input pins.
-#if CONTROL_ENABLE & CONTROL_HALT
-#define RESET_PIN             AUXINPUT1_PIN
-#endif
-#if CONTROL_ENABLE & CONTROL_FEED_HOLD
-#define FEED_HOLD_PIN         AUXINPUT2_PIN
-#endif
+#define AUXINPUT13_PIN 8
+#define AUXINPUT14_PIN 9
+#define AUXINPUT15_PIN 10
 
-#if PROBE_ENABLE
-#define PROBE_PIN             AUXINPUT0_PIN
-#endif
+
+

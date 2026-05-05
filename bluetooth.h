@@ -1,10 +1,11 @@
 /*
+  bluetooth.h - An embedded CNC Controller with rs274/ngc (g-code) support
 
-  flash.h - driver code for RP2040 ARM processor
+  Bluetooth comms
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,13 +19,16 @@
 
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
-
 */
 
-#ifndef _flash_h_
-#define _flash_h_
+#ifndef _grbl_bluetooth_h_
+#define _grbl_bluetooth_h_
 
-bool memcpy_from_flash (uint8_t *dest);
-bool memcpy_to_flash (uint8_t *source);
+#include "grbl/grbl.h"
+
+bool bluetooth_init_local (void);
+bool bluetooth_start_local (void);
+char *bluetooth_get_device_mac (void);
+char *bluetooth_get_client_mac (void);
 
 #endif

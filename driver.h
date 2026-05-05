@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2026 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,12 +26,6 @@
 
 #ifndef __DRIVER_H__
 #define __DRIVER_H__
-
-#if RP_MCU == 2040
-#include "RP2040.h"
-#elif RP_MCU == 2350
-#include "RP2350.h"
-#endif
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -175,10 +169,8 @@
 #elif defined(BOARD_PICOBOB_DLX_G540)
   #include "boards/picobob_dlx_g540_map.h"
 #elif defined(BOARD_PICOHAL)
-  #include "boards/picohal_map.h"
-#elif defined(BOARD_FLEXIHAL2350)
-  #include "boards/flexihal2350_map.h"             
-#elif defined(BOARD_BTT_SKR_PICO_10) || defined(BOARD_BTT_SKR_PICO_10_HOTWIRE)
+  #include "boards/picohal_map.h"        
+#elif defined(BOARD_BTT_SKR_PICO_10)
   #include "boards/btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
   #include "boards/citoh_cx6000_map.h"
@@ -307,4 +299,31 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
 void ioports_event (input_signal_t *input);
 void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
+/**
+  \brief   Enable IRQ Interrupts
+  \details Enables IRQ interrupts by clearing the I-bit in the CPSR.
+           Can only be executed in Privileged modes.
+ */
+
+// While waiting for CMSIS headers...:
+
+static inline void __enable_irq(void)
+{
+  __asm volatile ("cpsie i" : : : "memory");
+}
+
+/**
+  \brief   Disable IRQ Interrupts
+  \details Disables IRQ interrupts by setting the I-bit in the CPSR.
+           Can only be executed in Privileged modes.
+ */
+static inline  void __disable_irq(void)
+{
+  __asm volatile ("cpsid i" : : : "memory");
+}
+
+
+// 让 irq_pins 和 gpio_int_handler 成为公共接口
+extern input_signal_t *irq_pins[NUM_BANK0_GPIOS];
+void gpio_int_handler(uint gpio, uint32_t events);
 #endif // __DRIVER_H__

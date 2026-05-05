@@ -1,10 +1,9 @@
 /*
+  spi.h - SPI support for SD card, Trinamic & networking (WizNet) plugins
 
-  flash.h - driver code for RP2040 ARM processor
+  Part of grblHAL driver for RP2040
 
-  Part of grblHAL
-
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,13 +17,16 @@
 
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
-
 */
 
-#ifndef _flash_h_
-#define _flash_h_
+#ifndef _GRBL_SPI_H_
+#define _GRBL_SPI_H_
 
-bool memcpy_from_flash (uint8_t *dest);
-bool memcpy_to_flash (uint8_t *source);
+void spi_start (void);
+uint32_t spi_set_speed (uint32_t freq_hz);
+uint8_t spi_get_byte (void);
+void spi_put_byte (uint8_t byte);
+void spi_write (uint8_t *data, uint16_t len);
+void spi_read (uint8_t *data, uint16_t len);
 
 #endif

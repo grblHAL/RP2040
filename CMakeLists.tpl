@@ -45,7 +45,6 @@ if(AddMyPlugin)
     my_plugin.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
-    boards/flexihal2350.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -78,7 +77,6 @@ else()
     tmc_uart.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
-    boards/flexihal2350.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -113,6 +111,7 @@ if(ADD_WIFI)
     target_compile_definitions(grblHAL PUBLIC NDEBUG)
     target_sources(grblHAL PRIVATE
      wifi.c
+     dhcpserver.c
     )
     target_link_libraries(grblHAL PRIVATE
      pico_cyw43_arch_lwip_poll
@@ -205,7 +204,6 @@ target_link_libraries(grblHAL PRIVATE
  tinyusb_device_unmarked
  pico_stdlib
  pico_unique_id
- cmsis_core
  hardware_dma
  hardware_uart
  hardware_pio

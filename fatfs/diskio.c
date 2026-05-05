@@ -15,6 +15,7 @@
 #include <stdbool.h>
 
 #include "driver.h"
+#include "spi.h"
 
 #include "ff.h"
 #include "diskio.h"
@@ -44,30 +45,22 @@
 
 #if SDCARD_ENABLE
 
-#ifndef SDCARD_SPI_FREQ
-#define SDCARD_SPI_FREQ 12000000 // 12MHz
-#endif
 #ifndef SDCARD_USE_DMA
 #define SDCARD_USE_DMA 1
 #endif
-
-static spi_slave_t dev = {
-    .cs_pin = SD_CS_PIN,
-    .f_clock = 400000
-};
 
 /* asserts the CS pin to the card */
 static inline
 void SELECT (void)
 {
-    spi_select(&dev);
+    DIGITAL_OUT(SD_CS_PIN, 0);
 }
 
 /* de-asserts the CS pin to the card */
 static inline
 void DESELECT (void)
 {
-    spi_deselect(&dev);
+    DIGITAL_OUT(SD_CS_PIN, 1);
 }
 
 #else
@@ -165,11 +158,6 @@ void send_initial_clock_train(void)
 {
     unsigned int i = 10;
 
-#if SDCARD_ENABLE
-    dev.f_clock = 400000;
-#endif
-    SELECT();
-
     /* Ensure CS is held high. */
     DESELECT();
 
@@ -200,11 +188,11 @@ void power_on (void)
 #if SDCARD_ENABLE
 
     if(!init) {
-        spi_start(&dev);
+        spi_start();
         init = true;
     }
 
-    dev.f_clock = 400000;
+    spi_set_speed(400000);
 
 #endif
 
@@ -217,7 +205,7 @@ static
 void set_max_speed(void)
 {
 #if SDCARD_ENABLE
-    dev.f_clock = SDCARD_SPI_FREQ;
+  	spi_set_speed(12000000); // 12 MHz
 #endif
 }
 

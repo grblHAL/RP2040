@@ -12,6 +12,8 @@
 
 #include "hardware/gpio.h"
 
+#include "spi.h"
+
 #include "socket.h"
 #if _WIZCHIP_ == W5500
 #include "W5500/w5500.h"
@@ -24,24 +26,30 @@
 #endif
 
 static struct {
+    uint32_t cs;
     uint32_t rst;
 } hw;
 static uint32_t spi_freq = 0;
 static void (*irq_callback)(void);
 static volatile bool spin_lock = false;
-static spi_slave_t dev = {
-    .cs_pin = WIZNET_CS_PIN,
-    .f_clock = WIZCHIP_SPI_FREQ
-};
 
 static void __not_in_flash_func(wizchip_select) (void)
 {
-    spi_select(&dev);
+    if(spi_freq != WIZCHIP_SPI_FREQ) {
+        uint32_t freq = spi_set_speed(WIZCHIP_SPI_FREQ);
+        if(freq != WIZCHIP_SPI_FREQ)
+            spi_freq = freq;
+    }
+
+    DIGITAL_OUT(hw.cs, 0);
 }
 
 static void __not_in_flash_func(wizchip_deselect) (void)
 {
-    spi_deselect(&dev);
+    DIGITAL_OUT(hw.cs, 1);
+
+    if(spi_freq != WIZCHIP_SPI_FREQ && spi_freq)
+        spi_set_speed(spi_freq);
 }
 
 static void __not_in_flash_func(wizchip_critical_section_lock) (void)
@@ -66,6 +74,11 @@ static bool __not_in_flash_func(wizchip_gpio_interrupt_callback) (uint_fast8_t i
 static void add_pin (xbar_t *gpio, void *data)
 {
   if(gpio->group == PinGroup_SPI) switch(gpio->function) {
+
+        case Output_SPICS:
+            hw.cs = gpio->pin;
+//            hal.periph_port.set_pin_description(gpio->function, gpio->group, "WizNet W5x00 CS");
+            break;
 
         case Output_SPIRST:
             hw.rst = gpio->pin;
@@ -101,14 +114,16 @@ wizchip_init_err_t wizchip_initialize (void)
 
     wizchip_deselect();
 
-    spi_start(&dev);
+    spi_start();
+    spi_set_speed(WIZCHIP_SPI_FREQ);
+
     wizchip_reset();
 
     reg_wizchip_cris_cbfunc(wizchip_critical_section_lock, wizchip_critical_section_unlock);
     reg_wizchip_cs_cbfunc(wizchip_select, wizchip_deselect);
-    reg_wizchip_spi_cbfunc(spi_get_byte, (void (*)(uint8_t))spi_put_byte);
+    reg_wizchip_spi_cbfunc(spi_get_byte, spi_put_byte);
 #if SPI_DMA_ENABLE
-    reg_wizchip_spiburst_cbfunc((void (*)(uint8_t*, uint16_t))spi_read, (void (*)(uint8_t*, uint16_t))spi_write);
+    reg_wizchip_spiburst_cbfunc(spi_read, spi_write);
 #endif
 
     /* W5x00 initialize */

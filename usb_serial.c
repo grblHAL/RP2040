@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Some parts are copyright (c) 2021-2026 Terje Io
+  Some parts are copyright (c) 2021-2024 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ static bool usb_is_connected(void)
     return tud_cdc_n_connected(0);
 }
 
-static void usb_out_chars (const uint8_t *buf, int length)
+static void usb_out_chars (const char *buf, int length)
 {
     static uint64_t last_avail_time;
 
@@ -137,7 +137,7 @@ static void usb_out_chars (const uint8_t *buf, int length)
     mutex_exit(&usb_mutex);
 }
 
-static int32_t usb_in_chars (uint8_t *buf, uint32_t length)
+static int32_t usb_in_chars (char *buf, uint32_t length)
 {
     uint32_t count = 0;
 
@@ -196,6 +196,19 @@ static void usb_serialRxCancel (void)
     rxbuf.head = BUFNEXT(rxbuf.head, rxbuf);
 }
 
+//
+// Writes a character to the USB output stream
+//
+static bool usb_serialPutC (const char c)
+{
+    static uint8_t buf[1];
+
+    *buf = c;
+    usb_out_chars(buf, 1);
+
+    return true;
+}
+
 bool _usb_write (void)
 {
     size_t txfree, length;
@@ -229,7 +242,7 @@ bool _usb_write (void)
 //
 // Writes a number of characters from string to the USB output stream, blocks if buffer full
 //
-static void usb_serialWrite (const uint8_t *s, uint16_t length)
+static void usb_serialWrite (const char *s, uint16_t length)
 {
     // Empty buffer first...
     if(txbuf.length && !_usb_write())
@@ -263,36 +276,19 @@ static void usb_serialWriteS (const char *s)
 }
 
 //
-// Writes a character to the USB output stream
-//
-static bool usb_serialPutC (const uint8_t c)
-{
-    static uint8_t s[2] = "";
-
-    *s = c;
-
-    if(txbuf.length)
-        usb_serialWriteS((char *)s);
-    else
-        usb_out_chars(s, 1);
-
-    return true;
-}
-
-//
 // serialGetC - returns -1 if no data available
 //
-static int32_t usb_serialGetC (void)
+static int16_t usb_serialGetC (void)
 {
     uint_fast16_t tail = rxbuf.tail;
 
     if(tail == rxbuf.head)
         return -1; // no data available
 
-    int32_t data = (int32_t)rxbuf.data[tail];   // Get next character, increment tmp pointer
-    rxbuf.tail = BUFNEXT(tail, rxbuf);          // and update pointer
+    char data = rxbuf.data[tail];       // Get next character, increment tmp pointer
+    rxbuf.tail = BUFNEXT(tail, rxbuf); // and update pointer
 
-    return data;
+    return (int16_t)data;
 }
 
 static bool usb_serialSuspendInput (bool suspend)
@@ -300,7 +296,7 @@ static bool usb_serialSuspendInput (bool suspend)
     return stream_rx_suspend(&rxbuf, suspend);
 }
 
-static bool usbEnqueueRtCommand (uint8_t c)
+static bool usbEnqueueRtCommand (char c)
 {
     return enqueue_realtime_command(c);
 }
@@ -315,27 +311,12 @@ static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_com
     return prev;
 }
 
-void tud_cdc_line_state_cb (uint8_t itf, bool dtr, bool rts)
-{
-    (void)itf;
-
-    if(hal.stream.on_linestate_changed) {
- 
-        serial_linestate_t state = {
-            .dtr = dtr,
-            .rts = rts
-        };
-
-        hal.stream.on_linestate_changed(state);
-    }
-}
 const io_stream_t *usb_serialInit (void)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
         .state.is_usb = On,
-        .state.linestate_event = On,
-        .is_connected = usb_is_connected,
+        .is_connected = stream_connected,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
         .write_n = usb_serialWrite,
@@ -377,14 +358,14 @@ const io_stream_t *usb_serialInit (void)
 static void execute_realtime (uint_fast16_t state)
 {
     static volatile bool lock = false;
-    static uint8_t tmpbuf[BLOCK_RX_BUFFER_SIZE];
+    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
 
     on_execute_realtime(state);
 
     if(lock)
         return;
 
-    uint8_t c, *dp;
+    char c, *dp;
     int32_t avail, free;
  
     lock = true;

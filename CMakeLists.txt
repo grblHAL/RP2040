@@ -23,10 +23,10 @@ option(ADD_BLUETOOTH "Add Bluetooth" OFF)
 option(ADD_mDNS "Add mDNS service" OFF) 
 option(ADD_MQTT "Add MQTT client API" OFF)
 #
-option(AddMyPlugin "Add my_plugin.c to build" OFF)
+option(AddMyPlugin "Add my_plugin.c to build" on)
 
 # Select the correct board in VSCode, the following line will be updated accordingly
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD pimoroni_pga2350 CACHE STRING "Board type")
 
 include(pico_sdk_import.cmake)
 
@@ -57,11 +57,11 @@ if(ADD_HPGL)
     include(hpgl/CMakeLists.txt)
 endif()
 
-project(grblHAL)
+project(5X)
 pico_sdk_init()
 
 if(AddMyPlugin)
-    add_executable(grblHAL
+    add_executable(5X
     main.c
     driver.c
     serial.c
@@ -70,21 +70,20 @@ if(AddMyPlugin)
     flash.c
     i2c.c
     spi.c
-    thcad2.c
     sr16_out.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
     my_plugin.c
+    boards/my_board.c
     boards/pico_cnc.c
-    boards/flexihal2350.c
     boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
     )
 else()
-    add_executable(grblHAL
+    add_executable(5X
     main.c
     driver.c
     serial.c
@@ -93,13 +92,11 @@ else()
     flash.c
     i2c.c
     spi.c
-    thcad2.c
     sr16_out.c
     ioports.c
     ioports_analog.c
     tmc_uart.c
     boards/pico_cnc.c
-    boards/flexihal2350.c
     boards/btt_skr_pico_10.c
     littlefs/lfs.c
     littlefs/lfs_util.c
@@ -107,40 +104,49 @@ else()
     )
 endif()
 
-pico_generate_pio_header(grblHAL ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
+
+# 在这里添加编译日期定义
+string(TIMESTAMP BUILD_DATE "%Y%m%d")
+target_compile_definitions(5X PUBLIC BUILD_DATE="${BUILD_DATE}")
+## 添加编译日期
+
+pico_generate_pio_header(5X ${CMAKE_CURRENT_LIST_DIR}/driverPIO.pio)
 
 if(PICO_BOARD STREQUAL "pico" OR PICO_BOARD STREQUAL "pico_w")
-target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
+target_compile_definitions(5X PUBLIC RP_MCU=2040)
 if(PICO_SDK_VERSION_STRING VERSION_GREATER_EQUAL "2.1.1")
-target_compile_definitions(grblHAL PUBLIC PICO_USE_FASTEST_SUPPORTED_CLOCK=1)
+target_compile_definitions(5X PUBLIC PICO_USE_FASTEST_SUPPORTED_CLOCK=1)
 endif()
 else()
-target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
+target_compile_definitions(5X PUBLIC RP_MCU=2350)
+# 晶振启动延迟乘数，解决慢起振晶振问题（默认值6，增大可延长等待时间）
+target_compile_definitions(5X PUBLIC PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64)
 endif()
-target_compile_definitions(grblHAL PUBLIC RP2040)
-target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
-#target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
+target_compile_definitions(5X PUBLIC RP2040)
+target_compile_definitions(5X PUBLIC NEW_FATFS)
+#target_compile_definitions(5X PUBLIC LITTLEFS_ENABLE=1)
 
 if(ADD_WIFI)
-    target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)
-    target_compile_definitions(grblHAL PUBLIC NDEBUG)
-    target_sources(grblHAL PRIVATE
+    target_compile_definitions(5X PUBLIC WIFI_ENABLE=1)
+    target_compile_definitions(5X PUBLIC NDEBUG)
+    target_sources(5X PRIVATE
      wifi.c
+     dhcpserver.c
     )
-    target_link_libraries(grblHAL PRIVATE
+    target_link_libraries(5X PRIVATE
      pico_cyw43_arch_lwip_poll
     )
 endif()
 
 if(ADD_ETHERNET)
-    target_compile_definitions(grblHAL PUBLIC ETHERNET_ENABLE=1)
-    target_compile_definitions(grblHAL PUBLIC CYW43_LWIP=0)
-    target_compile_definitions(grblHAL PUBLIC LWIP_NOASSERT)
+    target_compile_definitions(5X PUBLIC ETHERNET_ENABLE=1)
+    target_compile_definitions(5X PUBLIC CYW43_LWIP=0)
+    target_compile_definitions(5X PUBLIC LWIP_NOASSERT)
     include(networking/wiznet/CMakeLists.txt)
-    target_sources(grblHAL PRIVATE
+    target_sources(5X PRIVATE
      w5x00_ll_driver.c
     )
-    target_link_libraries(grblHAL PRIVATE
+    target_link_libraries(5X PRIVATE
      wiznet
      pico_lwip
      pico_lwip_nosys
@@ -148,78 +154,78 @@ if(ADD_ETHERNET)
 endif()
 
 if(ADD_WIFI OR ADD_ETHERNET)
-    target_compile_definitions(grblHAL PUBLIC WEBUI_AUTO_REPORT_INTERVAL=0)
+    target_compile_definitions(5X PUBLIC WEBUI_AUTO_REPORT_INTERVAL=0)
     if(ADD_mDNS)
-        target_compile_definitions(grblHAL PUBLIC LWIP_IGMP=1)
-        target_compile_definitions(grblHAL PUBLIC LWIP_NUM_NETIF_CLIENT_DATA=1)
-        target_compile_definitions(grblHAL PUBLIC LWIP_MDNS_RESPONDER=1)
-        target_compile_definitions(grblHAL PUBLIC MDNS_MAX_SERVICES=8)
-        target_compile_definitions(grblHAL PUBLIC MDNS_ENABLE=1)
-        target_sources(grblHAL PRIVATE
+        target_compile_definitions(5X PUBLIC LWIP_IGMP=1)
+        target_compile_definitions(5X PUBLIC LWIP_NUM_NETIF_CLIENT_DATA=1)
+        target_compile_definitions(5X PUBLIC LWIP_MDNS_RESPONDER=1)
+        target_compile_definitions(5X PUBLIC MDNS_MAX_SERVICES=8)
+        target_compile_definitions(5X PUBLIC MDNS_ENABLE=1)
+        target_sources(5X PRIVATE
          ${lwipmdns_SRCS}
         )
     endif()
     if(ADD_MQTT)
-        target_compile_definitions(grblHAL PUBLIC MQTT_ENABLE=1)
-        target_sources(grblHAL PRIVATE
+        target_compile_definitions(5X PUBLIC MQTT_ENABLE=1)
+        target_sources(5X PRIVATE
          ${lwipmqtt_SRCS}
         )
-        target_link_libraries(grblHAL PRIVATE
+        target_link_libraries(5X PRIVATE
             pico_lwip_mqtt
         )
     endif()
-    target_link_libraries(grblHAL PRIVATE
+    target_link_libraries(5X PRIVATE
      networking
      webui
     )
 endif()
 
 if(ADD_BLUETOOTH)
-    target_compile_definitions(grblHAL PUBLIC BLUETOOTH_ENABLE=1)
-    target_compile_definitions(grblHAL PUBLIC NDEBUG)
-    target_sources(grblHAL PRIVATE
+    target_compile_definitions(5X PUBLIC BLUETOOTH_ENABLE=1)
+    target_compile_definitions(5X PUBLIC NDEBUG)
+    target_sources(5X PRIVATE
      bt_native.c
     )
-    target_include_directories(grblHAL PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
-    target_link_libraries(grblHAL PRIVATE
+    target_include_directories(5X PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
+    target_link_libraries(5X PRIVATE
      pico_btstack_classic 
      pico_btstack_ble
      pico_btstack_cyw43
     )
     if(NOT ADD_WIFI)
-        target_compile_definitions(grblHAL PUBLIC CYW43_LWIP=0)
-        target_link_libraries(grblHAL PRIVATE
+        target_compile_definitions(5X PUBLIC CYW43_LWIP=0)
+        target_link_libraries(5X PRIVATE
          pico_cyw43_arch_poll
         )
     endif()
 endif()
 
 if(AddMyPlugin)
-    target_sources(grblHAL PRIVATE
+    target_sources(5X PRIVATE
      my_plugin.c
     )
 endif()
 
 if(ADD_HPGL)
-    target_sources(grblHAL PRIVATE
+    target_sources(5X PRIVATE
      boards/citoh_cx6000.c
     )
-    target_link_libraries(grblHAL PRIVATE
+    target_link_libraries(5X PRIVATE
      hpgl
     )
 endif()
 
-target_include_directories(grblHAL PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(5X PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 if(PICO_PLATFORM STREQUAL "rp2040" OR PICO_BOARD STREQUAL "pico" OR PICO_BOARD STREQUAL "pico_w")
-target_compile_definitions(grblHAL PUBLIC RP_MCU=2040)
-target_link_libraries(grblHAL PRIVATE
+target_compile_definitions(5X PUBLIC RP_MCU=2040)
+target_link_libraries(5X PRIVATE
  hardware_rtc
 )
 else()
-target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
+target_compile_definitions(5X PUBLIC RP_MCU=2350)
 endif()
 
-target_link_libraries(grblHAL PRIVATE
+target_link_libraries(5X PRIVATE
  grbl
  fatfs
  sdcard
@@ -237,7 +243,6 @@ target_link_libraries(grblHAL PRIVATE
  tinyusb_device_unmarked
  pico_stdlib
  pico_unique_id
- cmsis_core
  hardware_dma
  hardware_uart
  hardware_pio
@@ -247,9 +252,10 @@ target_link_libraries(grblHAL PRIVATE
  hardware_pwm
  hardware_clocks
  hardware_flash
+ pico_multicore
 )
 
-pico_add_extra_outputs(grblHAL)
+pico_add_extra_outputs(5X)
 
 unset(PICO_BOARD CACHE)
 unset(ADD_WIFI CACHE)

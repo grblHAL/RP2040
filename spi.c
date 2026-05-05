@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for RP2040
 
-  Copyright (c) 2020-2026 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,8 @@
 #define SPIDMARX SPIdreqRX(SPI_PORT)
 #define SPIDMATX SPIdreqTX(SPI_PORT)
 
-#define SPI_CLK 8000000
+
+static uint32_t spi_freq = 400000;
 
 typedef struct
 {
@@ -51,7 +52,7 @@ typedef struct
 static spi_dma_t dma_tx;
 static spi_dma_t dma_rx;
 
-spi_cap_t spi_start (spi_slave_t *device)
+void spi_start (void)
 {
     static const periph_pin_t sck = {
         .function = Output_SPICLK,
@@ -78,7 +79,7 @@ spi_cap_t spi_start (spi_slave_t *device)
 
     if(!init) {
 
-        spi_init(SPIPORT, SPI_CLK);
+        spi_init(SPIPORT, spi_freq);
         gpio_set_function(SPI_SCK_PIN, GPIO_FUNC_SPI);
         gpio_set_function(SPI_MISO_PIN, GPIO_FUNC_SPI);
         gpio_set_function(SPI_MOSI_PIN, GPIO_FUNC_SPI);
@@ -104,8 +105,16 @@ spi_cap_t spi_start (spi_slave_t *device)
 
         init = true;
     }
+}
 
-    return (spi_cap_t){ .started = On };
+uint32_t spi_set_speed (uint32_t freq_hz)
+{
+    uint32_t cur = spi_freq;
+
+    if(freq_hz != 0)
+  	    spi_set_baudrate(SPIPORT, spi_freq = freq_hz);
+
+    return cur;
 }
 
 uint8_t spi_get_byte (void)
@@ -117,14 +126,12 @@ uint8_t spi_get_byte (void)
     return byte;
 }
 
-uint8_t spi_put_byte (uint8_t byte)
+void spi_put_byte (uint8_t byte)
 {
 	spi_write_blocking(SPIPORT, &byte, 1);
-
-    return 0;
 }
 
-bool spi_write (uint8_t *data, uint16_t len)
+void spi_write (uint8_t *data, uint16_t len)
 {
     if(len <= 2)
     	spi_write_blocking(SPIPORT, data, len);
@@ -138,11 +145,9 @@ bool spi_write (uint8_t *data, uint16_t len)
         dma_start_channel_mask((1 << dma_tx.channel) | (1 << dma_rx.channel));
         dma_channel_wait_for_finish_blocking(dma_rx.channel);
     }
-
-    return true;
 }
 
-bool spi_read (uint8_t *data, uint16_t len)
+void spi_read (uint8_t *data, uint16_t len)
 {
     if(len <= 2) {
     	spi_read_blocking(SPIPORT, 0xFF, data, len);
@@ -156,27 +161,6 @@ bool spi_read (uint8_t *data, uint16_t len)
         dma_start_channel_mask((1 << dma_tx.channel) | (1 << dma_rx.channel));
         dma_channel_wait_for_finish_blocking(dma_rx.channel);
     }
-
-    return true;
-}
-
-bool spi_select (spi_slave_t *device)
-{
-    static uint32_t spi_freq = SPI_CLK;
-
-    if(device->f_clock && device->f_clock != spi_freq)
-  	    spi_set_baudrate(SPIPORT, (spi_freq = device->f_clock));
-
-    DIGITAL_OUT(device->cs_pin, 0);
-
-    return true;
-}
-
-bool spi_deselect (spi_slave_t *device)
-{
-    DIGITAL_OUT(device->cs_pin, 1);
-
-    return true;
 }
 
 #endif // SPI_ENABLE

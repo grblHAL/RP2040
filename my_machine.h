@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021-2026 Terje Io
+  Copyright (c) 2021-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,14 +22,18 @@
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
 //#define BOARD_PICO_CNC
-//#define BOARD_RP23U5XBB
+//#define BOARD_RP23U5XBB  //这个为控制板
+#define BOARD_PICOBOB_G540  //然后G540为ENC控制板
+
+
+
+
 //#define BOARD_PICOBOB
 //#define BOARD_PICOBOB_G540
 //#define BOARD_PICOBOB_DLX
 //#define BOARD_PICOBOB_DLX_G540
 //#define BOARD_PICOHAL
-//#define BOARD_BTT_SKR_PICO_10
-//#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
+//#define BOARD_BTT_SKR_PICO_10 // incomplete and untested!
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_CITOH_CX6000    // C.ITOH CX-6000 HPGL plotter
 //#define BOARD_GENERIC_4AXIS
@@ -38,6 +42,12 @@
 
 // Configuration
 // Uncomment to enable.
+
+// 自定义GRBL参数默认值
+// $22回零使能参数默认值=107 (二进制:0b01101011)
+// bit0=1:启用回零功能
+// bit1=1:允许单轴回零命令
+// 归零配置已移至grbl/config.h中的默认值
 
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
@@ -64,12 +74,17 @@
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins. Requires WiFi enabled.
 //#define WEBUI_AUTH_ENABLE       1 // Enable ESP3D-WEBUI authentication.
 //#define WEBUI_INFLASH           0 // Uncomment to store WebUI files on SD card instead of in flash (littlefs).
-//#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+
+#ifdef  BOARD_RP23U5XBB
+#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+#endif
+
 //#define MPG_ENABLE              2 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
                                     // 1: Mode switching is by handshake pin.
                                     // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
-//#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
+#define KEYPAD_ENABLE           2 // 1: uses a I2C keypad for input.
                                     // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
+#define KEYPAD_STREAM 1    //采用串口1                                
 //#define DISPLAY_ENABLE          9 // Set to 9 for I2C display protocol, 17 for I2C LED protocol.
 //#define ODOMETER_ENABLE         1 // Odometer plugin.
 //#define PLASMA_ENABLE           1 // Plasma (THC) plugin. To be completed.
@@ -97,7 +112,6 @@
 //#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
 //#define MCP4725_ENABLE          1 // MCP3221 I2C ADC input, default address is 0xC0 (MCP3221_ADDRESS).
 //#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
-//#define THCAD2_ENABLE           1 // Mesa THCAD2 analog to frequency converter. Not yet completed!
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
