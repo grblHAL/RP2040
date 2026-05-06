@@ -84,6 +84,7 @@ inline static void spindle_dir (bool ccw)
 
 #else
 
+#ifndef SPINDLE_PORT
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
 #define SPINDLE_PORT SPINDLE_ENABLE_PORT
 #else
@@ -91,6 +92,7 @@ inline static void spindle_dir (bool ccw)
 #endif
 #if (DRIVER_SPINDLE_ENABLE & SPINDLE_DIR) && SPINDLE_PORT != SPINDLE_DIRECTION_PORT
 #error "Cannot mix port types for PWM0 enable and direction!"
+#endif
 #endif
 
 #if SPINDLE_PORT == GPIO_OUTPUT
@@ -412,6 +414,7 @@ inline static void spindle1_dir (bool ccw)
 
 #else
 
+#ifndef SPINDLE1_PORT
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_ENA
 #define SPINDLE1_PORT SPINDLE1_ENABLE_PORT
 #else
@@ -419,6 +422,7 @@ inline static void spindle1_dir (bool ccw)
 #endif
 #if (DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR) && SPINDLE1_PORT != SPINDLE1_DIRECTION_PORT
 #error "Cannot mix port types for PWM1 enable and direction!"
+#endif
 #endif
 
 #if SPINDLE1_ENABLE_PORT == GPIO_OUTPUT
