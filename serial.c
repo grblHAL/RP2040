@@ -391,9 +391,16 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 
     if(!serial[0].flags.init_ok) {
 
+#if RP_MCU == 2350 && (UART_TX_PIN % 4) == 2
+        gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART_AUX);
+#else
         gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+#endif
+#if RP_MCU == 2350 && (UART_RX_PIN % 4) == 3
+        gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART_AUX);
+#else
         gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-    
+#endif
         uart_init(UART_PORT, baud_rate);
 
         uart_set_hw_flow(UART_PORT, false, false);
@@ -636,12 +643,12 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
 
     if(!serial[1].flags.init_ok) {
 
-#if UART_1_TX_PIN == 38 // RP2350 
+#if RP_MCU == 2350 && (UART_1_TX_PIN % 4) == 2
         gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART_AUX);
 #else
         gpio_set_function(UART_1_TX_PIN, GPIO_FUNC_UART);
 #endif
-#if UART_1_RX_PIN == 27 // RP2350
+#if RP_MCU == 2350 && (UART_1_RX_PIN % 4) == 3
         gpio_set_function(UART_1_RX_PIN, GPIO_FUNC_UART_AUX);
 #else
         gpio_set_function(UART_1_RX_PIN, GPIO_FUNC_UART);

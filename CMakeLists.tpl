@@ -35,6 +35,7 @@ if(AddMyPlugin)
     serial.c
     usb_serial.c
     stdio_usb_descriptors.c
+    driver_spindles.c
     flash.c
     i2c.c
     spi.c
@@ -69,6 +70,7 @@ else()
     serial.c
     usb_serial.c
     stdio_usb_descriptors.c
+    driver_spindles.c
     flash.c
     i2c.c
     spi.c

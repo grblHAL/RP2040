@@ -33,6 +33,11 @@ static bool find_port (xbar_t *properties, uint8_t port, void *data)
     return found;
 }
 
+void motor_fault_add_pin (input_signal_t *input, xbar_t *pin)
+{
+    // NOOP
+}
+
 void board_init (void)
 {
     uint8_t port;

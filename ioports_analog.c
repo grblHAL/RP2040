@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2023-2025 Terje Io
+  Copyright (c) 2023-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "driver.h"
 
 #include "hardware/gpio.h"
+#include "hardware/adc.h"
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
 
@@ -85,10 +86,34 @@ static bool analog_out (uint8_t port, float value)
     return port < analog.out.n_ports;
 }
 
+static inline int32_t _adc_read (input_signal_t *adc)
+{
+    int32_t value = -1;
+
+    if(adc) {
+        adc_select_input(adc->port);
+        value = (int32_t)adc_read();
+    }
+
+    return value;
+}
+
+static float analog_in_state (xbar_t *input)
+{
+    return input->id < analog.in.n_ports ? (float)_adc_read(&aux_in_analog[input->id]) : -1.0f;
+}
+
+static int32_t wait_on_input (uint8_t port, wait_mode_t wait_mode, float timeout)
+{
+    return port < analog.in.n_ports ? _adc_read(&aux_in_analog[port]) : -1;
+}
+
 static bool set_function (xbar_t *port, pin_function_t function)
 {
-    if(port->mode.output)
+    if(port->mode.input)
         aux_in_analog[port->id].id = function;
+    else
+        aux_out_analog[port->id].id = function;
 
     return port->mode.output;
 }
@@ -102,6 +127,21 @@ static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
     memset(&pin, 0, sizeof(xbar_t));
 
     switch(dir) {
+
+        case Port_Input:
+            if(port < analog.in.n_ports) {
+                pin.id = port;
+                pin.mode = aux_in_analog[port].mode;
+                pin.cap = aux_in_analog[port].cap;
+                pin.function = aux_in_analog[port].id;
+                pin.group = aux_in_analog[port].group;
+                pin.pin = aux_in_analog[port].pin;
+                pin.port = (void *)aux_in_analog[port].port;
+                pin.description = aux_in_analog[port].description;
+                pin.get_value = analog_in_state;
+                info = &pin;
+            }
+            break;
 
         case Port_Output: 
             if(port < analog.out.n_ports) {
@@ -141,7 +181,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
         .ports = &analog,
         .analog_out = analog_out,
         .get_pin_info = get_pin_info,
-//        .wait_on_input = wait_on_input,
+        .wait_on_input = wait_on_input,
         .set_pin_description = set_pin_description
     };
 
@@ -154,6 +194,17 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
     if(ioports_add_analog(&ports)) {
 
         uint_fast8_t i, n_pwm = 0;
+
+        if(aux_inputs->n_pins) {
+
+            adc_init();
+
+            for(i = 0; i < aux_inputs->n_pins; i++) {
+                adc_gpio_init(aux_inputs->pins.inputs[i].pin);
+                aux_inputs->pins.inputs[i].cap.resolution = Resolution_12bit;
+                aux_inputs->pins.inputs[i].port = aux_inputs->pins.inputs[i].pin - (aux_inputs->pins.inputs[i].pin >= 40 ? 40 : 26);
+            }
+        }
 
         if(analog.out.n_ports) {
 

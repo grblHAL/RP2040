@@ -133,7 +133,11 @@
 #define AUXINPUT0_PIN               22 // Probe
 #ifndef M3_LIMIT_PIN
 #define AUXINPUT1_PIN               16 // E0 limit
+#if PLASMA_ENABLE
+#define AUXINPUT2_PIN               29 // Servo
+#else
 #define AUXOUTPUT0_PWM_PIN          29 // Servo
+#endif
 #else
 #if CONTROL_ENABLE & CONTROL_HALT
 #define AUXINPUT1_PIN               29 // Reset/E-Stop (Servo - NOTE: this pin has no input filtering/protection)
@@ -152,6 +156,9 @@
 #if PROBE_ENABLE
 #define PROBE_PIN                   AUXINPUT0_PIN
 #endif
+
+#define AUXINPUT0_ANALOG_PIN        26 // THB
+#define AUXINPUT1_ANALOG_PIN        27 // TH0
 
 #if RGB_LED_ENABLE
 #define NEOPIXELS_PIN               24

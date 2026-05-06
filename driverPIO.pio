@@ -3,7 +3,7 @@
 ;
 ;  Part of grblHAL
 ;
-;  Copyright (c) 2021-2025 Terje Io
+;  Copyright (c) 2021-2026 Terje Io
 ;  Copyright (c) 2021 Volksolive
 ;
 ;  grblHAL is free software: you can redistribute it and/or modify
@@ -72,7 +72,7 @@ static inline void stepper_timer_irq_clear(PIO pio) {
 %}
 
 ;
-; step_pulse: Generate step pulses for up to 6 axes with settable delay and pulse length
+; step_pulse: Generate step pulses for up to 6 motors with settable delay and pulse length
 ;
 .program step_pulse
 
@@ -88,15 +88,24 @@ delay:
 
 % c-sdk {
 static inline void step_pulse_program_init(PIO pio, uint32_t sm, uint32_t offset, uint32_t startPin, uint32_t pinCount, float div) {
+
+    uint64_t mask = 0;
+
     pio_sm_config c = step_pulse_program_get_default_config(offset); 
 
     // Map the state machine's OUT pin group to the provided pin in pin count in parameters
     sm_config_set_out_pins(&c, startPin, pinCount);
+ 
     // Set these pins GPIO function (connect PIO to the pad)
-    for(uint32_t i = 0; i < pinCount; i++)
+    for(uint32_t i = 0; i < pinCount; i++) {
         pio_gpio_init(pio, startPin+i);
+        mask = (mask << 1ULL) | 1ULL;
+    }
+    mask <<= startPin;
+
     // Set the pin direction to output at the PIO
-    pio_sm_set_consecutive_pindirs(pio, sm, startPin, pinCount, true);
+     pio_sm_set_pindirs_with_mask64(pio, sm, mask, mask);
+
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_clkdiv(pio, sm, div);
@@ -110,7 +119,7 @@ static inline void step_pulse_generate(PIO pio, uint32_t sm, uint32_t stepPulse)
 %}
 
 ;
-; step_dir_sr4: Generate dir signals and step pulses for up to 4 axes with settable delay and settable pulse length
+; step_dir_sr4: Generate dir signals and step pulses for up to 4 motors with settable delay and settable pulse length
 ;               via a single 74HC595 shift register. Delay and pulse length timings are handled by separate programs.
 ;
 .program step_dir_sr4
@@ -146,13 +155,16 @@ loop3:
 % c-sdk {
 #include "hardware/gpio.h"
 static inline void step_dir_sr4_program_init(PIO pio, uint32_t sm, uint32_t offset, uint32_t dataPin, uint32_t bckPin) {
+
+    uint64_t mask = (3ULL << bckPin) | (1ULL << dataPin);
+
     pio_sm_config c = step_dir_sr4_program_get_default_config(offset);
     sm_config_set_out_pins(&c, dataPin, 1);
     sm_config_set_sideset_pins(&c, bckPin);
     sm_config_set_clkdiv(&c, 1);
 
-    pio_sm_set_pins_with_mask(pio, sm, (3u << bckPin) | (1u << dataPin), (3u << bckPin) | (1u << dataPin));
-    pio_sm_set_pindirs_with_mask(pio, sm, (3u << bckPin) | (1u << dataPin), (3u << bckPin) | (1u << dataPin));
+    pio_sm_set_pins_with_mask64(pio, sm, mask, mask);
+    pio_sm_set_pindirs_with_mask64(pio, sm, mask, mask);
     pio_gpio_init(pio, dataPin);
     pio_gpio_init(pio, bckPin);
     pio_gpio_init(pio, bckPin + 1);
