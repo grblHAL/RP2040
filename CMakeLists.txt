@@ -240,6 +240,7 @@ target_link_libraries(grblHAL PRIVATE
  pico_stdlib
  pico_unique_id
  cmsis_core
+ hardware_adc
  hardware_dma
  hardware_uart
  hardware_pio
