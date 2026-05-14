@@ -43,10 +43,12 @@ typedef struct {
 
 motor_pins_t fault_signals = {};
 
-void motor_fault_add_pin (input_signal_t *input, xbar_t *pin)
+void input_add_expander_pin (xbar_t *input)
 {
-    fault_signals.motor[fault_signals.n_pins].pin = (xbar_t)*pin;
-    fault_signals.motor[fault_signals.n_pins++].axis = xbar_fault_pin_to_axis(pin->function);
+    if(xbar_is_motor_fault_in(input->function)){
+        fault_signals.motor[fault_signals.n_pins].pin = (xbar_t)*input;
+        fault_signals.motor[fault_signals.n_pins++].axis = xbar_fault_pin_to_axis(input->function);
+    }
 }
 
 static void poll_motor_fault (void *data)
