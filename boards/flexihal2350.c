@@ -120,13 +120,13 @@ static void driverSetup (void *data)
         hal_control_get_state = hal.control.get_state;
         hal.control.get_state = getControlState;
     }
+
+    if(hal.probe.select)
+        hal.probe.select(Probe_Default);
 }
 
 bool onProbeSelect (probe_id_t probe_id)
 {
-    gpio_in_config_t config0 = {0};
-    gpio_in_config_t config1 = {0};
-
     switch(probe_id) {
 
         case Probe_Default:
