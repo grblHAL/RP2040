@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2024-2025 Terje Io
+  Copyright (c) 2024-2026 Terje Io
   Copyright (c) 2024 PL Barrett
 
   grblHAL is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 
 #undef I2C_ENABLE
 #define I2C_ENABLE    1
-#if !SPINDLE_ENCODER_ENABLE
+#if !(SPINDLE_ENCODER_ENABLE || THCAD2_ENABLE)
 #define SERIAL1_PORT  1
 #endif
 
@@ -130,18 +130,18 @@
 
 //
 
-#if SPINDLE_ENCODER_ENABLE
-#define SPINDLE_PULSE_PIN       29  // Must be an odd pin
-#define SPINDLE_INDEX_PIN       28
-#else
 #define AUXINPUT0_PIN           29
-#define AUXINPUT1_PIN           28
-#endif
-
-#ifndef SERIAL1_PORT
+#if SPINDLE_ENCODER_ENABLE
+#define SPINDLE_PULSE_PIN       27  // Input select to UART1 -> RX
+#define SPINDLE_INDEX_PIN       28
+#elif THCAD2_ENABLE
+#define THCAD2_PIN              27  // Input select to UART1 -> RX
+#elif !defined(SERIAL1_PORT)
 #define AUXINPUT2_PIN           27
 #endif
-
+#ifndef SPINDLE_INDEX_PIN
+#define AUXINPUT1_PIN           28
+#endif
 #define AUXINPUT3_PIN           7  // Probe
 #define AUXINPUT4_PIN           8  // Safety door or motor fault
 #define AUXINPUT5_PIN           32 // I2C strobe pin
