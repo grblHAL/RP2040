@@ -31,7 +31,7 @@
 #include "grbl/task.h"
 
 #ifdef USE_EXPANDERS
-extern xbar_t *iox_out[N_AUX_DOUT_MAX];
+extern xbar_t *iox_out[N_AUX_DOUT];
 #endif
 
 #if PPI_ENABLE
