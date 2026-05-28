@@ -51,6 +51,9 @@
 #define I2C_ENABLE    1
 #define EEPROM_ENABLE 128
 
+#ifdef LITTLEFS_ENABLE
+#undef LITTLEFS_ENABLE
+#endif
 #define LITTLEFS_ENABLE 0
 
 // Define step pulse output pins.
@@ -143,7 +146,6 @@
 #define AUXINPUT9_PIN           30  // Cycle Start / RN
 
 #define AUXINPUT10_PIN          8   // I2C strobe pin
-#define AUXINPUT11_PIN          31  // Expander MCU_IRQ Pin
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 #if CONTROL_ENABLE & CONTROL_HALT
@@ -160,17 +162,17 @@
 #define SAFETY_DOOR_PIN         AUXINPUT8_PIN
 #endif
 
-#if PROBE_ENABLE == 2
-#define AUXINPUT12_PIN          39  // Probe
-#define PROBE_PIN               AUXINPUT12_PIN
-#endif
-
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN          AUXINPUT10_PIN
 #endif
 
-#if FLEXGPIO_IRQ_ENABLE
-#define FLEXGPIO_IRQ_PIN        11 //AUXINPUT NUMBER
+#if FLEXGPIO_ENABLE
+#define AUXINPUT11_PIN          31  // Expander MCU_IRQ Pin
+#define FLEXGPIO_IRQ_PIN        11  // AUXINPUT NUMBER
+#if PROBE_ENABLE
+#define AUXINPUT12_PIN          39  // Probe
+#define PROBE_PIN               AUXINPUT12_PIN
+#endif
 #endif
 
 // /Define per axis fault pins on expander

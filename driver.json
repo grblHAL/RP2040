@@ -244,6 +244,11 @@
         "sdcard": 1,
         "serial_ports": 2,
         "wiznet": 5500
+      },
+      "symbols": {
+          "RP_MCU": "2350",
+          "PROBE_ENABLE": 2,
+          "FLEXGPIO_ENABLE": 1
       }
     },
     {
