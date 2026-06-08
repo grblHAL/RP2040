@@ -247,8 +247,8 @@
       },
       "symbols": {
           "RP_MCU": "2350",
-          "PROBE_ENABLE": 2,
-          "FLEXGPIO_ENABLE": 1
+          "N_AUX_DIN": 40,
+          "N_AUX_DOUT": 40
       }
     },
     {
