@@ -169,15 +169,15 @@
 #elif defined(BOARD_PICOBOB)
   #include "boards/picobob_map.h"
 #elif defined(BOARD_PICOBOB_G540)
-  #include "boards/picobob_g540_map.h"  
+  #include "boards/picobob_g540_map.h"
 #elif defined(BOARD_PICOBOB_DLX)
-  #include "boards/picobob_dlx_map.h" 
+  #include "boards/picobob_dlx_map.h"
 #elif defined(BOARD_PICOBOB_DLX_G540)
   #include "boards/picobob_dlx_g540_map.h"
 #elif defined(BOARD_PICOHAL)
   #include "boards/picohal_map.h"
 #elif defined(BOARD_FLEXIHAL2350)
-  #include "boards/flexihal2350_map.h"             
+  #include "boards/flexihal2350_map.h"
 #elif defined(BOARD_BTT_SKR_PICO_10) || defined(BOARD_BTT_SKR_PICO_10_HOTWIRE)
   #include "boards/btt_skr_pico_10_map.h"
 #elif defined BOARD_CITOH_CX6000
@@ -188,6 +188,8 @@
   #include "boards/generic_map_4axis.h"
 #elif defined(BOARD_GENERIC_8AXIS)
   #include "boards/generic_map_8axis.h"
+#elif defined(BOARD_SLB_LITE)
+  #include "boards/slblite_map.h"
 #else // default board
   #include "boards/generic_map.h"
 #endif

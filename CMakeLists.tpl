@@ -47,6 +47,7 @@ if(AddMyPlugin)
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
     boards/flexihal2350.c
+    boards/slblite.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -81,6 +82,7 @@ else()
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
     boards/flexihal2350.c
+    boards/slblite.c
     eeprom/eeprom_24AAxxx.c
     eeprom/eeprom_24LC16B.c
     keypad/keypad.c
@@ -168,7 +170,7 @@ if(ADD_BLUETOOTH)
     )
     target_include_directories(grblHAL PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
     target_link_libraries(grblHAL PRIVATE
-     pico_btstack_classic 
+     pico_btstack_classic
      pico_btstack_ble
      pico_btstack_cyw43
     )
