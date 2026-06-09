@@ -311,7 +311,7 @@
         "symbol": "BOARD_SLB_LITE",
         "MAP": "boards/slblite_map.h",
         "caps": {
-          "axes": 4,
+          "axes": 5,
           "i2c_strobe": 0,
           "wifi": 0,
           "bluetooth": 0,
@@ -324,7 +324,7 @@
         },
         "symbols": {
             "RP_MCU": "2350",
-            "RP_BOARD": "pico2"
+            "RP_BOARD": "pimoroni_pga2350"
         }
       }
   ]
