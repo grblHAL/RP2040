@@ -23,9 +23,21 @@
 
 #if defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)
 
+#include "grbl/task.h"
+
+// Shift register Output Enable — pulled LOW at boot to enable 74HCT595 outputs.
+// task_run_on_startup pattern from Ooznest example:
+// https://github.com/Ooznest/ESP32/blob/master/main/boards/ooznest_cnc.c
+static void sr_oe_init (void *arg)
+{
+    gpio_init(OUT_SR_OE_PIN);
+    gpio_set_dir(OUT_SR_OE_PIN, GPIO_OUT);
+    gpio_put(OUT_SR_OE_PIN, 0);
+}
+
 void board_init (void)
 {
-  // Blank Template
+    task_run_on_startup(sr_oe_init, NULL);
 }
 
 #endif // defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)

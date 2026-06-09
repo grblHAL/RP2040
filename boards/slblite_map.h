@@ -65,6 +65,7 @@
 #define OUT_SHIFT_REGISTER       8 // How many bits are used in the shift register, 8 for 74HCT595
 #define OUT_SR_DATA_PIN         32 // Data Pin
 #define OUT_SR_SCK_PIN          33 // Clock Pin (includes next pin (34) automatically as Latch)
+#define OUT_SR_OE_PIN           26 // Output Enable (active low)
 
 // Define step pulse output pins: PIO Peripheral: Define Base Pin and then consecutive pins for the number of axes are assigned automatically
 #define STEP_PORT               GPIO_PIO  // N_AXIS pin PIO SM
@@ -82,8 +83,6 @@
 #define XY_ENABLE_PIN           0
 #define Z_ENABLE_PORT           EXPANDER_PORT
 #define Z_ENABLE_PIN            1
-#define A_ENABLE_PORT           EXPANDER_PORT
-#define A_ENABLE_PIN            1
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN             6
