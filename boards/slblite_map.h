@@ -82,8 +82,6 @@
 #define XY_ENABLE_PIN           0
 #define Z_ENABLE_PORT           EXPANDER_PORT
 #define Z_ENABLE_PIN            1
-#define A_ENABLE_PORT           EXPANDER_PORT
-#define A_ENABLE_PIN            1
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PIN             6
