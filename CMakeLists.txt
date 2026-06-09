@@ -20,7 +20,7 @@ option(ADD_WIFI "Add WiFi networking" OFF)
 option(ADD_ETHERNET "Add Ethernet networking" OFF)
 option(ADD_BLUETOOTH "Add Bluetooth" OFF)
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
-option(ADD_mDNS "Add mDNS service" OFF) 
+option(ADD_mDNS "Add mDNS service" OFF)
 option(ADD_MQTT "Add MQTT client API" OFF)
 #
 option(AddMyPlugin "Add my_plugin.c to build" OFF)
@@ -80,6 +80,7 @@ if(AddMyPlugin)
     boards/pico_cnc.c
     boards/flexihal2350.c
     boards/btt_skr_pico_10.c
+    boards/slblite.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -103,6 +104,7 @@ else()
     boards/pico_cnc.c
     boards/flexihal2350.c
     boards/btt_skr_pico_10.c
+    boards/slblite.c
     littlefs/lfs.c
     littlefs/lfs_util.c
     littlefs_hal.c
@@ -184,7 +186,7 @@ if(ADD_BLUETOOTH)
     )
     target_include_directories(grblHAL PRIVATE ${PICO_SDK_PATH}/lib/btstack/src)
     target_link_libraries(grblHAL PRIVATE
-     pico_btstack_classic 
+     pico_btstack_classic
      pico_btstack_ble
      pico_btstack_cyw43
     )
