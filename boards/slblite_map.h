@@ -105,9 +105,10 @@
 
 // Modbus RTU: Spindle/VFD
 #define SERIAL1_PORT  1 // Modbus RTU
+#define SERIAL1_PORT_PIO // Use the PIO-backed UART implementation for SERIAL1_PORT.
 #ifdef SERIAL1_PORT
-  #define UART_1_RX_PIN           37
-  #define UART_1_TX_PIN           36
+  #define UART_1_RX_PIN           36
+  #define UART_1_TX_PIN           37
 #endif
 #if MODBUS_ENABLE
   #define MODBUS_RTU_STREAM       1
