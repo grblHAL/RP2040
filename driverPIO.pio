@@ -310,7 +310,13 @@ static inline void out_sr8_write(PIO pio, uint32_t sm, uint32_t data) {
 %}
 
 ;
-; uart_tx: simple 8N1 UART transmitter
+; uart_tx / uart_rx: simple 8N1 UART implementation
+;
+; Based on the Raspberry Pi pico-examples PIO UART examples:
+;   pio/uart_tx
+;   pio/uart_rx
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
 ;
 .program uart_tx
 .side_set 1 opt
