@@ -316,6 +316,9 @@ static inline void out_sr8_write(PIO pio, uint32_t sm, uint32_t data) {
 ;   pio/uart_tx
 ;   pio/uart_rx
 ;
+; SPDX-FileCopyrightText: 2020 Raspberry Pi (Trading) Ltd.
+; SPDX-License-Identifier: BSD-3-Clause
+;
 ; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
 ;
 .program uart_tx
