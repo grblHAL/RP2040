@@ -168,6 +168,9 @@
   #define X_MOTOR_FAULT_PIN       AUXINPUT2_PIN
   #define Y_MOTOR_FAULT_PIN       AUXINPUT3_PIN
   #define Z_MOTOR_FAULT_PIN       AUXINPUT4_PIN
+  // Satisfy the generic single-pin motor-fault sanity check.
+  // SLB Lite overrides control-state handling in board_init() to aggregate per-axis faults.
+  #define MOTOR_FAULT_PIN         X_MOTOR_FAULT_PIN
   #ifdef M3_AVAILABLE
     #define M3_MOTOR_FAULT_PIN      AUXINPUT1_PIN
   #endif

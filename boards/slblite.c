@@ -24,6 +24,108 @@
 #if defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)
 
 #include "grbl/task.h"
+#include "grbl/state_machine.h"
+
+static control_signals_get_state_ptr hal_control_get_state;
+static stepper_status_t stepper_status = {};
+
+typedef struct {
+    uint8_t n_pins;
+    struct {
+        uint8_t axis;
+        bool secondary;
+        input_signal_t *input;
+    } motor[N_ABC_MOTORS + 3];
+} motor_pins_t;
+
+static motor_pins_t fault_signals = {};
+
+void motor_fault_add_pin (input_signal_t *input, xbar_t *pin)
+{
+    fault_signals.motor[fault_signals.n_pins].input = input;
+    fault_signals.motor[fault_signals.n_pins].axis = xbar_fault_pin_to_axis(pin->function);
+    fault_signals.motor[fault_signals.n_pins++].secondary = pin->function >= Input_MotorFaultX2;
+}
+
+static void update_motor_fault_status (void)
+{
+    uint_fast8_t idx;
+
+    stepper_status.fault.state = 0;
+
+    if(!settings.motor_fault_enable.mask)
+        return;
+
+    for(idx = 0; idx < fault_signals.n_pins; idx++) {
+
+        if(bit_istrue(settings.motor_fault_enable.mask, bit(fault_signals.motor[idx].axis))) {
+
+            input_signal_t *input = fault_signals.motor[idx].input;
+            bool inverted = bit_istrue(settings.motor_fault_invert.mask, bit(fault_signals.motor[idx].axis));
+
+            if((DIGITAL_IN(input->pin) != 0) ^ inverted)
+                xbar_stepper_state_set(&stepper_status.fault, fault_signals.motor[idx].axis, fault_signals.motor[idx].secondary);
+        }
+    }
+}
+
+static void motor_fault_irq_handler (uint8_t port, bool state)
+{
+    (void)port;
+    (void)state;
+
+    update_motor_fault_status();
+
+    if(stepper_status.fault.state && !(state_get() & (STATE_ALARM|STATE_ESTOP))) {
+        control_signals_t signals = hal_control_get_state();
+        signals.motor_fault = On;
+        hal.control.interrupt_callback(signals);
+    }
+}
+
+static stepper_status_t getDriverStatus (bool reset)
+{
+    if(reset)
+        stepper_status.fault.state = 0;
+    else
+        update_motor_fault_status();
+
+    return stepper_status;
+}
+
+static control_signals_t getControlState (void)
+{
+    control_signals_t state = hal_control_get_state();
+
+    update_motor_fault_status();
+    state.motor_fault = stepper_status.fault.state != 0;
+
+    return state;
+}
+
+static void motor_fault_init (void *arg)
+{
+    uint_fast8_t idx;
+
+    if(!fault_signals.n_pins)
+        return;
+
+    hal.signals_cap.motor_fault = On;
+    hal.stepper.status = getDriverStatus;
+
+    hal_control_get_state = hal.control.get_state;
+    hal.control.get_state = getControlState;
+
+    for(idx = 0; idx < fault_signals.n_pins; idx++) {
+        input_signal_t *input = fault_signals.motor[idx].input;
+
+        input->mode.irq_mode = IRQ_Mode_Change;
+        input->interrupt_callback = motor_fault_irq_handler;
+        pinEnableIRQ(input, input->mode.irq_mode);
+    }
+
+    update_motor_fault_status();
+}
 
 // Shift register Output Enable — pulled LOW at boot to enable 74HCT595 outputs.
 // task_run_on_startup pattern from Ooznest example:
@@ -38,6 +140,7 @@ static void sr_oe_init (void *arg)
 void board_init (void)
 {
     task_run_on_startup(sr_oe_init, NULL);
+    task_run_on_startup(motor_fault_init, NULL);
 }
 
 #endif // defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)
