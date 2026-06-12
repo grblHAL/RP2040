@@ -23,11 +23,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "pico/time.h"
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
+#include "hardware/pio.h"
 
 #include "driver.h"
+#include "driverPIO.pio.h"
 #include "grbl/protocol.h"
 #include "grbl/pin_bits_masks.h"
 
@@ -74,6 +77,15 @@ static stream_rx_buffer_t rx1buf = {0};
 static const io_stream_t *serial1Init (uint32_t baud_rate);
 static enqueue_realtime_command_ptr enqueue_realtime_command2;
 static void uart1_interrupt_handler (void);
+
+#ifdef SERIAL1_PORT_PIO
+static PIO serial1_pio_tx = NULL, serial1_pio_rx = NULL;
+static uint serial1_sm_tx, serial1_sm_rx, serial1_offset_tx, serial1_offset_rx;
+static int serial1_irq_tx = PIO0_IRQ_1, serial1_irq_rx = PIO0_IRQ_1;
+static uint32_t serial1_char_time_us = 0;
+static uint64_t serial1_tx_deadline = 0;
+static bool serial1_rx_enabled = false;
+#endif
 
 #else
 #define SERIAL1_PORT -1
@@ -481,6 +493,271 @@ static int32_t serial1GetC (void)
     return data;
 }
 
+#ifdef SERIAL1_PORT_PIO
+
+static void serial1TxFlush (void)
+{
+    if(serial1_pio_tx) {
+        pio_set_irqn_source_enabled(serial1_pio_tx, 1, pio_get_tx_fifo_not_full_interrupt_source(serial1_sm_tx), false);
+        pio_sm_set_enabled(serial1_pio_tx, serial1_sm_tx, false);
+        pio_sm_clear_fifos(serial1_pio_tx, serial1_sm_tx);
+        pio_sm_restart(serial1_pio_tx, serial1_sm_tx);
+        pio_sm_exec(serial1_pio_tx, serial1_sm_tx, pio_encode_jmp(serial1_offset_tx));
+        pio_sm_set_enabled(serial1_pio_tx, serial1_sm_tx, true);
+        serial1_tx_deadline = 0;
+    }
+
+    tx1buf.tail = tx1buf.head;
+}
+
+static uint16_t serial1RxCount (void)
+{
+    uint_fast16_t head = rx1buf.head, tail = rx1buf.tail;
+
+    return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
+}
+
+static uint16_t serial1RxFree (void)
+{
+    return RX_BUFFER_SIZE - 1 - serial1RxCount();
+}
+
+static void serial1RxFlush (void)
+{
+    if(serial1_pio_rx) {
+        while(!pio_sm_is_rx_fifo_empty(serial1_pio_rx, serial1_sm_rx))
+            (void)*((io_rw_8 *)&serial1_pio_rx->rxf[serial1_sm_rx] + 3);
+    }
+ 
+    rx1buf.tail = rx1buf.head;
+    rx1buf.overflow = false;
+}
+
+static void __not_in_flash_func(serial1RxCancel) (void)
+{
+    rx1buf.overflow = false;
+    rx1buf.tail = rx1buf.head;
+    rx1buf.data[rx1buf.head] = ASCII_CAN;
+    rx1buf.head = BUFNEXT(rx1buf.head, rx1buf);
+}
+
+static bool serial1PutC (const uint8_t c)
+{
+    uint_fast16_t next_head;
+
+    if(serial1_pio_tx && pio_sm_is_tx_fifo_empty(serial1_pio_tx, serial1_sm_tx) && tx1buf.tail == tx1buf.head) {
+        pio_sm_put(serial1_pio_tx, serial1_sm_tx, (uint32_t)c);
+        serial1_tx_deadline = max(serial1_tx_deadline, time_us_64()) + serial1_char_time_us;
+        return true;
+    }
+
+    // Write data in the Buffer is transmit interrupt activated or TX FIFO is                                                                
+    next_head = BUFNEXT(tx1buf.head, tx1buf);                   // Get and update head pointer
+
+    while(tx1buf.tail == next_head) {                           // Buffer full, block until space is available...
+        if(!hal.stream_blocking_callback())
+            return false;
+    }
+
+    tx1buf.data[tx1buf.head] = c;                               // Add data to buffer
+    tx1buf.head = next_head;                                    // and update head pointer
+
+    if(serial1_pio_tx)
+        pio_set_irqn_source_enabled(serial1_pio_tx, 1, pio_get_tx_fifo_not_full_interrupt_source(serial1_sm_tx), true);
+
+    return true;
+}
+
+static void serial1WriteS (const char *data)
+{
+    uint8_t c, *ptr = (uint8_t *)data;
+
+    while((c = *ptr++) != '\0')
+        serial1PutC(c);
+}
+
+static void serial1Write (const uint8_t *s, uint16_t length)
+{
+    uint8_t *ptr = (uint8_t *)s;
+
+    while(length--)
+        serial1PutC(*ptr++);
+}
+
+static bool serial1SuspendInput (bool suspend)
+{
+    return stream_rx_suspend(&rx1buf, suspend);
+}
+
+static uint16_t serial1TxCount (void) {
+
+    uint_fast16_t head = tx1buf.head, tail = tx1buf.tail;
+
+    uint16_t count = BUFCOUNT(head, tail, TX_BUFFER_SIZE);
+
+    if(serial1_pio_tx) {
+        count += (uint16_t)pio_sm_get_tx_fifo_level(serial1_pio_tx, serial1_sm_tx);
+        if(serial1_tx_deadline > time_us_64())
+            count++;
+    }
+
+    return count;
+}
+
+static bool serial1SetBaudRate (uint32_t baud_rate)
+{
+    stream_status[1].baud_rate = baud_rate;
+
+    serial1_char_time_us = (10 * 1000000UL + (baud_rate - 1)) / baud_rate;
+    if(serial1_pio_tx)
+        uart_tx_program_set_baud(serial1_pio_tx, serial1_sm_tx, baud_rate);
+    if(serial1_pio_rx)
+        uart_rx_program_set_baud(serial1_pio_rx, serial1_sm_rx, baud_rate);
+
+    return true;
+}
+
+static bool serial1SetFormat (serial_format_t format)
+{
+    (void)format;
+    return false;
+}
+
+static bool serial1Disable (bool disable)
+{
+    serial1_rx_enabled = !disable;
+
+    if(serial1_pio_rx)
+        pio_set_irqn_source_enabled(serial1_pio_rx, 1, pio_get_rx_fifo_not_empty_interrupt_source(serial1_sm_rx), !disable);
+
+    return true;
+}
+
+static bool serial1EnqueueRtCommand (uint8_t c)
+{
+    return enqueue_realtime_command2(c);
+}
+
+static enqueue_realtime_command_ptr serial1SetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command2;
+
+    if(handler)
+        enqueue_realtime_command2 = handler;
+
+    return prev;
+}
+
+static const io_stream_t *serial1Init (uint32_t baud_rate)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .instance = 1,
+        .is_connected = stream_connected,
+        .read = serial1GetC,
+        .write = serial1WriteS,
+        .write_char = serial1PutC,
+        .write_n = serial1Write,
+        .enqueue_rt_command = serial1EnqueueRtCommand,
+        .get_rx_buffer_free = serial1RxFree,
+        .get_rx_buffer_count = serial1RxCount,
+        .get_tx_buffer_count = serial1TxCount,
+        .reset_read_buffer = serial1RxFlush,
+        .cancel_read_buffer = serial1RxCancel,
+        .reset_write_buffer = serial1TxFlush,
+        .disable_rx = serial1Disable,
+        .suspend_read = serial1SuspendInput,
+        .set_baud_rate = serial1SetBaudRate,
+        .set_format = NULL,
+        .set_enqueue_rt_handler = serial1SetRtHandler
+    };
+
+    if(!serial[1].flags.claimable || serial[1].flags.claimed)
+        return NULL;
+
+    serial[1].flags.claimed = On;
+
+    if(!serial[1].flags.init_ok) {
+
+        bool ok = pio_claim_free_sm_and_add_program_for_gpio_range(&uart_tx_program, &serial1_pio_tx, &serial1_sm_tx, &serial1_offset_tx, UART_1_TX_PIN, 1, true);
+
+        if(ok) {
+            serial1_irq_tx = pio_get_irq_num(serial1_pio_tx, 1);
+            uart_tx_program_init(serial1_pio_tx, serial1_sm_tx, serial1_offset_tx, UART_1_TX_PIN, baud_rate);
+        }
+
+        if(ok)
+            ok = pio_claim_free_sm_and_add_program_for_gpio_range(&uart_rx_program, &serial1_pio_rx, &serial1_sm_rx, &serial1_offset_rx, UART_1_RX_PIN, 1, true);
+
+        if(ok) {
+            serial1_irq_rx = pio_get_irq_num(serial1_pio_rx, 1);
+            uart_rx_program_init(serial1_pio_rx, serial1_sm_rx, serial1_offset_rx, UART_1_RX_PIN, baud_rate);
+        }
+
+        if(!ok) {
+            serial[1].flags.claimed = Off;
+            return NULL;
+        }
+
+        serial1_char_time_us = (10 * 1000000UL + (baud_rate - 1)) / baud_rate;
+        serial1_rx_enabled = true;
+
+        serial1RxFlush();
+        irq_set_exclusive_handler(serial1_irq_rx, uart1_interrupt_handler);
+        irq_set_enabled(serial1_irq_rx, true);
+        if(serial1_irq_tx != serial1_irq_rx) {
+            irq_set_exclusive_handler(serial1_irq_tx, uart1_interrupt_handler);
+            irq_set_enabled(serial1_irq_tx, true);
+        }
+        pio_set_irqn_source_enabled(serial1_pio_rx, 1, pio_get_rx_fifo_not_empty_interrupt_source(serial1_sm_rx), true);
+
+        serial[1].flags.init_ok = On;
+    }
+
+    stream_set_defaults(&stream, baud_rate);
+
+    return &stream;
+}
+
+static void __not_in_flash_func(uart1_interrupt_handler)(void)
+{
+    if(serial1_pio_rx && serial1_rx_enabled) {
+        io_rw_8 *rxfifo_shift = (io_rw_8 *)&serial1_pio_rx->rxf[serial1_sm_rx] + 3;
+
+        while(!pio_sm_is_rx_fifo_empty(serial1_pio_rx, serial1_sm_rx)) {
+            uint8_t data = *rxfifo_shift;
+
+            if(!enqueue_realtime_command2(data)) {
+                uint_fast16_t next_head = BUFNEXT(rx1buf.head, rx1buf);
+
+                if(next_head == rx1buf.tail)
+                    rx1buf.overflow = true;
+                else {
+                    rx1buf.data[rx1buf.head] = data;
+                    rx1buf.head = next_head;
+                }
+            }
+        }
+    }
+
+    if(serial1_pio_tx) {
+        uint_fast16_t tail = tx1buf.tail;
+
+        while(!pio_sm_is_tx_fifo_full(serial1_pio_tx, serial1_sm_tx) && tail != tx1buf.head) {
+            pio_sm_put(serial1_pio_tx, serial1_sm_tx, tx1buf.data[tail]);
+            serial1_tx_deadline = max(serial1_tx_deadline, time_us_64()) + serial1_char_time_us;
+            tail = BUFNEXT(tail, tx1buf);
+        }
+
+        tx1buf.tail = tail;
+
+        if(tx1buf.tail == tx1buf.head)
+            pio_set_irqn_source_enabled(serial1_pio_tx, 1, pio_get_tx_fifo_not_full_interrupt_source(serial1_sm_tx), false);
+    }
+}
+
+#else // SERIAL1_PORT_PIO
+
 static void serial1TxFlush (void)
 {
     tx1buf.tail = tx1buf.head;
@@ -495,7 +772,7 @@ static uint16_t serial1RxCount (void)
 
 static uint16_t serial1RxFree (void)
 {
-    return RX_BUFFER_SIZE - 1 - serialRxCount();
+    return RX_BUFFER_SIZE - 1 - serial1RxCount();
 }
 
 static void serial1RxFlush (void)
@@ -529,7 +806,7 @@ static bool serial1PutC (const uint8_t c)
             hw_set_bits(&UART_1->imsc, UART_UARTIMSC_TXIM_BITS); // Enable transmit interrupt
     }
 
-    // Write data in the Buffer is transmit interrupt activated or TX FIFO is                                                                
+    // Write data in the Buffer is transmit interrupt activated or TX FIFO is
     next_head = BUFNEXT(tx1buf.head, tx1buf);                   // Get and update head pointer
 
     while(tx1buf.tail == next_head) {                           // Buffer full, block until space is available...
@@ -595,6 +872,8 @@ static bool serial1Disable (bool disable)
         hw_clear_bits(&UART_1->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);       
     else
         hw_set_bits(&UART_1->imsc, UART_UARTIMSC_RXIM_BITS|UART_UARTIMSC_RTIM_BITS);
+
+    return true;
 }
 
 static bool serial1EnqueueRtCommand (uint8_t c)
@@ -706,5 +985,7 @@ static void __not_in_flash_func(uart1_interrupt_handler)(void)
             hw_clear_bits(&UART_1->imsc, UART_UARTIMSC_TXIM_BITS);
     }
 }
+
+#endif // SERIAL1_PORT_PIO
 
 #endif // SERIAL1_PORT

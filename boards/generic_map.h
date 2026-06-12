@@ -133,6 +133,13 @@
 #define PROBE_PIN               AUXINPUT2_PIN
 #endif
 
+// Optional: route SERIAL1_PORT through the PIO-backed UART instead of the hardware UART.
+// The current PIO implementation supports 8N1 framing.
+// #define SERIAL1_PORT           1
+// #define SERIAL1_PORT_PIO
+// #define UART_1_RX_PIN          36
+// #define UART_1_TX_PIN          37
+
 #if SAFETY_DOOR_ENABLE && defined(AUXINPUT1_PIN)
 #define SAFETY_DOOR_PIN         AUXINPUT1_PIN
 #endif
