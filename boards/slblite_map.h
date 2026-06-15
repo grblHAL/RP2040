@@ -51,6 +51,9 @@
 #define AUXOUTPUT7_PORT         GPIO_OUTPUT // Unused Spare Output on Expansion Header
 #define AUXOUTPUT7_PIN          47
 
+#define HOME_INDICATOR_XYZA_PIN AUXOUTPUT0_PIN
+#define HOME_INDICATOR_Z_PIN    AUXOUTPUT1_PIN
+
 #define AUXINPUT0_PIN           11 // Motor fault M4
 #define AUXINPUT1_PIN           10 // Motor fault M3
 #define AUXINPUT2_PIN            7 // Motor fault X
