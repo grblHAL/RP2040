@@ -20,6 +20,8 @@
 ;  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 ;
 
+; Note: UART PIO code is Copyright (c) 2020 Raspberry Pi (Trading) Ltd. and is covered by a BSD-3-Clause license
+
 ;
 ; stepper_timer: Generates the main stepper interrupt
 ;
@@ -321,6 +323,7 @@ static inline void out_sr8_write(PIO pio, uint32_t sm, uint32_t data) {
 ;
 ; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
 ;
+
 .program uart_tx
 .side_set 1 opt
     pull side 1 [7]

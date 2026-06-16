@@ -312,6 +312,7 @@
         "MAP": "boards/slblite_map.h",
         "caps": {
           "axes": 5,
+          "spindle_pwm": 2,
           "i2c_strobe": 0,
           "wifi": 0,
           "bluetooth": 0,
