@@ -21,15 +21,16 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-//#define BOARD_PICO_CNC
-//#define BOARD_RP23U5XBB
+//#define BOARD_BTT_SKR_PICO_10
+//#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_PICOBOB
 //#define BOARD_PICOBOB_G540
 //#define BOARD_PICOBOB_DLX
 //#define BOARD_PICOBOB_DLX_G540
 //#define BOARD_PICOHAL
-//#define BOARD_BTT_SKR_PICO_10
-//#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
+//#define BOARD_PICO_CNC
+//#define BOARD_RP23U5XBB
+//#define BOARD_SLB_LITE
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_CITOH_CX6000    // C.ITOH CX-6000 HPGL plotter
 //#define BOARD_GENERIC_4AXIS
@@ -94,9 +95,13 @@
 
 // IO expanders:
 //
-//#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
-//#define MCP4725_ENABLE          1 // MCP3221 I2C ADC input, default address is 0xC0 (MCP3221_ADDRESS).
-//#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
+//#define MCP3221_ENABLE          1 // MCP3221 I2C 12 bit ADC input, default address is 0x9A (MCP3221_ADDRESS).
+//#define MCP4725_ENABLE          1 // MCP4725 I2C 12 bit DAC output, default address is 0xC0 (MCP3221_ADDRESS).
+//#define MCP23017_ENABLE         1 // MCP23017 I2C 16 channel digital I/O, default address is 0x40 (MCP23017_ADDRESS).
+                                    // 1: Port A as outputs, port B as inputs.
+                                    // 2: Port A and B as outputs.
+                                    // 3: Port A and B as inputs.
+//#define PCA9654E_ENABLE         1 // PCA9654E I2C 8 channel digital out, default address is 0x40 (PCA9654E_ADDRESS).
 //#define THCAD2_ENABLE           1 // Mesa THCAD2 analog to frequency converter. Not yet completed!
 
 // Optional control signals:

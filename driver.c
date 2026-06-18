@@ -173,6 +173,7 @@ static struct {
     PIO pio;
     uint sm;
     int dma_ch;
+    uint dma_irq;
     dma_channel_config dma_cfg;
     volatile alarm_id_t busy;
 } neop;
@@ -2556,17 +2557,15 @@ static uint8_t neopixels_set_intensity (uint8_t intensity)
 
 static int64_t neop_transfer_complete (alarm_id_t id, void *user_data)
 {
-    neop.busy = 0;
-
-    return 0;
+    return (neop.busy = 0);
 }
 
 void neop_dma_complete (void)
 {
-  if(dma_hw->ints0 & (1<< neop.dma_ch)) {
-    dma_hw->ints0 = (1<< neop.dma_ch);
-    neop.busy = add_alarm_in_us(400, neop_transfer_complete, &neop, true);
-  }
+    if(dma_irqn_get_channel_status(neop.dma_irq, neop.dma_ch)) {
+        dma_irqn_acknowledge_channel(neop.dma_irq, neop.dma_ch);
+        neop.busy = add_alarm_in_us(400, neop_transfer_complete, &neop, true);
+    }
 }
 
 #elif defined(LED_G_PIN)
@@ -2782,7 +2781,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "260503";
+    hal.driver_version = "260608";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -3115,31 +3114,36 @@ sr8_pio = sr8_delay_pio = sr8_hold_pio = pio0;
 
         if((neop.dma_ch = dma_claim_unused_channel(false)) >= 0) {
 
-            neop.dma_cfg = dma_channel_get_default_config(neop.dma_ch);
-            channel_config_set_read_increment(&neop.dma_cfg, true);
-            channel_config_set_write_increment(&neop.dma_cfg, false);
-            channel_config_set_transfer_data_size(&neop.dma_cfg, DMA_SIZE_32);
-            channel_config_set_dreq(&neop.dma_cfg, pio_get_dreq(neop.pio, neop.sm, true));
+            neop.dma_irq = irq_get_exclusive_handler(DMA_IRQ_0) ? 1 : 0;
 
-            irq_set_exclusive_handler(DMA_IRQ_0, neop_dma_complete);
-            dma_channel_set_irq0_enabled(neop.dma_ch, true);
-            irq_set_enabled(DMA_IRQ_0, true);
+            if(irq_get_exclusive_handler(neop.dma_irq ? DMA_IRQ_1 : DMA_IRQ_0) == NULL) {
 
-            hal.rgb0.out = neopixel_out;
-            hal.rgb0.out_masked = neopixel_out_masked;
-            hal.rgb0.set_intensity = neopixels_set_intensity;
-            hal.rgb0.write = neopixels_write;
-            hal.rgb0.num_devices = NEOPIXELS_NUM;
-            hal.rgb0.flags = (rgb_properties_t){ .is_strip = On };
-            hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+                neop.dma_cfg = dma_channel_get_default_config(neop.dma_ch);
+                channel_config_set_read_increment(&neop.dma_cfg, true);
+                channel_config_set_write_increment(&neop.dma_cfg, false);
+                channel_config_set_transfer_data_size(&neop.dma_cfg, DMA_SIZE_32);
+                channel_config_set_dreq(&neop.dma_cfg, pio_get_dreq(neop.pio, neop.sm, true));
 
-            const periph_pin_t neopin = {
-                .group = PinGroup_LED,
-                .function = Output_LED_Adressable,
-                .pin = NEOPIXELS_PIN
-            };
+                irq_set_exclusive_handler(neop.dma_irq ? DMA_IRQ_1 : DMA_IRQ_0, neop_dma_complete);
+                dma_irqn_set_channel_enabled(neop.dma_irq, neop.dma_ch, true);
+                irq_set_enabled(neop.dma_irq ? DMA_IRQ_1 : DMA_IRQ_0, true);
 
-            registerPeriphPin(&neopin);
+                hal.rgb0.out = neopixel_out;
+                hal.rgb0.out_masked = neopixel_out_masked;
+                hal.rgb0.set_intensity = neopixels_set_intensity;
+                hal.rgb0.write = neopixels_write;
+                hal.rgb0.num_devices = NEOPIXELS_NUM;
+                hal.rgb0.flags = (rgb_properties_t){ .is_strip = On };
+                hal.rgb0.cap = (rgb_color_t){ .R = 255, .G = 255, .B = 255 };
+
+                const periph_pin_t neopin = {
+                    .group = PinGroup_LED,
+                    .function = Output_LED_Adressable,
+                    .pin = NEOPIXELS_PIN
+                };
+
+                registerPeriphPin(&neopin);
+            }
         }
     } // else report unavailable?
 
