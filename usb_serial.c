@@ -319,16 +319,9 @@ void tud_cdc_line_state_cb (uint8_t itf, bool dtr, bool rts)
 {
     (void)itf;
 
-    if(hal.stream.on_linestate_changed) {
- 
-        serial_linestate_t state = {
-            .dtr = dtr,
-            .rts = rts
-        };
-
-        hal.stream.on_linestate_changed(state);
-    }
+    stream_usb_linestate_changed(0, (serial_linestate_t){ .dtr = dtr, .rts = rts });
 }
+
 const io_stream_t *usb_serialInit (void)
 {
     static const io_stream_t stream = {
