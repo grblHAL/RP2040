@@ -94,13 +94,13 @@
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
 #define M3_DIRECTION_PIN        15
-#define M3_LIMIT_PIN            3
+#define M3_LIMIT_PIN            2
 #endif
 
 #if N_ABC_MOTORS == 2
 #define M4_AVAILABLE
 #define M4_DIRECTION_PIN        16
-#define M4_LIMIT_PIN            2
+#define M4_LIMIT_PIN            3
 #endif
 
 // Modbus RTU: Spindle/VFD
