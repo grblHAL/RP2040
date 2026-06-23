@@ -25,6 +25,7 @@
 
 #include "grbl/task.h"
 #include "grbl/state_machine.h"
+#include "grbl/core_handlers.h"
 
 static control_signals_get_state_ptr hal_control_get_state;
 static stepper_status_t stepper_status = {};
@@ -137,10 +138,55 @@ static void sr_oe_init (void *arg)
     gpio_put(OUT_SR_OE_PIN, 0);
 }
 
+// Homing indicator outputs — driven by on_homing_rate_set / on_homing_completed.
+static axes_signals_t homing_axes = {0};
+static on_homing_rate_set_ptr saved_on_homing_rate_set;
+static on_homing_completed_ptr saved_on_homing_completed;
+
+static void onHomingRateSet (axes_signals_t axes, coord_data_t *feedrate, homing_mode_t mode)
+{
+    homing_axes = axes;
+
+    gpio_put(HOME_INDICATOR_Z_PIN, axes.z ? 0 : 1);
+    gpio_put(HOME_INDICATOR_XYZA_PIN, (axes.x || axes.y || axes.a) ? 0 : 1);
+
+    if(saved_on_homing_rate_set)
+        saved_on_homing_rate_set(axes, feedrate, mode);
+}
+
+static void onHomingCompleted (axes_signals_t cycle, bool success)
+{
+    homing_axes.mask = 0;
+
+    gpio_put(HOME_INDICATOR_Z_PIN, 1);
+    gpio_put(HOME_INDICATOR_XYZA_PIN, 1);
+
+    if(saved_on_homing_completed)
+        saved_on_homing_completed(cycle, success);
+}
+
+static void home_indicator_init (void *arg)
+{
+    gpio_put(HOME_INDICATOR_Z_PIN, 1);
+    gpio_put(HOME_INDICATOR_XYZA_PIN, 1);
+}
+
 void board_init (void)
 {
+    gpio_init(HOME_INDICATOR_Z_PIN);
+    gpio_set_dir(HOME_INDICATOR_Z_PIN, GPIO_OUT);
+    gpio_init(HOME_INDICATOR_XYZA_PIN);
+    gpio_set_dir(HOME_INDICATOR_XYZA_PIN, GPIO_OUT);
+
+    saved_on_homing_rate_set = grbl.on_homing_rate_set;
+    grbl.on_homing_rate_set = onHomingRateSet;
+
+    saved_on_homing_completed = grbl.on_homing_completed;
+    grbl.on_homing_completed = onHomingCompleted;
+
     task_run_on_startup(sr_oe_init, NULL);
     task_run_on_startup(motor_fault_init, NULL);
+    task_run_on_startup(home_indicator_init, NULL);
 }
 
 #endif // defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)
