@@ -24,28 +24,58 @@
 #if defined(HAS_BOARD_INIT) && defined(BOARD_SLB_LITE)
 
 #include "grbl/task.h"
+#include "grbl/system.h"
 #include "grbl/state_machine.h"
 #include "grbl/core_handlers.h"
 
-static control_signals_get_state_ptr hal_control_get_state;
 static stepper_status_t stepper_status = {};
-
-typedef struct {
-    uint8_t n_pins;
-    struct {
-        uint8_t axis;
-        bool secondary;
-        input_signal_t *input;
-    } motor[N_ABC_MOTORS + 3];
-} motor_pins_t;
-
-static motor_pins_t fault_signals = {};
+static const bool motor_fault_invert = true;
+static const uint8_t fault_pins[] = {
+    SLBLITE_X_MOTOR_FAULT_PIN,
+    SLBLITE_Y_MOTOR_FAULT_PIN,
+    SLBLITE_Z_MOTOR_FAULT_PIN,
+#ifdef SLBLITE_M3_MOTOR_FAULT_PIN
+    SLBLITE_M3_MOTOR_FAULT_PIN,
+#endif
+#ifdef SLBLITE_M4_MOTOR_FAULT_PIN
+    SLBLITE_M4_MOTOR_FAULT_PIN,
+#endif
+};
+#if NUM_BANK0_GPIOS > 32
+static const uint64_t fault_pin_mask =
+    (1ull << SLBLITE_X_MOTOR_FAULT_PIN) |
+    (1ull << SLBLITE_Y_MOTOR_FAULT_PIN) |
+    (1ull << SLBLITE_Z_MOTOR_FAULT_PIN)
+#ifdef SLBLITE_M3_MOTOR_FAULT_PIN
+    | (1ull << SLBLITE_M3_MOTOR_FAULT_PIN)
+#endif
+#ifdef SLBLITE_M4_MOTOR_FAULT_PIN
+    | (1ull << SLBLITE_M4_MOTOR_FAULT_PIN)
+#endif
+    ;
+#else
+static const uint32_t fault_pin_mask =
+    (1u << SLBLITE_X_MOTOR_FAULT_PIN) |
+    (1u << SLBLITE_Y_MOTOR_FAULT_PIN) |
+    (1u << SLBLITE_Z_MOTOR_FAULT_PIN)
+#ifdef SLBLITE_M3_MOTOR_FAULT_PIN
+    | (1u << SLBLITE_M3_MOTOR_FAULT_PIN)
+#endif
+#ifdef SLBLITE_M4_MOTOR_FAULT_PIN
+    | (1u << SLBLITE_M4_MOTOR_FAULT_PIN)
+#endif
+    ;
+#endif
 
 void motor_fault_add_pin (input_signal_t *input, xbar_t *pin)
 {
-    fault_signals.motor[fault_signals.n_pins].input = input;
-    fault_signals.motor[fault_signals.n_pins].axis = xbar_fault_pin_to_axis(pin->function);
-    fault_signals.motor[fault_signals.n_pins++].secondary = pin->function >= Input_MotorFaultX2;
+    (void)input;
+    (void)pin;
+}
+
+static bool motor_fault_active (uint8_t pin)
+{
+    return (DIGITAL_IN(pin) != 0) ^ motor_fault_invert;
 }
 
 static void update_motor_fault_status (void)
@@ -54,33 +84,35 @@ static void update_motor_fault_status (void)
 
     stepper_status.fault.state = 0;
 
-    if(!settings.motor_fault_enable.mask)
-        return;
-
-    for(idx = 0; idx < fault_signals.n_pins; idx++) {
-
-        if(bit_istrue(settings.motor_fault_enable.mask, bit(fault_signals.motor[idx].axis))) {
-
-            input_signal_t *input = fault_signals.motor[idx].input;
-            bool inverted = bit_istrue(settings.motor_fault_invert.mask, bit(fault_signals.motor[idx].axis));
-
-            if((DIGITAL_IN(input->pin) != 0) ^ inverted)
-                xbar_stepper_state_set(&stepper_status.fault, fault_signals.motor[idx].axis, fault_signals.motor[idx].secondary);
+    for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++) {
+        if(motor_fault_active(fault_pins[idx])) {
+            stepper_status.fault.state = 1;
+            break;
         }
     }
 }
 
-static void motor_fault_irq_handler (uint8_t port, bool state)
+static void motor_fault_irq_handler (void)
 {
-    (void)port;
-    (void)state;
+    uint_fast8_t idx;
+    bool changed = false;
+
+    for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++) {
+        uint32_t events = gpio_get_irq_event_mask(fault_pins[idx]);
+
+        if(events) {
+            gpio_acknowledge_irq(fault_pins[idx], events);
+            changed = true;
+        }
+    }
+
+    if(!changed)
+        return;
 
     update_motor_fault_status();
 
     if(stepper_status.fault.state && !(state_get() & (STATE_ALARM|STATE_ESTOP))) {
-        control_signals_t signals = hal_control_get_state();
-        signals.motor_fault = On;
-        hal.control.interrupt_callback(signals);
+        system_set_exec_alarm(Alarm_MotorFault);
     }
 }
 
@@ -94,38 +126,29 @@ static stepper_status_t getDriverStatus (bool reset)
     return stepper_status;
 }
 
-static control_signals_t getControlState (void)
-{
-    control_signals_t state = hal_control_get_state();
-
-    update_motor_fault_status();
-    state.motor_fault = stepper_status.fault.state != 0;
-
-    return state;
-}
-
 static void motor_fault_init (void *arg)
 {
     uint_fast8_t idx;
 
-    if(!fault_signals.n_pins)
-        return;
-
-    hal.signals_cap.motor_fault = On;
     hal.stepper.status = getDriverStatus;
 
-    hal_control_get_state = hal.control.get_state;
-    hal.control.get_state = getControlState;
-
-    for(idx = 0; idx < fault_signals.n_pins; idx++) {
-        input_signal_t *input = fault_signals.motor[idx].input;
-
-        input->mode.irq_mode = IRQ_Mode_Change;
-        input->interrupt_callback = motor_fault_irq_handler;
-        pinEnableIRQ(input, input->mode.irq_mode);
+    for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++) {
+        gpio_init(fault_pins[idx]);
+        gpio_set_dir(fault_pins[idx], GPIO_IN);
+        gpio_set_irq_enabled(fault_pins[idx], GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
     }
 
+#if NUM_BANK0_GPIOS > 32
+    gpio_add_raw_irq_handler_masked64(fault_pin_mask, motor_fault_irq_handler);
+#else
+    gpio_add_raw_irq_handler_masked(fault_pin_mask, motor_fault_irq_handler);
+#endif
+    irq_set_enabled(IO_IRQ_BANK0, true);
+
     update_motor_fault_status();
+
+    if(stepper_status.fault.state && !(state_get() & (STATE_ALARM|STATE_ESTOP)))
+        system_set_exec_alarm(Alarm_MotorFault);
 }
 
 // Shift register Output Enable — pulled LOW at boot to enable 74HCT595 outputs.

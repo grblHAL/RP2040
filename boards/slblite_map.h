@@ -166,20 +166,15 @@
   #define TOOLSETTER_PIN          AUXINPUT5_PIN
 #endif
 
-// CLS Motor Fault/Alarm Inputs
-#if MOTOR_FAULT_ENABLE
-  #define X_MOTOR_FAULT_PIN       AUXINPUT2_PIN
-  #define Y_MOTOR_FAULT_PIN       AUXINPUT3_PIN
-  #define Z_MOTOR_FAULT_PIN       AUXINPUT4_PIN
-  // Satisfy the generic single-pin motor-fault sanity check.
-  // SLB Lite overrides control-state handling in board_init() to aggregate per-axis faults.
-  #define MOTOR_FAULT_PIN         X_MOTOR_FAULT_PIN
-  #ifdef M3_AVAILABLE
-    #define M3_MOTOR_FAULT_PIN      AUXINPUT1_PIN
-  #endif
-  #ifdef M4_AVAILABLE
-    #define M4_MOTOR_FAULT_PIN      AUXINPUT0_PIN
-  #endif
+// CLS Motor Fault/Alarm Inputs monitored directly by slblite.c.
+#define SLBLITE_X_MOTOR_FAULT_PIN   AUXINPUT2_PIN
+#define SLBLITE_Y_MOTOR_FAULT_PIN   AUXINPUT3_PIN
+#define SLBLITE_Z_MOTOR_FAULT_PIN   AUXINPUT4_PIN
+#ifdef M3_AVAILABLE
+  #define SLBLITE_M3_MOTOR_FAULT_PIN  AUXINPUT1_PIN
+#endif
+#ifdef M4_AVAILABLE
+  #define SLBLITE_M4_MOTOR_FAULT_PIN  AUXINPUT0_PIN
 #endif
 
 // SPI: SD and Ethernet
