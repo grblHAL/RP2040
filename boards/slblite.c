@@ -28,8 +28,11 @@
 #include "grbl/state_machine.h"
 #include "grbl/core_handlers.h"
 
+#define MOTOR_FAULT_ARM_DELAY_MS 1000
+
 static stepper_status_t stepper_status = {};
 static const bool motor_fault_invert = true;
+static volatile bool motor_fault_armed = false;
 static const uint8_t fault_pins[] = {
     SLBLITE_X_MOTOR_FAULT_PIN,
     SLBLITE_Y_MOTOR_FAULT_PIN,
@@ -84,6 +87,9 @@ static void update_motor_fault_status (void)
 
     stepper_status.fault.state = 0;
 
+    if(!motor_fault_armed)
+        return;
+
     for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++) {
         if(motor_fault_active(fault_pins[idx])) {
             stepper_status.fault.state = 1;
@@ -116,11 +122,28 @@ static void motor_fault_irq_handler (void)
     }
 }
 
+static void arm_motor_fault_monitor (void *data)
+{
+    uint_fast8_t idx;
+
+    (void)data;
+
+    motor_fault_armed = true;
+
+    for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++)
+        gpio_set_irq_enabled(fault_pins[idx], GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+
+    update_motor_fault_status();
+
+    if(stepper_status.fault.state && !(state_get() & (STATE_ALARM|STATE_ESTOP)))
+        system_set_exec_alarm(Alarm_MotorFault);
+}
+
 static stepper_status_t getDriverStatus (bool reset)
 {
     if(reset)
         stepper_status.fault.state = 0;
-    else
+    else if(motor_fault_armed)
         update_motor_fault_status();
 
     return stepper_status;
@@ -131,11 +154,12 @@ static void motor_fault_init (void *arg)
     uint_fast8_t idx;
 
     hal.stepper.status = getDriverStatus;
+    motor_fault_armed = false;
 
     for(idx = 0; idx < sizeof(fault_pins) / sizeof(fault_pins[0]); idx++) {
         gpio_init(fault_pins[idx]);
         gpio_set_dir(fault_pins[idx], GPIO_IN);
-        gpio_set_irq_enabled(fault_pins[idx], GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+        gpio_set_irq_enabled(fault_pins[idx], GPIO_IRQ_ALL, false);
     }
 
 #if NUM_BANK0_GPIOS > 32
@@ -145,10 +169,7 @@ static void motor_fault_init (void *arg)
 #endif
     irq_set_enabled(IO_IRQ_BANK0, true);
 
-    update_motor_fault_status();
-
-    if(stepper_status.fault.state && !(state_get() & (STATE_ALARM|STATE_ESTOP)))
-        system_set_exec_alarm(Alarm_MotorFault);
+    task_add_delayed(arm_motor_fault_monitor, NULL, MOTOR_FAULT_ARM_DELAY_MS);
 }
 
 // Shift register Output Enable — pulled LOW at boot to enable 74HCT595 outputs.

@@ -54,15 +54,10 @@
 #define HOME_INDICATOR_XYZA_PIN AUXOUTPUT0_PIN
 #define HOME_INDICATOR_Z_PIN    AUXOUTPUT1_PIN
 
-#define AUXINPUT0_PIN           11 // Motor fault M4
-#define AUXINPUT1_PIN           10 // Motor fault M3
-#define AUXINPUT2_PIN            7 // Motor fault X
-#define AUXINPUT3_PIN            8 // Motor fault Y
-#define AUXINPUT4_PIN            9 // Motor fault Z
-#define AUXINPUT5_PIN           23 // Toolsetter
-#define AUXINPUT6_PIN           22 // Probe
-#define AUXINPUT7_PIN           39 // Reset/EStop
-#define AUXINPUT8_PIN           27 // Spindle Detect
+#define AUXINPUT0_PIN           23 // Toolsetter
+#define AUXINPUT1_PIN           22 // Probe
+#define AUXINPUT2_PIN           39 // Reset/EStop
+#define AUXINPUT3_PIN           27 // Spindle Detect
 
 #define USE_EXPANDERS // Uses 74HCT595 Expansion on PIO
 #define OUT_SHIFT_REGISTER       8 // How many bits are used in the shift register, 8 for 74HCT595
@@ -155,26 +150,26 @@
 #if CONTROL_ENABLE
   #undef CONTROL_ENABLE
   #define CONTROL_ENABLE CONTROL_HALT // EStop is treated as a hard control input that halts the machine and requires a reset to clear
-  #define RESET_PIN               AUXINPUT7_PIN
+  #define RESET_PIN               AUXINPUT2_PIN
 #endif
 
 // Probe and Tool Length Sensors
 #if PROBE_ENABLE
-  #define PROBE_PIN               AUXINPUT6_PIN
+  #define PROBE_PIN               AUXINPUT1_PIN
 #endif
 #if TOOLSETTER_ENABLE
-  #define TOOLSETTER_PIN          AUXINPUT5_PIN
+  #define TOOLSETTER_PIN          AUXINPUT0_PIN
 #endif
 
 // CLS Motor Fault/Alarm Inputs monitored directly by slblite.c.
-#define SLBLITE_X_MOTOR_FAULT_PIN   AUXINPUT2_PIN
-#define SLBLITE_Y_MOTOR_FAULT_PIN   AUXINPUT3_PIN
-#define SLBLITE_Z_MOTOR_FAULT_PIN   AUXINPUT4_PIN
+#define SLBLITE_X_MOTOR_FAULT_PIN   7
+#define SLBLITE_Y_MOTOR_FAULT_PIN   8
+#define SLBLITE_Z_MOTOR_FAULT_PIN   9
 #ifdef M3_AVAILABLE
-  #define SLBLITE_M3_MOTOR_FAULT_PIN  AUXINPUT1_PIN
+  #define SLBLITE_M3_MOTOR_FAULT_PIN  10
 #endif
 #ifdef M4_AVAILABLE
-  #define SLBLITE_M4_MOTOR_FAULT_PIN  AUXINPUT0_PIN
+  #define SLBLITE_M4_MOTOR_FAULT_PIN  11
 #endif
 
 // SPI: SD and Ethernet
