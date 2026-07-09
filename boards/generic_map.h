@@ -34,34 +34,40 @@
 
 // Define step pulse output pins.
 #define STEP_PORT               GPIO_PIO  // N_AXIS pin PIO SM
-#define STEP_PINS_BASE          2         // N_AXIS number of consecutive pins are used by PIO
+#define STEP_PINS_BASE          0         // N_AXIS number of consecutive pins are used by PIO
 
 // Define step direction output pins.
 #define DIRECTION_PORT          GPIO_OUTPUT
-#define X_DIRECTION_PIN         5
-#define Y_DIRECTION_PIN         6
-#define Z_DIRECTION_PIN         7
+#define X_DIRECTION_PIN         1
+#define Y_DIRECTION_PIN         3
+#define Z_DIRECTION_PIN         5
+#define A_DIRECTION_PIN         7
+#define B_DIRECTION_PIN         9
+#define C_DIRECTION_PIN         11
 #define DIRECTION_OUTMODE       GPIO_SHIFT5
 
 // Define stepper driver enable/disable output pin.
 #define ENABLE_PORT             GPIO_OUTPUT
-#define STEPPERS_ENABLE_PIN     8
+#define STEPPERS_ENABLE_PIN     37
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN             9
-#define Y_LIMIT_PIN             10
-#define Z_LIMIT_PIN             11
+#define X_LIMIT_PIN             26
+#define Y_LIMIT_PIN             27
+#define Z_LIMIT_PIN             28
+#define A_LIMIT_PIN             29
+#define B_LIMIT_PIN             30
+#define C_LIMIT_PIN             31
 #define LIMIT_INMODE            GPIO_MAP
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          12
-#if I2C_ENABLE
-#define I2C_PORT                1
-#define I2C_SDA                 26
-#define I2C_SCL                 27
+#define AUXOUTPUT0_PIN          36
+//#if I2C_ENABLE
+//#define I2C_PORT                1
+//#define I2C_SDA                 26
+//#define I2C_SCL                 27
 #else
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          26
+//#define AUXOUTPUT1_PIN          26
 //#define AUXOUTPUT2_PORT         GPIO_OUTPUT
 //#define AUXOUTPUT2_PIN          27
 #endif
@@ -140,9 +146,7 @@
 // #define UART_1_RX_PIN          36
 // #define UART_1_TX_PIN          37
 
-#if SAFETY_DOOR_ENABLE && defined(AUXINPUT1_PIN)
-#define SAFETY_DOOR_PIN         AUXINPUT1_PIN
-#endif
+#define SAFETY_DOOR_PIN           39
 
 #if defined(AUXINPUT0_PIN)
 #if I2C_STROBE_ENABLE
