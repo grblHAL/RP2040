@@ -190,6 +190,8 @@
   #include "boards/generic_map_8axis.h"
 #elif defined(BOARD_SLB_LITE)
   #include "boards/slblite_map.h"
+#elif defined(BOARD_BOLANGSK)
+  #include "boards/bolangsk_map.h"
 #else // default board
   #include "boards/generic_map.h"
 #endif
