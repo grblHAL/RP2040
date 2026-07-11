@@ -252,6 +252,32 @@
       }
     },
     {
+      "name": "Bolangsk",
+      "symbol": "BOARD_BOLANGSK",
+      "notes": "Tentative, untested",
+      "URL": "https://www.bolangsk.cn/rp2350-grblhal-control-board/",
+      "MAP": "boards/bolangsk_map.h",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 4,
+        "i2c_strobe": 0,
+        "frequency_in": 0,
+        "eeprom": -16,
+        "fram": 0,
+        "i2c": 1,
+        "sdcard": 1,
+		    "rgb_out": 0,
+        "wifi": 0,
+        "wiznet": 0,
+        "bluetooth": 0,
+        "spindle_sync": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350"
+      }
+    },
+    {
       "name": "Generic",
       "symbol": "",
       "MAP": "boards/generic_map.h",
