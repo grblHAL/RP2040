@@ -263,7 +263,7 @@
         "digital_out": 4,
         "i2c_strobe": 0,
         "frequency_in": 0,
-        "eeprom": -16,
+        "eeprom": 16,
         "fram": 0,
         "i2c": 1,
         "sdcard": 1,
