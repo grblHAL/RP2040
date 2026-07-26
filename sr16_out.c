@@ -31,7 +31,7 @@
 
 static uint16_t sr16_out = 0;
 static sr_reg_t *sr16;
-static io_ports_data_t digital;
+static io_ports_data_t digital = { .external = true };
 static xbar_t aux_out[OUT_SHIFT_REGISTER] = {};
 static enumerate_pins_ptr on_enumerate_pins;
 
@@ -106,6 +106,7 @@ static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
 
     if(dir == Port_Output && port < digital.out.n_ports) {
         memcpy(&pin, &aux_out[port], sizeof(xbar_t));
+        pin.pin += digital.out.pin_base;
         pin.ports_id = &digital;
         pin.get_value = digital_out_state;
         pin.set_value = digital_out_ll;

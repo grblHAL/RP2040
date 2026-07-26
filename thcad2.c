@@ -32,12 +32,14 @@
 #include "grbl/plugins.h"
 #include "grbl/ioports.h"
 
+#ifndef THCAD2_PIN
 #define THCAD2_PIN      11
+#endif
 #define GATE_TIMER_PIN  0
 
 static float value = -1.0f;
 static enumerate_pins_ptr on_enumerate_pins;
-static io_ports_data_t analog = {};
+static io_ports_data_t analog = { .external = true };
 
 uint counter_slice, gate_slice;
 uint timer_dma_chan;
@@ -90,6 +92,7 @@ static xbar_t *thcad2_get_pin_info (io_port_direction_t dir, uint8_t port)
     memcpy(&pin, &thcad2, sizeof(xbar_t));
 
     if(dir == Port_Input && port < analog.in.n_ports) {
+        pin.pin += analog.in.pin_base;
         pin.get_value = thcad2_in_state;
         pin.set_function = set_pin_function;
         info = &pin;
