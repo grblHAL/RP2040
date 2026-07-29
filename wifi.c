@@ -31,6 +31,7 @@
 #include "pico/cyw43_arch.h"
 
 #include "networking/networking.h"
+#include "networking/mqtt.h"
 #include "networking/utils.h"
 #include "lwip/timeouts.h"
 #include "lwip/apps/mdns.h"
@@ -55,7 +56,6 @@ typedef struct
 static int cyw43_if;
 static bool scan_in_progress = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX], sta_if_name[NETIF_NAMESIZE] = "";
-static stream_type_t active_stream = StreamType_Null;
 static wifi_settings_t wifi;
 static network_settings_t network;
 static network_services_t services = {0}, allowed_services;
@@ -123,20 +123,19 @@ static uint32_t country_codes[] = {
     CYW43_COUNTRY_USA
 };
 
-#if MQTT_ENABLE
+static void status_event_publish (network_flags_t changed);
 
-static bool mqtt_connected = false;
 static on_mqtt_client_connected_ptr on_client_connected;
 
 static void mqtt_connection_changed (bool connected)
 {
-    mqtt_connected = connected;
+    sta_status.mqtt_connected = connected;
+
+    status_event_publish((network_flags_t){ .mqtt_connected = On });
 
     if(on_client_connected)
          on_client_connected(connected);
 }
-
-#endif
 
 static uint32_t get_country_code (char *country_id)
 {
@@ -191,12 +190,13 @@ static network_info_t *get_info (const char *interface)
         sprintf(info.mac, MAC_FORMAT_STRING, bmac[0], bmac[1], bmac[2], bmac[3], bmac[4], bmac[5]);
     
         strcpy(info.status.ip, IPAddress);
-
+   
         if(info.status.ip_mode == IpMode_DHCP) {
             *info.status.gateway = '\0';
             *info.status.mask = '\0';
         }
 
+        info.wifi_mode = WiFiMode_STA;
         info.interface = (const char *)sta_if_name;
         info.is_ethernet = false;
         info.link_up = false;
@@ -211,59 +211,6 @@ static network_info_t *get_info (const char *interface)
     }
 
     return NULL;
-}
-
-static void reportIP (bool newopt)
-{
-    on_report_options(newopt);
-
-    if(newopt) {
-        hal.stream.write(",WIFI");
-#if FTP_ENABLE
-        if(services.ftp)
-            hal.stream.write(",FTP");
-#endif
-#if WEBDAV_ENABLE
-        if(services.webdav)
-            hal.stream.write(",WebDAV");
-#endif
-#if MDNS_ENABLE
-        if(services.mdns)
-            hal.stream.write(",mDNS");
-#endif
-#if SSDP_ENABLE
-        if(services.ssdp)
-            hal.stream.write(",SSDP");
-#endif
-    } else {
-
-        network_info_t *network;
-
-        if((network = get_info(sta_if_name))) {
-
-            hal.stream.write("[WIFI MAC:");
-            hal.stream.write(network->mac);
-            hal.stream.write("]" ASCII_EOL);
-
-            hal.stream.write("[IP:");
-            hal.stream.write(network->status.ip);
-            hal.stream.write("]" ASCII_EOL);
-
-            if(active_stream == StreamType_Telnet || active_stream == StreamType_WebSocket) {
-                hal.stream.write("[NETCON:");
-                hal.stream.write(active_stream == StreamType_Telnet ? "Telnet" : "Websocket");
-                hal.stream.write("]" ASCII_EOL);
-            }
-#if MQTT_ENABLE
-            char *client_id;
-            if(*(client_id = network->mqtt_client_id)) {
-                hal.stream.write("[MQTT CLIENTID:");
-                hal.stream.write(client_id);
-                hal.stream.write(mqtt_connected ? "]" ASCII_EOL : " (offline)]" ASCII_EOL);
-            }
-#endif
-        }
-    }
 }
 
 #if MDNS_ENABLE
@@ -356,7 +303,7 @@ static void start_services (void)
 #endif
 
 #if MQTT_ENABLE
-    if(wifi.mode == WiFiMode_STA && !mqtt_connected)
+    if(wifi.mode == WiFiMode_STA && !sta_status.mqtt_connected)
         mqtt_connect(get_info(sta_if_name), &network.mqtt);
 #endif
 
@@ -1336,15 +1283,6 @@ static setting_details_t setting_details = {
 
 // end settings
 
-static void stream_changed (stream_type_t type)
-{
-    if(type != StreamType_SDCard)
-        active_stream = type;
-
-    if(on_stream_changed)
-        on_stream_changed(type);
-}
-
 extern network_services_t networking_get_services_list (char *list);
 
 bool wifi_init (void)
@@ -1352,12 +1290,6 @@ bool wifi_init (void)
     if((nvs_address = nvs_alloc(sizeof(wifi_settings_t)))) {
 
         networking_init();
-
-        on_report_options = grbl.on_report_options;
-        grbl.on_report_options = reportIP;
-
-        on_stream_changed = grbl.on_stream_changed;
-        grbl.on_stream_changed = stream_changed;
 
 #if MQTT_ENABLE
         on_client_connected = mqtt_events.on_client_connected;
