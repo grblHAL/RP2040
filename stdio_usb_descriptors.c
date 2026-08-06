@@ -31,8 +31,21 @@
 #include "tusb.h"
 #include "pico/unique_id.h"
 
+#ifndef USBD_VID
 #define USBD_VID (0x2E8A) // Raspberry Pi
+#endif
+
+#ifndef USBD_PID
 #define USBD_PID (0x000a) // Pico SDK CDC
+#endif
+
+#ifndef USBD_MANUFACTURER
+#define USBD_MANUFACTURER "Raspberry Pi"
+#endif
+
+#ifndef USBD_PRODUCT
+#define USBD_PRODUCT "Pico"
+#endif
 
 #define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
 #define USBD_MAX_POWER_MA (250)
@@ -82,8 +95,8 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
 static char serial_no[PICO_UNIQUE_BOARD_ID_SIZE_BYTES*2];
 
 static const char *const usbd_desc_str[] = {
-    [USBD_STR_MANUF] = "Raspberry Pi",
-    [USBD_STR_PRODUCT] = "Pico",
+    [USBD_STR_MANUF] = USBD_MANUFACTURER,
+    [USBD_STR_PRODUCT] = USBD_PRODUCT,
     [USBD_STR_SERIAL] = serial_no,
     [USBD_STR_CDC] = "Board CDC",
 };
