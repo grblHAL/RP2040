@@ -351,7 +351,8 @@
         },
         "symbols": {
             "RP_MCU": "2350",
-            "RP_BOARD": "pimoroni_pga2350"
+            "RP_BOARD": "pimoroni_pga2350",
+            "MOTOR_FAULT_ENABLE": 1
         }
       }
   ]
