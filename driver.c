@@ -2038,7 +2038,7 @@ void pinEnableIRQ (const input_signal_t *input, pin_irq_mode_t irq_mode)
 }
 
 // Configures peripherals when settings are initialized or changed
-void settings_changed (settings_t *settings, settings_changed_flags_t changed)
+void on_settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
 #if USE_STEPDIR_MAP
 
@@ -2636,7 +2636,7 @@ static bool driver_setup (settings_t *settings)
 
     IOInitDone = settings->version.id == 23;
 
-    hal.settings_changed(settings, (settings_changed_flags_t){0});
+    grbl.on_settings_changed(settings, (settings_changed_flags_t){0});
     stepperSetDirOutputs((axes_signals_t){0});
 
 #if PPI_ENABLE
@@ -2801,7 +2801,7 @@ bool driver_init (void)
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay;
-    hal.settings_changed = settings_changed;
+    grbl.on_settings_changed = on_settings_changed;
 
     hal.stepper.wake_up = stepperWakeUp;
     hal.stepper.go_idle = stepperGoIdle;

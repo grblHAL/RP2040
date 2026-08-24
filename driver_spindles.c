@@ -211,7 +211,7 @@ static void spindleSetState (spindle_ptrs_t *spindle, spindle_state_t state, flo
 
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
-static settings_changed_ptr settings_changed;
+static settings_changed_ptr on_settings_changed;
 
 // Variable spindle control functions
 
@@ -335,7 +335,7 @@ bool spindleConfig (spindle_ptrs_t *spindle)
 
 static void settingsChanged (settings_t *settings, settings_changed_flags_t changed)
 {
-    settings_changed(settings, changed);
+    on_settings_changed(settings, changed);
 
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     if(changed.spindle) {
@@ -743,8 +743,8 @@ void driver_spindles_init (void)
         }
     };
 
-    settings_changed = hal.settings_changed;
-    hal.settings_changed = settingsChanged;
+    on_settings_changed = grbl.on_settings_changed;
+    grbl.on_settings_changed = settingsChanged;
 
  #elif DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
 
