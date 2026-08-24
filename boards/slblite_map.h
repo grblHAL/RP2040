@@ -102,11 +102,21 @@
 #endif
 
 // Modbus RTU: Spindle/VFD
-#define SERIAL1_PORT  1 // Modbus RTU
-#define SERIAL1_PORT_PIO // Use the PIO-backed UART implementation for SERIAL1_PORT.
-#ifdef SERIAL1_PORT
-  #define UART_1_RX_PIN           36
-  #define UART_1_TX_PIN           37
+//#define SERIAL1_PORT_PIO // Use the PIO-backed UART implementation for SERIAL1_PORT.  Enable for SLB-Lite Prototypes, Disable for production boards
+#ifdef SERIAL1_PORT_PIO
+  // Uses a RPI PIO based UART with RX on P36, TX on P37 and DIR on P38
+  #define SERIAL1_PORT  1 // Modbus RTU
+  #ifdef SERIAL1_PORT
+    #define UART_1_RX_PIN           36
+    #define UART_1_TX_PIN           37
+  #endif
+#else
+  // Uses a RPI Standard based UART with RX on P37, TX on P36 and DIR on P38
+  #define SERIAL1_PORT  1 // Modbus RTU on standard UART
+  #ifdef SERIAL1_PORT
+    #define UART_1_RX_PIN           37
+    #define UART_1_TX_PIN           36
+  #endif
 #endif
 #if MODBUS_ENABLE
   #define MODBUS_RTU_STREAM       1
