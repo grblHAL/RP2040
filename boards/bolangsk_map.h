@@ -25,10 +25,13 @@
 
 #define BOARD_NAME "Bolangsk"
 
+//UART_0_RX_PIN 0 connected to LCD pin 3 on the board, micro jst gh 1.25        
+//UART_0_TX_PIN 1 connected to LCD pin 2 on the board, micro jst gh 1.25 
+
 #undef SERIAL1_PORT
 #define SERIAL1_PORT            1
-#define UART_1_RX_PIN           7
-#define UART_1_TX_PIN           6
+#define UART_1_RX_PIN           7 //EXT U235 on the board micro jst gh 1.25
+#define UART_1_TX_PIN           6 //EXT U235 on the board micro jst gh 1.25
 #undef SERIAL2_PORT
 #define SERIAL2_PORT            1 // PIO based, RX only
 #define UART_2_RX_PIN           27
@@ -61,25 +64,25 @@
 // Define ganged axis or A axis step pulse and step direction output pins.
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
-#define M3_DIRECTION_PIN        23
-#define M3_LIMIT_PIN            26
+#define M3_DIRECTION_PIN        15 //A|D pin 
+#define M3_LIMIT_PIN            26 //LIMIT A pin
 #define M3_ENABLE_PIN           25
 #endif
 
 #if N_ABC_MOTORS == 2
 #define M4_AVAILABLE
-#define M4_DIRECTION_PIN        16
-#define M4_LIMIT_PIN            30
+#define M4_DIRECTION_PIN        16 //B|D pin
+#define M4_LIMIT_PIN            30 //LIMIT B pin
 #define M4_ENABLE_PIN           26
 #endif
 
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT  //out0
 #define AUXOUTPUT0_PIN          43
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT  //out1
 #define AUXOUTPUT1_PIN          42
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT  //out2
 #define AUXOUTPUT2_PIN          41
-#define AUXOUTPUT3_PORT         GPIO_OUTPUT
+#define AUXOUTPUT3_PORT         GPIO_OUTPUT  //out3
 #define AUXOUTPUT3_PIN          40
 #define AUXOUTPUT4_PORT         GPIO_OUTPUT  // Spindle enable
 #define AUXOUTPUT4_PIN          47
@@ -115,16 +118,16 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT8_PIN
 #endif
 
-#define AUXINPUT0_PIN           39
-#define AUXINPUT1_PIN           33
-#define AUXINPUT2_PIN           32
-#define AUXINPUT3_PIN           31
+#define AUXINPUT0_PIN           39 //in0
+#define AUXINPUT1_PIN           33 //in1
+#define AUXINPUT2_PIN           32 //in2
+#define AUXINPUT3_PIN           31 //in3
 #if SPINDLE_ENCODER_ENABLE
 #define SPINDLE_PULSE_PIN       29  // Must be an odd pin
 #define SPINDLE_INDEX_PIN       28
 #else
-#define AUXINPUT4_PIN           29
-#define AUXINPUT5_PIN           28
+#define AUXINPUT4_PIN           29 //Spindle|pulse pin on the board
+#define AUXINPUT5_PIN           28 //Spindle|index pin on the board
 #endif
 #define AUXINPUT6_PIN           34 // Probe
 #define AUXINPUT7_PIN           35 // Reset
