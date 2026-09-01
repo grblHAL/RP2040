@@ -587,6 +587,9 @@ static output_signal_t outputpin[] = {
 #ifdef AUXOUTPUT7_PORT
     { .id = Output_Aux7,         .port = AUXOUTPUT7_PORT,  .pin = AUXOUTPUT7_PIN,        .group = PinGroup_AuxOutput},
 #endif
+#ifdef AUXOUTPUT8_PORT
+    { .id = Output_Aux8,         .port = AUXOUTPUT8_PORT,  .pin = AUXOUTPUT8_PIN,        .group = PinGroup_AuxOutput},
+#endif
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
