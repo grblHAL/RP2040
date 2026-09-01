@@ -66,14 +66,12 @@
 #define M3_AVAILABLE
 #define M3_DIRECTION_PIN        15 //A|D pin 
 #define M3_LIMIT_PIN            26 //LIMIT A pin
-#define M3_ENABLE_PIN           25
 #endif
 
 #if N_ABC_MOTORS == 2
 #define M4_AVAILABLE
 #define M4_DIRECTION_PIN        16 //B|D pin
 #define M4_LIMIT_PIN            30 //LIMIT B pin
-#define M4_ENABLE_PIN           26
 #endif
 
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT  //out0
