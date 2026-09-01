@@ -21,7 +21,7 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-//#define BOARD_BOLANGSK
+//#define BOARD_BOLANGSK //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
 //#define BOARD_BTT_SKR_PICO_10
 //#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_PICOBOB
