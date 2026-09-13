@@ -23,7 +23,8 @@
     M101 [P<id>] [Q<angle>]
 
   If Q is specified the servo with the given id is moved to <angle> degrees.
-  If Q is omitted the current angle of the servo is reported as [ST3215:<id>|<angle>].
+  If Q is omitted the servo status is reported instead:
+    [ST3215:<id>|A:<angle deg>|L:<load %>|V:<voltage V>|T:<temperature C>]
   If P is omitted ST3215_ID_DEFAULT is used.
 
   $-settings (shared by all servo ids, see $$):
@@ -79,12 +80,21 @@
 
 #define ST3215_ADDR_TORQUE_ENABLE    40
 #define ST3215_ADDR_GOAL_POSITION    42
-#define ST3215_ADDR_PRESENT_POSITION 56
+#define ST3215_ADDR_PRESENT_POSITION 56 // Present Position(2)/Speed(2)/Load(2)/Voltage(1)/Temperature(1), addr 56-63.
+
+#define ST3215_STATUS_LEN 8 // Bytes covering Position..Temperature, read in one transaction.
 
 #define ST3215_POS_MAX     4095   // Full turn (360 degrees) resolution.
 #define ST3215_SPEED_MAX   4095   // Raw ST3215 Goal Speed register max (steps/s).
 #define ST3215_ANGLE_MAX   360.0f
 #define ST3215_TIMEOUT_MS  20
+
+typedef struct {
+    float angle;         // degrees
+    float load;           // signed percent of max torque, -100.0 .. 100.0
+    float voltage;         // volts
+    uint8_t temperature;    // degrees C
+} st3215_status_t;
 
 // $450-$452, see grbl/settings.h - reserved for private/local plugins.
 #define Setting_ST3215_Speed     Setting_UserDefined_0
@@ -214,14 +224,25 @@ static bool st3215_set_angle (uint8_t id, float angle)
     return true;
 }
 
-static bool st3215_get_angle (uint8_t id, float *angle)
+static bool st3215_get_status (uint8_t id, st3215_status_t *status)
 {
-    uint8_t data[2];
+    uint8_t data[ST3215_STATUS_LEN];
+    uint16_t pos, load_raw;
 
-    if(!st3215_read(id, ST3215_ADDR_PRESENT_POSITION, 2, data))
+    if(!st3215_read(id, ST3215_ADDR_PRESENT_POSITION, ST3215_STATUS_LEN, data))
         return false;
 
-    *angle = (float)((uint16_t)data[0] | ((uint16_t)data[1] << 8)) * ST3215_ANGLE_MAX / (float)ST3215_POS_MAX;
+    pos = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+    status->angle = (float)pos * ST3215_ANGLE_MAX / (float)ST3215_POS_MAX;
+
+    // Present Load (offset 4-5): bits 0-9 magnitude (1000 = 100%), bit 10 direction/sign.
+    load_raw = (uint16_t)data[4] | ((uint16_t)data[5] << 8);
+    status->load = (float)(load_raw & 0x3FF) / 10.0f;
+    if(load_raw & 0x400)
+        status->load = -status->load;
+
+    status->voltage = (float)data[6] / 10.0f; // Present Voltage (offset 6): units of 0.1V.
+    status->temperature = data[7];            // Present Temperature (offset 7): degrees C.
 
     return true;
 }
@@ -264,14 +285,20 @@ static void mcode_execute (uint_fast16_t state, parser_block_t *gc_block)
             st3215_set_angle(id, gc_block->values.q);
         else {
 
-            float angle;
-            char buf[40];
+            st3215_status_t status;
+            char buf[64];
 
-            if(st3215_get_angle(id, &angle)) {
+            if(st3215_get_status(id, &status)) {
                 strcpy(buf, "[ST3215:");
                 strcat(buf, uitoa(id));
-                strcat(buf, "|");
-                strcat(buf, ftoa(angle, 2));
+                strcat(buf, "|A:");
+                strcat(buf, ftoa(status.angle, 2));
+                strcat(buf, "|L:");
+                strcat(buf, ftoa(status.load, 1));
+                strcat(buf, "|V:");
+                strcat(buf, ftoa(status.voltage, 1));
+                strcat(buf, "|T:");
+                strcat(buf, uitoa(status.temperature));
                 strcat(buf, "]" ASCII_EOL);
                 hal.stream.write(buf);
             }
@@ -336,7 +363,19 @@ static void st3215_settings_restore (void)
 
 static void st3215_settings_load (void)
 {
+    bool valid;
+
     if(hal.nvs.memcpy_from_nvs((uint8_t *)&st3215_settings, nvs_address, sizeof(st3215_settings_t), true) != NVS_TransferResult_OK)
+        st3215_settings_restore();
+
+    // Guard against a corrupted NVS sector (e.g. disturbed by a firmware reflash)
+    // silently arming a bogus angle range.
+    valid = st3215_settings.speed <= ST3215_SPEED_MAX &&
+            st3215_settings.angle_min >= 0.0f && st3215_settings.angle_min <= ST3215_ANGLE_MAX &&
+            st3215_settings.angle_max >= 0.0f && st3215_settings.angle_max <= ST3215_ANGLE_MAX &&
+            st3215_settings.angle_min <= st3215_settings.angle_max;
+
+    if(!valid)
         st3215_settings_restore();
 }
 
