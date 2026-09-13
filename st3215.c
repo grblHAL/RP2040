@@ -22,9 +22,15 @@
   Usage:
     M101 [P<id>] [Q<angle>]
 
-  If Q is specified the servo with the given id is moved to <angle> degrees (0-360).
+  If Q is specified the servo with the given id is moved to <angle> degrees.
   If Q is omitted the current angle of the servo is reported as [ST3215:<id>|<angle>].
   If P is omitted ST3215_ID_DEFAULT is used.
+
+  $-settings (shared by all servo ids, see $$):
+    $450 - move speed, raw ST3215 steps/s (0 = max/uncontrolled speed).
+    $451 - minimum allowed angle, degrees. M101 Q below this is rejected.
+    $452 - maximum allowed angle, degrees. M101 Q above this is rejected.
+  These are stored in NVS and reloaded on boot.
 
   The servo is driven over a dedicated hardware UART (ST3215_STREAM, default
   instance 0 = UART0, TX on GPIO0 / RX on GPIO1 unless overridden by the board
@@ -49,6 +55,7 @@
 #include "serial.h"
 #include "grbl/hal.h"
 #include "grbl/protocol.h"
+#include "grbl/nvs_buffer.h"
 
 #ifndef ST3215_STREAM
 #define ST3215_STREAM 0 // Hardware UART instance, see serial.c (0 = UART0).
@@ -62,6 +69,10 @@
 #define ST3215_ID_DEFAULT 1 // Used when M101 is issued without a P<id> word.
 #endif
 
+#ifndef ST3215_SPEED_DEFAULT
+#define ST3215_SPEED_DEFAULT 200 // Default $450 value, raw steps/s. Conservative/slow.
+#endif
+
 #define ST3215_HEADER           0xFF
 #define ST3215_INST_READ        0x02
 #define ST3215_INST_WRITE       0x03
@@ -70,13 +81,27 @@
 #define ST3215_ADDR_GOAL_POSITION    42
 #define ST3215_ADDR_PRESENT_POSITION 56
 
-#define ST3215_POS_MAX    4095   // Full turn (360 degrees) resolution.
-#define ST3215_ANGLE_MAX  360.0f
-#define ST3215_TIMEOUT_MS 20
+#define ST3215_POS_MAX     4095   // Full turn (360 degrees) resolution.
+#define ST3215_SPEED_MAX   4095   // Raw ST3215 Goal Speed register max (steps/s).
+#define ST3215_ANGLE_MAX   360.0f
+#define ST3215_TIMEOUT_MS  20
+
+// $450-$452, see grbl/settings.h - reserved for private/local plugins.
+#define Setting_ST3215_Speed     Setting_UserDefined_0
+#define Setting_ST3215_AngleMin  Setting_UserDefined_1
+#define Setting_ST3215_AngleMax  Setting_UserDefined_2
+
+typedef struct {
+    uint16_t speed;
+    float angle_min;
+    float angle_max;
+} st3215_settings_t;
 
 static io_stream_t st3215_uart;
 static user_mcode_ptrs_t user_mcode;
 static on_report_options_ptr on_report_options;
+static nvs_address_t nvs_address;
+static st3215_settings_t st3215_settings;
 
 static uint8_t st3215_checksum (const uint8_t *buf, uint8_t len)
 {
@@ -88,10 +113,10 @@ static uint8_t st3215_checksum (const uint8_t *buf, uint8_t len)
     return (uint8_t)(~sum & 0xFF);
 }
 
-// Fire-and-forget WRITE instruction, up to 4 data bytes.
+// Fire-and-forget WRITE instruction, up to 8 data bytes.
 static void st3215_write (uint8_t id, uint8_t addr, const uint8_t *data, uint8_t len)
 {
-    uint8_t packet[10], plen = 0, i;
+    uint8_t packet[16], plen = 0, i;
 
     packet[plen++] = ST3215_HEADER;
     packet[plen++] = ST3215_HEADER;
@@ -165,7 +190,7 @@ static bool st3215_read (uint8_t id, uint8_t addr, uint8_t len, uint8_t *out)
 static bool st3215_set_angle (uint8_t id, float angle)
 {
     uint8_t torque_on = 1;
-    uint8_t data[2];
+    uint8_t data[6];
     int32_t pos = (int32_t)((angle / ST3215_ANGLE_MAX) * ST3215_POS_MAX + 0.5f);
 
     if(pos < 0)
@@ -175,10 +200,16 @@ static bool st3215_set_angle (uint8_t id, float angle)
 
     st3215_write(id, ST3215_ADDR_TORQUE_ENABLE, &torque_on, 1);
 
+    // Goal Position (42-43), Goal Time (44-45, left at 0 so Goal Speed governs
+    // the move instead), Goal Speed (46-47) - written together in one packet.
     data[0] = (uint8_t)(pos & 0xFF);
     data[1] = (uint8_t)((pos >> 8) & 0xFF);
+    data[2] = 0;
+    data[3] = 0;
+    data[4] = (uint8_t)(st3215_settings.speed & 0xFF);
+    data[5] = (uint8_t)((st3215_settings.speed >> 8) & 0xFF);
 
-    st3215_write(id, ST3215_ADDR_GOAL_POSITION, data, 2);
+    st3215_write(id, ST3215_ADDR_GOAL_POSITION, data, 6);
 
     return true;
 }
@@ -211,7 +242,8 @@ static status_code_t mcode_validate (parser_block_t *gc_block)
         if(gc_block->words.p && (!isintf(gc_block->values.p) || gc_block->values.p < 0.0f || gc_block->values.p > 253.0f))
             state = Status_GcodeValueOutOfRange;
 
-        if(state == Status_OK && gc_block->words.q && (gc_block->values.q < 0.0f || gc_block->values.q > ST3215_ANGLE_MAX))
+        if(state == Status_OK && gc_block->words.q &&
+            (gc_block->values.q < st3215_settings.angle_min || gc_block->values.q > st3215_settings.angle_max))
             state = Status_GcodeValueOutOfRange;
 
         gc_block->words.p = gc_block->words.q = Off;
@@ -249,16 +281,85 @@ static void mcode_execute (uint_fast16_t state, parser_block_t *gc_block)
         user_mcode.execute(state, gc_block);
 }
 
+static status_code_t set_speed (setting_id_t id, uint_fast16_t value)
+{
+    st3215_settings.speed = (uint16_t)value;
+
+    return Status_OK;
+}
+
+static uint32_t get_speed (setting_id_t id)
+{
+    return st3215_settings.speed;
+}
+
+static status_code_t set_angle_limit (setting_id_t id, float value)
+{
+    if(id == Setting_ST3215_AngleMin)
+        st3215_settings.angle_min = value;
+    else
+        st3215_settings.angle_max = value;
+
+    return Status_OK;
+}
+
+static float get_angle_limit (setting_id_t id)
+{
+    return id == Setting_ST3215_AngleMin ? st3215_settings.angle_min : st3215_settings.angle_max;
+}
+
+static const setting_detail_t st3215_settings_detail[] = {
+    { Setting_ST3215_Speed, Group_General, "ST3215 servo speed", "steps/s", Format_Int16, "####0", "0", "4095", Setting_IsExtendedFn, set_speed, get_speed, NULL },
+    { Setting_ST3215_AngleMin, Group_General, "ST3215 minimum angle", "deg", Format_Decimal, "##0.0", "0", "360", Setting_IsExtendedFn, set_angle_limit, get_angle_limit, NULL },
+    { Setting_ST3215_AngleMax, Group_General, "ST3215 maximum angle", "deg", Format_Decimal, "##0.0", "0", "360", Setting_IsExtendedFn, set_angle_limit, get_angle_limit, NULL }
+};
+
+static const setting_descr_t st3215_settings_descr[] = {
+    { Setting_ST3215_Speed, "Move speed for M101 Q<angle>, in raw ST3215 Goal Speed units (steps/s out of 4096 per revolution). 0 = maximum/uncontrolled speed." },
+    { Setting_ST3215_AngleMin, "Minimum angle allowed for M101 Q<angle>. Moves requesting a lower angle are rejected." },
+    { Setting_ST3215_AngleMax, "Maximum angle allowed for M101 Q<angle>. Moves requesting a higher angle are rejected." }
+};
+
+static void st3215_settings_save (void)
+{
+    hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&st3215_settings, sizeof(st3215_settings_t), true);
+}
+
+static void st3215_settings_restore (void)
+{
+    st3215_settings.speed = ST3215_SPEED_DEFAULT;
+    st3215_settings.angle_min = 0.0f;
+    st3215_settings.angle_max = ST3215_ANGLE_MAX;
+
+    st3215_settings_save();
+}
+
+static void st3215_settings_load (void)
+{
+    if(hal.nvs.memcpy_from_nvs((uint8_t *)&st3215_settings, nvs_address, sizeof(st3215_settings_t), true) != NVS_TransferResult_OK)
+        st3215_settings_restore();
+}
+
 static void onReportOptions (bool newopt)
 {
     on_report_options(newopt);
 
     if(!newopt)
-        report_plugin("ST3215 servo", "0.01");
+        report_plugin("ST3215 servo", "0.02");
 }
 
 void st3215_init (void)
 {
+    static setting_details_t setting_details = {
+        .settings = st3215_settings_detail,
+        .n_settings = sizeof(st3215_settings_detail) / sizeof(setting_detail_t),
+        .descriptions = st3215_settings_descr,
+        .n_descriptions = sizeof(st3215_settings_descr) / sizeof(setting_descr_t),
+        .save = st3215_settings_save,
+        .load = st3215_settings_load,
+        .restore = st3215_settings_restore
+    };
+
     const io_stream_t *stream;
 
     if((stream = stream_open_instance(ST3215_STREAM, ST3215_BAUDRATE, NULL, "ST3215 servo")) == NULL)
@@ -268,6 +369,9 @@ void st3215_init (void)
 
     st3215_uart.disable_rx(true);
     st3215_uart.set_enqueue_rt_handler(stream_buffer_all);
+
+    if((nvs_address = nvs_alloc(sizeof(st3215_settings_t))))
+        settings_register(&setting_details);
 
     memcpy(&user_mcode, &grbl.user_mcode, sizeof(user_mcode_ptrs_t));
 
