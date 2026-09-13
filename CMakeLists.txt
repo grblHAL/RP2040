@@ -124,6 +124,12 @@ else()
 target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
 endif()
 target_compile_definitions(grblHAL PUBLIC RP2040)
+# N_AXIS is also defined in my_machine.h, but grbl/*.c sources include grbl/config.h
+# directly (never my_machine.h/driver.h), so that definition alone is invisible to
+# them and they'd silently fall back to the N_AXIS=3 default there. Defining it here
+# as a compiler flag makes it visible to every source file regardless of its own
+# include chain. Keep this in sync with the value in my_machine.h.
+target_compile_definitions(grblHAL PUBLIC N_AXIS=4)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
 #target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
