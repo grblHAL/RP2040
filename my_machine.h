@@ -90,6 +90,7 @@
 //#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
 //#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
 //#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
+#define ST3215_ENABLE           1 // Enable M101 support for a Feetech/Waveshare ST3215 serial bus servo on a dedicated hardware UART (default: UART0, GPIO0/GPIO1). See st3215.c for wiring notes and ST3215_STREAM/ST3215_BAUDRATE/ST3215_ID_DEFAULT overrides.
 //#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxiliary outputs.
 //#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
 //#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.

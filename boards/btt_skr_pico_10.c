@@ -28,6 +28,11 @@ extern void tmc_uart_init (void);
 void board_init (void)
 {
     tmc_uart_init();
+
+#if ST3215_ENABLE
+    extern void st3215_init (void);
+    st3215_init();
+#endif
 }
 
 #endif
