@@ -45,6 +45,9 @@
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
+#define N_AXIS                  4 // 4th axis (A) drives the rotary table on the board's E0/4th motor connector
+                                   // (M3_STEP_PIN/M3_DIRECTION_PIN/M3_ENABLE_PIN in boards/btt_skr_pico_10_map.h).
+                                   // After flashing, set $376=1 to mark A as rotary and $103 to steps/degree.
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
