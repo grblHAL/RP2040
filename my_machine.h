@@ -48,6 +48,7 @@
 #define N_AXIS                  4 // 4th axis (A) drives the rotary table on the board's E0/4th motor connector
                                    // (M3_STEP_PIN/M3_DIRECTION_PIN/M3_ENABLE_PIN in boards/btt_skr_pico_10_map.h).
                                    // After flashing, set $376=1 to mark A as rotary and $103 to steps/degree.
+#define DEFAULT_DIR_SIGNALS_INVERT_MASK 15 // Invert X/Y/Z/A direction signals (bits 0-3) - matches this machine's wiring.
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
