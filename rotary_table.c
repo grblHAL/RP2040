@@ -87,6 +87,7 @@ static bool last_ccw = false;
 static volatile uint32_t move_seq = 0;
 static user_mcode_ptrs_t user_mcode;
 static on_report_options_ptr on_report_options;
+static driver_reset_ptr driver_reset;
 
 static void table_enable (bool on)
 {
@@ -241,7 +242,18 @@ static void onReportOptions (bool newopt)
     on_report_options(newopt);
 
     if(!newopt)
-        report_plugin("Rotary table", "0.01");
+        report_plugin("Rotary table", "0.02");
+}
+
+// Stop the table on any soft reset (Ctrl-X / realtime reset command) - it is
+// driven independently of grbl's motion system, so grbl's own reset handling
+// has no effect on it otherwise.
+static void onDriverReset (void)
+{
+    move_seq++; // invalidate any pending M104 auto-stop
+    table_stop();
+
+    driver_reset();
 }
 
 void rotary_table_init (void)
@@ -269,6 +281,9 @@ void rotary_table_init (void)
 
     on_report_options = grbl.on_report_options;
     grbl.on_report_options = onReportOptions;
+
+    driver_reset = hal.driver_reset;
+    hal.driver_reset = onDriverReset;
 }
 
 #endif // ROTARY_TABLE_ENABLE
