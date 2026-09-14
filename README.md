@@ -46,6 +46,14 @@ M104 Q<degrees> [S<pulses/s>] ; rotate by <degrees> (signed, relative), then aut
 
 `M104`'s auto-stop is time-based (`duration = steps / rate`, scheduled via `task_add_delayed()`) rather than an exact pulse count, so it doesn't block X/Y/Z either.
 
+**TMC2209 setup.** Being outside `N_AXIS`, the table's TMC2209 (same shared UART bus as X/Y/Z, its own address) is never touched by grbl's own Trinamic driver setup. Left alone it takes its microstep resolution from the MS1/MS2 *pins* (used for UART address selection on this board, not microstepping) instead of the UART-configured MRES register - far coarser than X/Y/Z's 16 microsteps, and audibly rough at low `M102`/`M104` rates. `rotary_table_init()` explicitly adds it as a TMC2209 motor (`TMC2209_AddMotor`) and configures it the same way grbl's settings load does for X/Y/Z. Current and chopper algorithm are runtime `$`-settings, applied immediately on change, no reboot needed:
+
+- `$453` - motor current, mA RMS (0-1500, capped to the fitted 42BYGH34's rating - check your own motor's rating before raising it)
+- `$454` - chopper mode: `0` = StealthChop (quiet, default), `1` = SpreadCycle (louder, more torque)
+
+> [!WARNING]
+> Don't call the settings `.load()` handler (or anything that writes to the TMC2209 over UART) directly from `rotary_table_init()`/`board_init()`. It hung the board (reproduced by testing) - most likely because going through `restore()` can trigger an NVS flash write (`flash_range_erase`/`flash_range_program`) this early in boot, before whatever needs to be quiesced for that to be safe on RP2040 actually is. grbl's settings framework calls each plugin's `.load` on its own at a safe point later in boot regardless - same as [st3215.c](st3215.c), which never calls its own load function directly either - so it isn't even necessary to force it early. `TMC2209_AddMotor` already leaves the driver in a safe working state (default current, StealthChop) for the window before that happens.
+
 Default direction invert (`$3`) and X/Y/Z limit/probe/E-stop invert are still configured live after flashing:
 
 ```
