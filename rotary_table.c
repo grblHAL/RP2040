@@ -415,17 +415,18 @@ void rotary_table_init (void)
             .restore = rotary_table_settings_restore
         };
 
-        if((nvs_address = nvs_alloc(sizeof(rotary_table_settings_t)))) {
+        // Deliberately not calling rotary_table_settings_load() here: doing so
+        // hung the board during board_init() (confirmed by testing), likely
+        // because it can trigger a flash write (via restore()) this early.
+        // grbl's settings framework calls setting_details.load on its own at
+        // a safe point later in boot, and TMC2209_AddMotor above already left
+        // the driver in a safe working state (default current/StealthChop)
+        // in the meantime.
+        if((nvs_address = nvs_alloc(sizeof(rotary_table_settings_t))))
             settings_register(&setting_details);
-            // Apply now too (in addition to .load above) - board_init() runs after
-            // grbl's core settings_init() pass, so a plugin registering this late
-            // would otherwise not get its settings applied until something else
-            // triggers a settings-changed event.
-            rotary_table_settings_load();
-        } else {
+        else {
             rotary_table_settings.current = ROTARY_TABLE_TMC_CURRENT_DEFAULT;
             rotary_table_settings.spreadcycle = 0;
-            apply_tmc_settings();
         }
     }
 
