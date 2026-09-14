@@ -99,7 +99,7 @@
 #define ROTARY_TABLE_TMC_MICROSTEPS 16 // Matches X/Y/Z ($150-152).
 #endif
 #ifndef ROTARY_TABLE_TMC_CURRENT
-#define ROTARY_TABLE_TMC_CURRENT 500 // mA RMS, matches the X/Y/Z default.
+#define ROTARY_TABLE_TMC_CURRENT 1000 // mA RMS. Motor is a 42BYGH34, rated 1500mA max - this is ~67% for headroom.
 #endif
 #ifndef ROTARY_TABLE_TMC_HOLD_PCT
 #define ROTARY_TABLE_TMC_HOLD_PCT 50 // % of run current while holding.
