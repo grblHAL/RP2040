@@ -24,6 +24,8 @@ Configured for a **BTT SKR Pico 1.0** board (`BOARD_BTT_SKR_PICO_10` in [my_mach
 >
 > [Demo video](https://www.youtube.com/watch?v=oVeflQN5IRw) of the rig in action.
 
+If you're working on this repo with [Claude Code](https://claude.com/claude-code), see [CLAUDE.md](CLAUDE.md) for this fork's architecture notes, and the `grblhal-driver-dev` skill (user-level, `~/.claude/skills/grblhal-driver-dev/`) for the general grblHAL extension patterns and gotchas this session's work uncovered — custom M-codes, `$`-settings, status report fields, and why some config has to live in `CMakeLists.txt` instead of `my_machine.h`.
+
 ### Command-line build
 
 [build.sh](build.sh) wraps the CMake/Ninja/Make flow used by the VS Code extension so the firmware can be built from a terminal:
