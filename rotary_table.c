@@ -59,6 +59,7 @@
 #include "grbl/protocol.h"
 #include "grbl/task.h"
 #include "grbl/report.h"
+#include "grbl/nvs_buffer.h"
 #include "motors/trinamic.h"
 
 #ifndef ROTARY_TABLE_STEP_PIN
@@ -98,8 +99,11 @@
 #ifndef ROTARY_TABLE_TMC_MICROSTEPS
 #define ROTARY_TABLE_TMC_MICROSTEPS 16 // Matches X/Y/Z ($150-152).
 #endif
-#ifndef ROTARY_TABLE_TMC_CURRENT
-#define ROTARY_TABLE_TMC_CURRENT 1000 // mA RMS. Motor is a 42BYGH34, rated 1500mA max - this is ~67% for headroom.
+#ifndef ROTARY_TABLE_TMC_CURRENT_MAX
+#define ROTARY_TABLE_TMC_CURRENT_MAX 1500 // mA RMS. Motor is a 42BYGH34, rated 1500mA max - $453 is capped here.
+#endif
+#ifndef ROTARY_TABLE_TMC_CURRENT_DEFAULT
+#define ROTARY_TABLE_TMC_CURRENT_DEFAULT 1000 // mA RMS, ~67% of max for thermal headroom.
 #endif
 #ifndef ROTARY_TABLE_TMC_HOLD_PCT
 #define ROTARY_TABLE_TMC_HOLD_PCT 50 // % of run current while holding.
@@ -110,6 +114,15 @@
 #define ROTARY_TABLE_RATE_MIN 1
 #define ROTARY_TABLE_RATE_MAX 20000
 
+// $453-$454, see grbl/settings.h - reserved for private/local plugins ($450-452 are st3215.c's).
+#define Setting_RotaryTable_Current      Setting_UserDefined_3
+#define Setting_RotaryTable_ChopperMode  Setting_UserDefined_4
+
+typedef struct {
+    uint16_t current;      // mA RMS
+    uint8_t spreadcycle;    // 0 = StealthChop, 1 = SpreadCycle
+} rotary_table_settings_t;
+
 static uint pwm_slice, pwm_chan;
 static uint32_t sys_clk_hz;
 static uint32_t last_rate = ROTARY_TABLE_RATE_DEFAULT;
@@ -118,6 +131,9 @@ static volatile uint32_t move_seq = 0;
 static user_mcode_ptrs_t user_mcode;
 static on_report_options_ptr on_report_options;
 static driver_reset_ptr driver_reset;
+static nvs_address_t nvs_address;
+static rotary_table_settings_t rotary_table_settings;
+static const tmchal_t *tmc_driver = NULL;
 
 static void table_enable (bool on)
 {
@@ -267,12 +283,83 @@ static void mcode_execute (uint_fast16_t state, parser_block_t *gc_block)
     }
 }
 
+static void apply_tmc_settings (void)
+{
+    if(tmc_driver) {
+        tmc_driver->set_current(ROTARY_TABLE_TMC_MOTOR_ID, rotary_table_settings.current, ROTARY_TABLE_TMC_HOLD_PCT);
+        tmc_driver->stealthChop(ROTARY_TABLE_TMC_MOTOR_ID, !rotary_table_settings.spreadcycle);
+    }
+}
+
+static status_code_t set_current (setting_id_t id, uint_fast16_t value)
+{
+    rotary_table_settings.current = (uint16_t)value;
+    apply_tmc_settings();
+
+    return Status_OK;
+}
+
+static uint32_t get_current (setting_id_t id)
+{
+    return rotary_table_settings.current;
+}
+
+static status_code_t set_chopper_mode (setting_id_t id, uint_fast16_t value)
+{
+    rotary_table_settings.spreadcycle = (uint8_t)value;
+    apply_tmc_settings();
+
+    return Status_OK;
+}
+
+static uint32_t get_chopper_mode (setting_id_t id)
+{
+    return rotary_table_settings.spreadcycle;
+}
+
+static const setting_detail_t rotary_table_settings_detail[] = {
+    // max_value string must match ROTARY_TABLE_TMC_CURRENT_MAX above.
+    { Setting_RotaryTable_Current, Group_General, "Rotary table motor current", "mA", Format_Int16, "####0", "0",
+      "1500", Setting_IsExtendedFn, set_current, get_current, NULL },
+    { Setting_RotaryTable_ChopperMode, Group_General, "Rotary table chopper mode", NULL, Format_RadioButtons,
+      "StealthChop (quiet),SpreadCycle (louder & more torque)", NULL, NULL, Setting_IsExtendedFn, set_chopper_mode, get_chopper_mode, NULL }
+};
+
+static const setting_descr_t rotary_table_settings_descr[] = {
+    { Setting_RotaryTable_Current, "Rotary table stepper motor RMS current. Check the motor's rated current before raising this - overcurrent will overheat it." },
+    { Setting_RotaryTable_ChopperMode, "TMC2209 chopper algorithm for the rotary table motor. StealthChop is quieter but can whine, especially at low M102/M104 speeds; SpreadCycle is louder but often smoother." }
+};
+
+static void rotary_table_settings_save (void)
+{
+    hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&rotary_table_settings, sizeof(rotary_table_settings_t), true);
+}
+
+static void rotary_table_settings_restore (void)
+{
+    rotary_table_settings.current = ROTARY_TABLE_TMC_CURRENT_DEFAULT;
+    rotary_table_settings.spreadcycle = 0; // StealthChop
+
+    rotary_table_settings_save();
+}
+
+static void rotary_table_settings_load (void)
+{
+    if(hal.nvs.memcpy_from_nvs((uint8_t *)&rotary_table_settings, nvs_address, sizeof(rotary_table_settings_t), true) != NVS_TransferResult_OK)
+        rotary_table_settings_restore();
+
+    if(rotary_table_settings.current > ROTARY_TABLE_TMC_CURRENT_MAX || rotary_table_settings.spreadcycle > 1)
+        rotary_table_settings_restore();
+
+    apply_tmc_settings();
+}
+
 static void onReportOptions (bool newopt)
 {
     on_report_options(newopt);
 
     if(!newopt)
-        report_plugin("Rotary table", "0.02");
+        report_plugin("Rotary table", "0.03");
 }
 
 // Stop the table on any soft reset (Ctrl-X / realtime reset command) - it is
@@ -306,16 +393,41 @@ void rotary_table_init (void)
 #if TRINAMIC_ENABLE == 2209
     {
         motor_map_t motor = { .id = ROTARY_TABLE_TMC_MOTOR_ID, .axis = ROTARY_TABLE_TMC_MOTOR_ID };
-        const tmchal_t *tmc = TMC2209_AddMotor(motor, ROTARY_TABLE_TMC_ADDRESS, ROTARY_TABLE_TMC_CURRENT,
-                                                ROTARY_TABLE_TMC_MICROSTEPS, ROTARY_TABLE_TMC_RSENSE);
 
-        if(tmc) {
-            tmc->set_microsteps(motor.id, ROTARY_TABLE_TMC_MICROSTEPS);
-            tmc->set_current(motor.id, ROTARY_TABLE_TMC_CURRENT, ROTARY_TABLE_TMC_HOLD_PCT);
-        } else
+        tmc_driver = TMC2209_AddMotor(motor, ROTARY_TABLE_TMC_ADDRESS, ROTARY_TABLE_TMC_CURRENT_DEFAULT,
+                                       ROTARY_TABLE_TMC_MICROSTEPS, ROTARY_TABLE_TMC_RSENSE);
+
+        if(tmc_driver)
+            tmc_driver->set_microsteps(ROTARY_TABLE_TMC_MOTOR_ID, ROTARY_TABLE_TMC_MICROSTEPS);
+        else
             task_run_on_startup(report_warning, "Rotary table: TMC2209 UART init failed, using driver defaults!");
     }
 #endif
+
+    {
+        static setting_details_t setting_details = {
+            .settings = rotary_table_settings_detail,
+            .n_settings = sizeof(rotary_table_settings_detail) / sizeof(setting_detail_t),
+            .descriptions = rotary_table_settings_descr,
+            .n_descriptions = sizeof(rotary_table_settings_descr) / sizeof(setting_descr_t),
+            .save = rotary_table_settings_save,
+            .load = rotary_table_settings_load,
+            .restore = rotary_table_settings_restore
+        };
+
+        if((nvs_address = nvs_alloc(sizeof(rotary_table_settings_t)))) {
+            settings_register(&setting_details);
+            // Apply now too (in addition to .load above) - board_init() runs after
+            // grbl's core settings_init() pass, so a plugin registering this late
+            // would otherwise not get its settings applied until something else
+            // triggers a settings-changed event.
+            rotary_table_settings_load();
+        } else {
+            rotary_table_settings.current = ROTARY_TABLE_TMC_CURRENT_DEFAULT;
+            rotary_table_settings.spreadcycle = 0;
+            apply_tmc_settings();
+        }
+    }
 
     memcpy(&user_mcode, &grbl.user_mcode, sizeof(user_mcode_ptrs_t));
 
