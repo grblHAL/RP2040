@@ -45,10 +45,15 @@
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
-#define N_AXIS                  4 // 4th axis (A) drives the rotary table on the board's E0/4th motor connector
-                                   // (M3_STEP_PIN/M3_DIRECTION_PIN/M3_ENABLE_PIN in boards/btt_skr_pico_10_map.h).
-                                   // After flashing, set $376=1 to mark A as rotary and $103 to steps/degree.
-#define DEFAULT_DIR_SIGNALS_INVERT_MASK 15 // Invert X/Y/Z/A direction signals (bits 0-3) - matches this machine's wiring.
+// DEFAULT_DIR_SIGNALS_INVERT_MASK is set in CMakeLists.txt, not here: grbl/settings.c
+// (which actually reads it to seed $3) #includes grbl/config.h directly and never
+// reaches this file, so a #define here would only affect driver.c and be silently
+// ignored by grbl core - see the comment next to it in CMakeLists.txt.
+#define ROTARY_TABLE_ENABLE     1 // M102/M103/M104 control of the rotary table stepper, driven independently of
+                                   // grbl's motion planner (see rotary_table.c) so it can spin continuously while
+                                   // X/Y/Z G-code keeps executing. Uses the board's E0/4th motor connector
+                                   // (GPIO14/13/15) - NOT a grbl axis (N_AXIS stays 3; the table used to be axis A,
+                                   // see git history, but that blocked X/Y/Z from running while it turned).
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time

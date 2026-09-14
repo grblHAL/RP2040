@@ -33,6 +33,11 @@ void board_init (void)
     extern void st3215_init (void);
     st3215_init();
 #endif
+
+#if ROTARY_TABLE_ENABLE
+    extern void rotary_table_init (void);
+    rotary_table_init();
+#endif
 }
 
 #endif

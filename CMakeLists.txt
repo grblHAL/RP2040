@@ -77,6 +77,7 @@ if(AddMyPlugin)
     ioports_analog.c
     tmc_uart.c
     st3215.c
+    rotary_table.c
     my_plugin.c
     boards/pico_cnc.c
     boards/flexihal2350.c
@@ -103,6 +104,7 @@ else()
     ioports_analog.c
     tmc_uart.c
     st3215.c
+    rotary_table.c
     boards/pico_cnc.c
     boards/flexihal2350.c
     boards/btt_skr_pico_10.c
@@ -124,12 +126,11 @@ else()
 target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
 endif()
 target_compile_definitions(grblHAL PUBLIC RP2040)
-# N_AXIS is also defined in my_machine.h, but grbl/*.c sources include grbl/config.h
-# directly (never my_machine.h/driver.h), so that definition alone is invisible to
-# them and they'd silently fall back to the N_AXIS=3 default there. Defining it here
-# as a compiler flag makes it visible to every source file regardless of its own
-# include chain. Keep this in sync with the value in my_machine.h.
-target_compile_definitions(grblHAL PUBLIC N_AXIS=4)
+# grbl/*.c sources #include "config.h" directly, which resolves to grbl/config.h
+# (adjacent to the including file) rather than my_machine.h/driver.h - a #define
+# in my_machine.h is invisible to them regardless of include order. Compile-time
+# config that grbl core itself reads (not just driver.c) must go here instead.
+target_compile_definitions(grblHAL PUBLIC DEFAULT_DIR_SIGNALS_INVERT_MASK=7) # Invert X/Y/Z direction (bits 0-2), read by grbl/settings.c to seed $3.
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
 #target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
