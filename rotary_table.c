@@ -42,6 +42,12 @@
   X/Y/Z execution either. This intentionally avoids the PWM wrap interrupt
   (PWM_IRQ_WRAP), which driver.c already claims exclusively for spindle RPM
   encoding when SPINDLE_ENCODER_ENABLE is on.
+
+  Every "?" realtime status report gets two extra fields:
+    |TBL:<angle 0-360>|TBLABS:<absolute angle, unwrapped, can exceed 360>
+  Both are open-loop estimates (time elapsed x rate, no feedback sensor -
+  same assumption grbl's own MPos makes for a stepper axis) and update live
+  during an M102/M104 move, not just after it completes/auto-stops.
 */
 
 #include "driver.h"
@@ -130,18 +136,48 @@ static bool last_ccw = false;
 static volatile uint32_t move_seq = 0;
 static user_mcode_ptrs_t user_mcode;
 static on_report_options_ptr on_report_options;
+static on_realtime_report_ptr on_realtime_report;
 static driver_reset_ptr driver_reset;
 static nvs_address_t nvs_address;
 static rotary_table_settings_t rotary_table_settings;
 static const tmchal_t *tmc_driver = NULL;
+
+// Open-loop absolute position, degrees (unwrapped - keeps accumulating past
+// +-360). No feedback sensor, same assumption grbl's own MPos makes for a
+// normal stepper axis: correct as long as no steps are lost.
+static float table_position_deg = 0.0f;
+static bool table_spinning = false;
+static uint32_t spin_start_tick = 0;
+static uint32_t spin_rate = 0;
+static bool spin_ccw = false;
 
 static void table_enable (bool on)
 {
     gpio_put(ROTARY_TABLE_ENABLE_PIN, ROTARY_TABLE_ENABLE_ACTIVE_LOW ? !on : on);
 }
 
+// Degrees turned since spin_start_tick at spin_rate/spin_ccw.
+static float table_spin_delta (void)
+{
+    uint32_t elapsed_ms = hal.get_elapsed_ticks() - spin_start_tick;
+    float delta = (float)elapsed_ms / 1000.0f * (float)spin_rate / ROTARY_TABLE_STEPS_PER_DEG;
+
+    return spin_ccw ? -delta : delta;
+}
+
+// Current absolute position, folding in an in-progress spin.
+static float table_current_position (void)
+{
+    return table_position_deg + (table_spinning ? table_spin_delta() : 0.0f);
+}
+
 static void table_stop (void)
 {
+    if(table_spinning) {
+        table_position_deg += table_spin_delta();
+        table_spinning = false;
+    }
+
     pwm_set_enabled(pwm_slice, false);
     table_enable(false);
 }
@@ -186,6 +222,11 @@ static void table_start (uint32_t rate, bool ccw)
     table_set_rate(rate);
     pwm_set_counter(pwm_slice, 0);
     pwm_set_enabled(pwm_slice, true);
+
+    spin_start_tick = hal.get_elapsed_ticks();
+    spin_rate = rate;
+    spin_ccw = ccw;
+    table_spinning = true;
 }
 
 static void table_scheduled_stop (void *data)
@@ -354,12 +395,31 @@ static void rotary_table_settings_load (void)
     apply_tmc_settings();
 }
 
+static void onRealtimeReport (stream_write_ptr stream_write, report_tracking_flags_t report)
+{
+    float abs_angle = table_current_position();
+    float wrapped = fmodf(abs_angle, 360.0f);
+    char buf[48];
+
+    if(wrapped < 0.0f)
+        wrapped += 360.0f;
+
+    strcpy(buf, "|TBL:");
+    strcat(buf, ftoa(wrapped, 2));
+    strcat(buf, "|TBLABS:");
+    strcat(buf, ftoa(abs_angle, 2));
+    stream_write(buf);
+
+    if(on_realtime_report)
+        on_realtime_report(stream_write, report);
+}
+
 static void onReportOptions (bool newopt)
 {
     on_report_options(newopt);
 
     if(!newopt)
-        report_plugin("Rotary table", "0.03");
+        report_plugin("Rotary table", "0.04");
 }
 
 // Stop the table on any soft reset (Ctrl-X / realtime reset command) - it is
@@ -438,6 +498,9 @@ void rotary_table_init (void)
 
     on_report_options = grbl.on_report_options;
     grbl.on_report_options = onReportOptions;
+
+    on_realtime_report = grbl.on_realtime_report;
+    grbl.on_realtime_report = onRealtimeReport;
 
     driver_reset = hal.driver_reset;
     hal.driver_reset = onDriverReset;

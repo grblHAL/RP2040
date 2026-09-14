@@ -27,6 +27,12 @@
     [ST3215:<id>|A:<angle deg>|L:<load %>|V:<voltage V>|T:<temperature C>]
   If P is omitted ST3215_ID_DEFAULT is used.
 
+  The default id's angle is also appended to every "?" realtime status
+  report as |ST3215:<angle>, e.g. <Idle|MPos:...|ST3215:120.40>. This value
+  is refreshed by a periodic background poll (ST3215_POLL_MS), not read
+  live on every "?", so it doesn't add UART round-trip latency to status
+  reports.
+
   $-settings (shared by all servo ids, see $$):
     $450 - move speed, raw ST3215 steps/s (0 = max/uncontrolled speed).
     $451 - minimum allowed angle, degrees. M101 Q below this is rejected.
@@ -57,6 +63,7 @@
 #include "grbl/hal.h"
 #include "grbl/protocol.h"
 #include "grbl/nvs_buffer.h"
+#include "grbl/task.h"
 
 #ifndef ST3215_STREAM
 #define ST3215_STREAM 0 // Hardware UART instance, see serial.c (0 = UART0).
@@ -72,6 +79,10 @@
 
 #ifndef ST3215_SPEED_DEFAULT
 #define ST3215_SPEED_DEFAULT 200 // Default $450 value, raw steps/s. Conservative/slow.
+#endif
+
+#ifndef ST3215_POLL_MS
+#define ST3215_POLL_MS 500 // Background poll interval for the "?" status report field.
 #endif
 
 #define ST3215_HEADER           0xFF
@@ -110,6 +121,7 @@ typedef struct {
 static io_stream_t st3215_uart;
 static user_mcode_ptrs_t user_mcode;
 static on_report_options_ptr on_report_options;
+static on_realtime_report_ptr on_realtime_report;
 static nvs_address_t nvs_address;
 static st3215_settings_t st3215_settings;
 
@@ -247,6 +259,33 @@ static bool st3215_get_status (uint8_t id, st3215_status_t *status)
     return true;
 }
 
+// Lean 2-byte read, used by the background poll so it doesn't tie up the
+// shared UART as long as the full 8-byte st3215_get_status() read.
+static bool st3215_get_angle (uint8_t id, float *angle)
+{
+    uint8_t data[2];
+
+    if(!st3215_read(id, ST3215_ADDR_PRESENT_POSITION, 2, data))
+        return false;
+
+    *angle = (float)((uint16_t)data[0] | ((uint16_t)data[1] << 8)) * ST3215_ANGLE_MAX / (float)ST3215_POS_MAX;
+
+    return true;
+}
+
+static float st3215_report_angle = 0.0f;
+static bool st3215_report_valid = false;
+
+static void st3215_poll (void *data)
+{
+    float angle;
+
+    if((st3215_report_valid = st3215_get_angle(ST3215_ID_DEFAULT, &angle)))
+        st3215_report_angle = angle;
+
+    task_add_delayed(st3215_poll, NULL, ST3215_POLL_MS);
+}
+
 static user_mcode_type_t mcode_check (user_mcode_t mcode)
 {
     return mcode == UserMCode_Generic1
@@ -379,12 +418,25 @@ static void st3215_settings_load (void)
         st3215_settings_restore();
 }
 
+static void onRealtimeReport (stream_write_ptr stream_write, report_tracking_flags_t report)
+{
+    if(st3215_report_valid) {
+        char buf[24];
+        strcpy(buf, "|ST3215:");
+        strcat(buf, ftoa(st3215_report_angle, 2));
+        stream_write(buf);
+    }
+
+    if(on_realtime_report)
+        on_realtime_report(stream_write, report);
+}
+
 static void onReportOptions (bool newopt)
 {
     on_report_options(newopt);
 
     if(!newopt)
-        report_plugin("ST3215 servo", "0.02");
+        report_plugin("ST3215 servo", "0.03");
 }
 
 void st3215_init (void)
@@ -420,6 +472,11 @@ void st3215_init (void)
 
     on_report_options = grbl.on_report_options;
     grbl.on_report_options = onReportOptions;
+
+    on_realtime_report = grbl.on_realtime_report;
+    grbl.on_realtime_report = onRealtimeReport;
+
+    task_add_delayed(st3215_poll, NULL, ST3215_POLL_MS);
 }
 
 #endif // ST3215_ENABLE
