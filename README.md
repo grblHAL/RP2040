@@ -18,7 +18,7 @@ The board is selected in the lower right corner of the UI.
 
 ## This fork (btt_st3215 branch)
 
-Configured for a **BTT SKR Pico 1.0** board (`BOARD_BTT_SKR_PICO_10` in [my_machine.h](my_machine.h)) driving a CNC with a 4th-axis rotary table and a Feetech/Waveshare ST3215 serial bus servo.
+Configured for a **BTT SKR Pico 1.0** board (`BOARD_BTT_SKR_PICO_10` in [my_machine.h](my_machine.h)) driving a CNC with an independent rotary table and a Feetech/Waveshare ST3215 serial bus servo.
 
 > See also [rotary-pico](https://github.com/iyalosovetsky/rotary-pico) — a standalone MicroPython firmware for the same BTT SKR Pico turntable/servo rig, independent of grblHAL.
 
@@ -32,23 +32,29 @@ Configured for a **BTT SKR Pico 1.0** board (`BOARD_BTT_SKR_PICO_10` in [my_mach
 
 Run `./build.sh --help` for board selection, feature flags (WiFi/Ethernet/Bluetooth/mDNS/MQTT/HPGL), and `PICO_SDK_PATH` overrides. Note: if `~/.pico-sdk/cmake/pico-vscode.cmake` exists (VS Code Pico extension installed), it forces the SDK path to the version pinned in [CMakeLists.txt](CMakeLists.txt) regardless of `--sdk-path`/`PICO_SDK_PATH`.
 
-### 4th axis (A) — rotary table
+### Rotary table — M102/M103/M104
 
-`N_AXIS` is set to `4` in two places that must be kept in sync:
-- [my_machine.h](my_machine.h) (documents the setting, seen by `driver.c` and other project-root sources)
-- [CMakeLists.txt](CMakeLists.txt) (`target_compile_definitions(grblHAL PUBLIC N_AXIS=4)`)
+The table motor connects to the board's 4th motor connector (GPIO14 STEP / GPIO13 DIR / GPIO15 ENABLE — see [boards/btt_skr_pico_10_map.h](boards/btt_skr_pico_10_map.h)), but it is **not** a grbl axis: `N_AXIS` stays `3` (X/Y/Z only).
 
-Both are required: `grbl/*.c` core sources `#include "config.h"` directly (resolving to `grbl/config.h`, never `my_machine.h`), so `my_machine.h` alone is invisible to them and they'd silently keep the `N_AXIS=3` default — breaking `$376` (rotary axis flag), `$I`'s axis count, and anything else in grbl core that depends on the real axis count.
-
-The rotary table motor connects to the board's 4th motor connector (`M3_STEP_PIN`/`M3_DIRECTION_PIN`/`M3_ENABLE_PIN`, GPIO14/13/15 — see [boards/btt_skr_pico_10_map.h](boards/btt_skr_pico_10_map.h)). After flashing, configure it live:
+grbl's G-code motion is a single coordinated multi-axis planner — every block moves all axes together and blocks execute strictly in order. There is no way to have one axis spin indefinitely while X/Y/Z keep accepting and executing independent G-code within that model; queuing the table as a 4th axis meant any "spin forever" move blocked every subsequent X/Y/Z command until it finished. [rotary_table.c](rotary_table.c) drives the table motor directly via a free-running RP2040 PWM slice, entirely outside grbl's stepper segment buffer, so it can turn continuously (or through a timed move) while X/Y/Z G-code keeps running unblocked:
 
 ```
-$5=15     ; invert X/Y/Z/A limit pins (NC-switch convention; floating pins read as triggered)
+M102 [S<pulses/s>] [P<0|1>]   ; start continuous rotation (P0 = CW, P1 = CCW)
+M103                          ; stop (also stops it on a soft reset / Ctrl-X)
+M104 Q<degrees> [S<pulses/s>] ; rotate by <degrees> (signed, relative), then auto-stop
+```
+
+`M104`'s auto-stop is time-based (`duration = steps / rate`, scheduled via `task_add_delayed()`) rather than an exact pulse count, so it doesn't block X/Y/Z either.
+
+Default direction invert (`$3`) and X/Y/Z limit/probe/E-stop invert are still configured live after flashing:
+
+```
+$5=7      ; invert X/Y/Z limit pins (NC-switch convention; floating pins read as triggered)
 $6=1      ; invert probe
 $14=64    ; invert E-stop/control signal
-$376=1    ; mark axis A as rotary (units become deg instead of mm)
-$103=<steps/degree>   ; calibrate empirically: move a known angle, measure the actual rotation, scale
 ```
+
+`$3` (direction invert) defaults to `7` (X/Y/Z inverted) out of the box via `DEFAULT_DIR_SIGNALS_INVERT_MASK` in [CMakeLists.txt](CMakeLists.txt) — not `my_machine.h`, because `grbl/settings.c` (which actually reads it) `#include`s `grbl/config.h` directly and never sees `my_machine.h`. The same reach problem applies to any other compile-time default that grbl *core* (not just driver.c) needs to see — put those in `CMakeLists.txt`, not `my_machine.h`.
 
 ### ST3215 bus servo — M101
 
