@@ -58,6 +58,8 @@
 #include "grbl/hal.h"
 #include "grbl/protocol.h"
 #include "grbl/task.h"
+#include "grbl/report.h"
+#include "motors/trinamic.h"
 
 #ifndef ROTARY_TABLE_STEP_PIN
 #define ROTARY_TABLE_STEP_PIN 14
@@ -76,6 +78,34 @@
 #endif
 #ifndef ROTARY_TABLE_RATE_DEFAULT
 #define ROTARY_TABLE_RATE_DEFAULT 100 // steps/s
+#endif
+
+// The table's TMC2209 sits on the same shared UART bus as X/Y/Z (tmc_uart.c)
+// but, being outside N_AXIS, is never touched by grbl's own Trinamic driver
+// setup - left at power-on defaults it takes its microstep resolution from
+// the MS1/MS2 *pins* (used for UART address selection on this board, not
+// microstepping) instead of the UART-configured MRES register, which is far
+// coarser than X/Y/Z's 16 microsteps and causes rough/jerky rotation
+// (worst at low step rates, where individual coarse steps become visible).
+// Explicitly adding it as a TMC2209 motor below fixes this the same way
+// grbl's own settings load does for X/Y/Z.
+#ifndef ROTARY_TABLE_TMC_ADDRESS
+#define ROTARY_TABLE_TMC_ADDRESS 3 // UART address (was address_map[3] in tmc_uart.c when this motor was axis A).
+#endif
+#ifndef ROTARY_TABLE_TMC_MOTOR_ID
+#define ROTARY_TABLE_TMC_MOTOR_ID 3 // tmc2209hal.c's tmcdriver[] slot - must not collide with X=0/Y=1/Z=2.
+#endif
+#ifndef ROTARY_TABLE_TMC_MICROSTEPS
+#define ROTARY_TABLE_TMC_MICROSTEPS 16 // Matches X/Y/Z ($150-152).
+#endif
+#ifndef ROTARY_TABLE_TMC_CURRENT
+#define ROTARY_TABLE_TMC_CURRENT 500 // mA RMS, matches the X/Y/Z default.
+#endif
+#ifndef ROTARY_TABLE_TMC_HOLD_PCT
+#define ROTARY_TABLE_TMC_HOLD_PCT 50 // % of run current while holding.
+#endif
+#ifndef ROTARY_TABLE_TMC_RSENSE
+#define ROTARY_TABLE_TMC_RSENSE 110 // mOhm, TMC2209 sense resistor on this board.
 #endif
 #define ROTARY_TABLE_RATE_MIN 1
 #define ROTARY_TABLE_RATE_MAX 20000
@@ -272,6 +302,20 @@ void rotary_table_init (void)
     pwm_slice = pwm_gpio_to_slice_num(ROTARY_TABLE_STEP_PIN);
     pwm_chan = pwm_gpio_to_channel(ROTARY_TABLE_STEP_PIN);
     table_set_rate(last_rate);
+
+#if TRINAMIC_ENABLE == 2209
+    {
+        motor_map_t motor = { .id = ROTARY_TABLE_TMC_MOTOR_ID, .axis = ROTARY_TABLE_TMC_MOTOR_ID };
+        const tmchal_t *tmc = TMC2209_AddMotor(motor, ROTARY_TABLE_TMC_ADDRESS, ROTARY_TABLE_TMC_CURRENT,
+                                                ROTARY_TABLE_TMC_MICROSTEPS, ROTARY_TABLE_TMC_RSENSE);
+
+        if(tmc) {
+            tmc->set_microsteps(motor.id, ROTARY_TABLE_TMC_MICROSTEPS);
+            tmc->set_current(motor.id, ROTARY_TABLE_TMC_CURRENT, ROTARY_TABLE_TMC_HOLD_PCT);
+        } else
+            task_run_on_startup(report_warning, "Rotary table: TMC2209 UART init failed, using driver defaults!");
+    }
+#endif
 
     memcpy(&user_mcode, &grbl.user_mcode, sizeof(user_mcode_ptrs_t));
 
