@@ -20,6 +20,8 @@ The board is selected in the lower right corner of the UI.
 
 Configured for a **BTT SKR Pico 1.0** board (`BOARD_BTT_SKR_PICO_10` in [my_machine.h](my_machine.h)) driving a CNC with a 4th-axis rotary table and a Feetech/Waveshare ST3215 serial bus servo.
 
+> See also [rotary-pico](https://github.com/iyalosovetsky/rotary-pico) — a standalone MicroPython firmware for the same BTT SKR Pico turntable/servo rig, independent of grblHAL.
+
 ### Command-line build
 
 [build.sh](build.sh) wraps the CMake/Ninja/Make flow used by the VS Code extension so the firmware can be built from a terminal:
