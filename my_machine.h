@@ -23,6 +23,7 @@
 // If none is enabled pin mappings from generic_map.h will be used.
 //#define BOARD_BOLANGSK //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
 //#define BOARD_BTT_SKR_PICO_10
+#define BOARD_BTT_SKR_PICO_10
 //#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_PICOBOB
 //#define BOARD_PICOBOB_G540
@@ -44,6 +45,15 @@
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
+// DEFAULT_DIR_SIGNALS_INVERT_MASK is set in CMakeLists.txt, not here: grbl/settings.c
+// (which actually reads it to seed $3) #includes grbl/config.h directly and never
+// reaches this file, so a #define here would only affect driver.c and be silently
+// ignored by grbl core - see the comment next to it in CMakeLists.txt.
+#define ROTARY_TABLE_ENABLE     1 // M102/M103/M104 control of the rotary table stepper, driven independently of
+                                   // grbl's motion planner (see rotary_table.c) so it can spin continuously while
+                                   // X/Y/Z G-code keeps executing. Uses the board's E0/4th motor connector
+                                   // (GPIO14/13/15) - NOT a grbl axis (N_AXIS stays 3; the table used to be axis A,
+                                   // see git history, but that blocked X/Y/Z from running while it turned).
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
@@ -89,6 +99,7 @@
 //#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
 //#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
 //#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
+#define ST3215_ENABLE           1 // Enable M101 support for a Feetech/Waveshare ST3215 serial bus servo on a dedicated hardware UART (default: UART0, GPIO0/GPIO1). See st3215.c for wiring notes and ST3215_STREAM/ST3215_BAUDRATE/ST3215_ID_DEFAULT overrides.
 //#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxiliary outputs.
 //#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
 //#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
