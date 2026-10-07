@@ -1,153 +1,56 @@
 /*
-  generic_map.h - driver code for RP2040 ARM processors
+ * Mapeo de hardware personalizado para Raspberry Pi Pico (CNC)
+ * Configuración con pines de Habilitación (Enable) separados
+ * para permitir movimiento manual de los ejes en el taller.
+ */
 
-  Part of grblHAL
+// 1. Pines de Paso (PUL / STEP)
+// Lógica: Asignamos la base en 2. El sistema PIO de la Pico asigna 
+// automáticamente y de forma consecutiva: X=2, Y=3, Z=4.
+#define STEP_PORT           GPIO_PIO  
+#define STEP_PINS_BASE      2         
 
-  Copyright (c) 2021-2025 Terje Io
-  Copyright (c) 2021 Volksolive
+// 2. Pines de Dirección (DIR)
+// Lógica: Define el sentido de giro de cada eje.
+#define DIRECTION_PORT      GPIO_OUTPUT
+#define X_DIRECTION_PIN     5
+#define Y_DIRECTION_PIN     6
+#define Z_DIRECTION_PIN     7
+#define DIRECTION_OUTMODE   GPIO_SHIFT5
 
-  grblHAL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+// 3. Pines de Habilitación (ENA) Independientes
+// Lógica: Reemplaza el pin global para controlar el torque de cada 
+// motor de forma individual y evitar conflictos en los convertidores.
+#define ENABLE_PORT         GPIO_OUTPUT
+#define X_ENABLE_PIN        8
+#define Y_ENABLE_PIN        9
+#define Z_ENABLE_PIN        10
 
-  grblHAL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details.
+// 4. Finales de Carrera (Límites) - COMENTADOS
+// Lógica: Los desactivamos anulando el código original para que no 
+// interfieran con los nuevos pines de Enable asignados al 9 y 10.
+// #define X_LIMIT_PIN         9
+// #define Y_LIMIT_PIN         10
+// #define Z_LIMIT_PIN         11
+// #define LIMIT_INMODE        GPIO_MAP
 
-  You should have received a copy of the GNU General Public License
-  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
-*/
-#define USE_EXPANDERS
-#if TRINAMIC_ENABLE
-#error Trinamic plugin not supported!
-#endif
+// 5. Pin de Sonda (Touch Probe)
+// Lógica: Entrada auxiliar para detectar el cero del eje Z al hacer 
+// contacto con GND a través de la herramienta.
+#define AUXINPUT2_PIN       28 
+#define PROBE_PIN           AUXINPUT2_PIN
 
-#if N_ABC_MOTORS
-#error "Axis configuration is not supported!"
-#endif
+// ==============================================================
+// 6. PINES DE CONTROL DE SISTEMA (CORRECCIÓN ERROR 79 Y FEEDHOLD)
+// ==============================================================
+// Lógica: Comentamos explícitamente las definiciones de control 
+// para evitar que lean ruido eléctrico al estar flotando.
 
-#if I2C_STROBE_ENABLE && MOTOR_FAULT_ENABLE
-#error "Motor fault input and I2C strobe input (keypad plugin) cannot be enabled at the same time."
-#endif
+// Anula la búsqueda física del Paro de Emergencia (E-Stop) en el GPIO 22.
+// #define RESET_PIN           22 
 
-// Define step pulse output pins.
-#define STEP_PORT               GPIO_PIO  // N_AXIS pin PIO SM
-#define STEP_PINS_BASE          2         // N_AXIS number of consecutive pins are used by PIO
+// Anula la Pausa Física. Libera el GPIO 7 para que el Eje Z funcione.
+// #define FEED_HOLD_PIN       7  
 
-// Define step direction output pins.
-#define DIRECTION_PORT          GPIO_OUTPUT
-#define X_DIRECTION_PIN         5
-#define Y_DIRECTION_PIN         6
-#define Z_DIRECTION_PIN         7
-#define DIRECTION_OUTMODE       GPIO_SHIFT5
-
-// Define stepper driver enable/disable output pin.
-#define ENABLE_PORT             GPIO_OUTPUT
-#define STEPPERS_ENABLE_PIN     8
-
-// Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN             9
-#define Y_LIMIT_PIN             10
-#define Z_LIMIT_PIN             11
-#define LIMIT_INMODE            GPIO_MAP
-
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT
-#define AUXOUTPUT0_PIN          12
-#if I2C_ENABLE
-#define I2C_PORT                1
-#define I2C_SDA                 26
-#define I2C_SCL                 27
-#else
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT
-#define AUXOUTPUT1_PIN          26
-//#define AUXOUTPUT2_PORT         GPIO_OUTPUT
-//#define AUXOUTPUT2_PIN          27
-#endif
-#define AUXOUTPUT3_PORT         GPIO_OUTPUT // Spindle PWM
-#define AUXOUTPUT3_PIN          15
-#define AUXOUTPUT4_PORT         GPIO_OUTPUT // Spindle direction
-#define AUXOUTPUT4_PIN          14
-#define AUXOUTPUT5_PORT         GPIO_OUTPUT // Spindle enable
-#define AUXOUTPUT5_PIN          13   
-#define AUXOUTPUT6_PORT         GPIO_OUTPUT // Coolant flood
-#define AUXOUTPUT6_PIN          16   
-#define AUXOUTPUT7_PORT         GPIO_OUTPUT // Coolant mist
-#define AUXOUTPUT7_PIN          17   
-
-//#define NEOPIXELS_PIN 27
-//#define NEOPIXELS_NUM 5
-//Define user-control controls (cycle start, reset, feed hold) input pins.
-
-// Define driver spindle pins
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_PORT            GPIO_OUTPUT
-#endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
-#define SPINDLE_PWM_PIN         AUXOUTPUT3_PIN
-#endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-#define SPINDLE_DIRECTION_PIN   AUXOUTPUT4_PIN
-#endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA   
-#define SPINDLE_ENABLE_PIN      AUXOUTPUT5_PIN
-#endif
-
-// Define flood and mist coolant enable output pins.
-#if COOLANT_ENABLE
-#define COOLANT_PORT            EXPANDER_PORT
-#endif
-#if COOLANT_ENABLE & COOLANT_FLOOD
-#define COOLANT_FLOOD_PIN       12
-#endif
-#if COOLANT_ENABLE & COOLANT_MIST
-#define COOLANT_MIST_PIN        13
-#endif
-
-// Define auxiliary I/O
-#if SPINDLE_ENCODER_ENABLE
-#define SPINDLE_PULSE_PIN       21  // Must be an odd pin
-#define SPINDLE_INDEX_PIN       22
-#else
-#define AUXINPUT0_PIN           22
-#define AUXINPUT1_PIN           21
-#endif
-#define AUXINPUT2_PIN           28 // Probe
-#define AUXINPUT3_PIN           18 // Reset/EStop
-#define AUXINPUT4_PIN           19 // Feed hold
-#define AUXINPUT5_PIN           20 // Cycle start
-
-// Define user-control controls (cycle start, reset, feed hold) input pins.
-#if CONTROL_ENABLE & CONTROL_HALT
-#define RESET_PIN               AUXINPUT3_PIN
-#endif
-#if CONTROL_ENABLE & CONTROL_FEED_HOLD
-#define FEED_HOLD_PIN           AUXINPUT4_PIN
-#endif
-#if CONTROL_ENABLE & CONTROL_CYCLE_START
-#define CYCLE_START_PIN         AUXINPUT5_PIN
-#endif
-
-#if PROBE_ENABLE
-#define PROBE_PIN               AUXINPUT2_PIN
-#endif
-
-// Optional: route SERIAL1_PORT through the PIO-backed UART instead of the hardware UART.
-// The current PIO implementation supports 8N1 framing.
-// #define SERIAL1_PORT           1
-// #define SERIAL1_PORT_PIO
-// #define UART_1_RX_PIN          36
-// #define UART_1_TX_PIN          37
-
-#if SAFETY_DOOR_ENABLE && defined(AUXINPUT1_PIN)
-#define SAFETY_DOOR_PIN         AUXINPUT1_PIN
-#endif
-
-#if defined(AUXINPUT0_PIN)
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN          AUXINPUT0_PIN
-#elif MOTOR_FAULT_ENABLE
-#define MOTOR_FAULT_PIN         AUXINPUT0_PIN
-#endif
-#endif
+// Anula el botón de Inicio de Ciclo físico para evitar conflictos.
+// #define CYCLE_START_PIN     8   ,ok que hago con este código , con este codigo corregimos el problema del ruido
