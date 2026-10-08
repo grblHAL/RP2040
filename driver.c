@@ -37,15 +37,15 @@
 #include "hardware/structs/systick.h"
 #include "hardware/structs/iobank0.h"
 #include "hardware/structs/sio.h"
+#include "pico/aon_timer.h"
 #if RP_MCU == 2040
-#include "hardware/rtc.h"
 #if defined(PICO_USE_FASTEST_SUPPORTED_CLOCK) && PICO_USE_FASTEST_SUPPORTED_CLOCK
 #define PIO_STEP_ADJ 0.2f
 #else
 #define PIO_STEP_ADJ 0.29f
 #endif
 #define PIO_RATE_ADJ 16
-#else
+#else // RP2350
 #define PIO_STEP_ADJ 0.2f
 #define PIO_RATE_ADJ 14
 #endif
@@ -1807,9 +1807,9 @@ static spindle_data_t *spindleGetData (spindle_data_request_t request)
 
 //    while(spindle_encoder.spin_lock);
 
-    __disable_irq();
+    disable_irq();
     memcpy(&encoder, &spindle_encoder.counter, sizeof(spindle_encoder_counter_t));
-    __enable_irq();
+    enable_irq();
 
     uint32_t tval = (uint32_t)(get_absolute_time() - encoder_started);
     uint16_t cval = pwm_get_counter(encoder_pwm);
@@ -1972,30 +1972,55 @@ void spi_reset_out (bool on)
 
 #endif
 
+static volatile uint32_t lock;
+
+static void disable_irq (void)
+{
+    if(!__get_PRIMASK() || lock) {
+        lock++;
+        __disable_irq();
+    }
+}
+
+static void enable_irq (void)
+{
+    if(lock && !--lock)
+        __enable_irq();
+}
+
 // Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
 static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-    __disable_irq();
+    uint32_t irq = __get_PRIMASK();
+    __set_PRIMASK(1);
+
     *ptr |= bits;
-    __enable_irq();
+
+    __set_PRIMASK(irq);
 }
 
 static uint_fast16_t bitsClearAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-    __disable_irq();
+    uint32_t irq = __get_PRIMASK();
+    __set_PRIMASK(1);
+
     uint_fast16_t prev = *ptr;
     *ptr &= ~bits;
-    __enable_irq();
+
+    __set_PRIMASK(irq);
 
     return prev;
 }
 
 static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t value)
 {
-    __disable_irq();
+    uint32_t irq = __get_PRIMASK();
+    __set_PRIMASK(1);
+
     uint_fast16_t prev = *ptr;
     *ptr = value;
-    __enable_irq();
+
+    __set_PRIMASK(irq);;
 
     return prev;
 }
@@ -2697,8 +2722,43 @@ static bool get_rtc_time (struct tm *time)
 
     return ok;
 }
+#else // RP2350
+
+static bool set_rtc_time (struct tm *time)
+{
+    struct timespec ts = { .tv_sec = pico_mktime(time), .tv_nsec = 0 };
+
+    if(aon_timer_is_running())
+        hal.driver_cap.rtc_set = aon_timer_set_time(&ts);
+
+    return hal.driver_cap.rtc_set;
+}
+
+static bool get_rtc_time (struct tm *time)
+{
+    bool ok;
+    struct timespec ts;
+
+    if((ok = hal.driver_cap.rtc_set && aon_timer_get_time(&ts)))
+        pico_localtime_r(&ts.tv_sec, time);
+
+    return ok;
+}
 
 #endif
+
+static bool get_time (struct timeval *time)
+{
+    bool ok;
+    struct timespec ts;
+
+    if((ok = hal.driver_cap.rtc_set && aon_timer_get_time(&ts))) {
+        time->tv_sec = ts.tv_sec;
+        time->tv_usec = ts.tv_nsec / 1000;
+    }
+
+    return ok;
+}
 
 extern char __StackLimit, __bss_end__;
 
@@ -2784,7 +2844,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261003";
+    hal.driver_version = "261007";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2832,8 +2892,8 @@ bool driver_init (void)
     hal.control.get_state = systemGetState;
 
     hal.reboot = __NVIC_SystemReset;
-    hal.irq_enable = __enable_irq;
-    hal.irq_disable = __disable_irq;
+    hal.irq_enable = enable_irq;
+    hal.irq_disable = disable_irq;
 #if I2C_STROBE_ENABLE || SPI_IRQ_BIT
     hal.irq_claim = irq_claim;
 #endif
@@ -2846,15 +2906,12 @@ bool driver_init (void)
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
-#if RP_MCU == 2040
-
-    rtc_init();
-
-    hal.driver_cap.rtc = On;
-    hal.rtc.get_datetime = get_rtc_time;
-    hal.rtc.set_datetime = set_rtc_time;
-
-#endif
+    struct timespec ts = {0};
+    if((hal.driver_cap.rtc = aon_timer_start(&ts))) {
+        hal.rtc.get_time = get_time;
+        hal.rtc.get_datetime = get_rtc_time;
+        hal.rtc.set_datetime = set_rtc_time;
+    }
 
     serialRegisterStreams();
 
@@ -2906,7 +2963,6 @@ bool driver_init (void)
 #endif
     hal.driver_cap.software_debounce = On;
     hal.driver_cap.step_pulse_delay = On;
-    hal.driver_cap.amass_level = 3;
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
 #ifdef PROBE_PIN

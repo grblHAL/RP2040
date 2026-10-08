@@ -209,6 +209,7 @@ target_link_libraries(grblHAL PRIVATE
  tinyusb_device_unmarked
  pico_stdlib
  pico_unique_id
+ pico_aon_timer
  cmsis_core
  hardware_adc
  hardware_dma
