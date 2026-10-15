@@ -42,6 +42,7 @@ if(AddMyPlugin)
     sr16_out.c
     ioports.c
     ioports_analog.c
+	timers.c
     tmc_uart.c
     my_plugin.c
     boards/pico_cnc.c
@@ -78,6 +79,7 @@ else()
     sr16_out.c
     ioports.c
     ioports_analog.c
+    timers.c
     tmc_uart.c
     boards/pico_cnc.c
     boards/btt_skr_pico_10.c
@@ -221,6 +223,7 @@ target_link_libraries(grblHAL PRIVATE
  hardware_pwm
  hardware_clocks
  hardware_flash
+ hardware_watchdog
 %link_libraries%
 )
 

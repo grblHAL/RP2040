@@ -30,6 +30,8 @@
 
 #include "grbl/task.h"
 
+extern hal_timer_t timer_claim (uint slice);
+
 #ifdef USE_EXPANDERS
 extern xbar_t *iox_out[N_AUX_DOUT];
 #endif
@@ -319,8 +321,12 @@ bool spindleConfig (spindle_ptrs_t *spindle)
     //    uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
     //    pwm_config_set_output_polarity(&config, (!channel & settings.pwm_spindle.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
 
+        uint slice = pwm_gpio_to_slice_num(SPINDLE_PWM_PIN);
+
+        // Claim PWM slice
+        timer_claim(slice);
         // Load the configuration into our PWM slice, and set it running.
-        pwm_init(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN), &config, true);
+        pwm_init(slice, &config, true);
     } else {
         if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
@@ -647,8 +653,12 @@ bool spindle1Config (spindle_ptrs_t *spindle)
     //    uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
     //    pwm_config_set_output_polarity(&config, (!channel & spindle_config->cfg.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
 
+        uint slice = pwm_gpio_to_slice_num(SPINDLE1_PWM_PIN);
+
+        // Claim PWM slice
+        timer_claim(slice);
         // Load the configuration into our PWM slice, and set it running.
-        pwm_init(pwm_gpio_to_slice_num(SPINDLE1_PWM_PIN), &config, true);
+        pwm_init(slice, &config, true);
     } else {
         if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);

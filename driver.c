@@ -34,11 +34,13 @@
 #include "hardware/irq.h"
 #include "hardware/clocks.h"
 #include "hardware/spi.h"
+#include "hardware/watchdog.h"
 #include "hardware/structs/systick.h"
 #include "hardware/structs/iobank0.h"
 #include "hardware/structs/sio.h"
 #include "pico/aon_timer.h"
 #if RP_MCU == 2040
+#include "hardware/rtc.h"
 #if defined(PICO_USE_FASTEST_SUPPORTED_CLOCK) && PICO_USE_FASTEST_SUPPORTED_CLOCK
 #define PIO_STEP_ADJ 0.2f
 #else
@@ -82,6 +84,7 @@
 #endif
 
 #if USB_SERIAL_CDC
+#include "tusb.h"
 #include "usb_serial.h"
 #endif
 
@@ -108,6 +111,9 @@
 #if ETHERNET_ENABLE
 #include "networking/wiznet/enet.h"
 #endif
+
+extern void timers_init (void);
+extern hal_timer_t timer_claim (uint slice);
 
 #if STEP_PORT == GPIO_SR8
 static PIO sr8_pio;
@@ -2805,6 +2811,22 @@ static void onReportOptions (bool newopt)
 
 #endif // USB_SERIAL_CDC
 
+static void reboot (void)
+{
+    // Stop IRQ-driven USB work before removing the device pull-up.
+    // Use a busy wait because this path can also run from a realtime IRQ.
+    __disable_irq();
+#if USB_SERIAL_CDC
+    tud_disconnect();
+    // Give the host time to observe detachment before USB starts again.
+    busy_wait_ms(250);
+#endif
+    // Restart through the boot ROM with peripherals included in the reset.
+    watchdog_reboot(0, 0, 0);
+    while(true)
+        tight_loop_contents();
+}
+
 #if OUT_SHIFT_REGISTER
 
 extern void sr16_init (sr_reg_t *reg);
@@ -2844,7 +2866,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261007";
+    hal.driver_version = "261011";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2891,7 +2913,7 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
-    hal.reboot = __NVIC_SystemReset;
+    hal.reboot = reboot;
     hal.irq_enable = enable_irq;
     hal.irq_disable = disable_irq;
 #if I2C_STROBE_ENABLE || SPI_IRQ_BIT
@@ -2968,6 +2990,8 @@ bool driver_init (void)
 #ifdef PROBE_PIN
     hal.driver_cap.probe_pull_up = On;
 #endif
+
+    timers_init();
 
     uint32_t i;
     input_signal_t *input;

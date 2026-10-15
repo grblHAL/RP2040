@@ -34,6 +34,8 @@ static output_signal_t *aux_out_analog;
 static ioports_pwm_t *pwm_data;
 static float *pwm_values;
 
+extern hal_timer_t timer_claim (uint slice);
+
 static void set_pwm_cap (xbar_t *output, bool servo_pwm)
 {
     if(output && output->id < analog.out.n_ports) {
@@ -47,8 +49,9 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
     bool ok;
     ioports_pwm_t *pwm_data = (ioports_pwm_t *)output->port;
     uint32_t prescaler = config->freq_hz > 2000.0f ? 1 : (config->freq_hz > 200.0f ? 12 : 50);
+    uint slice = pwm_gpio_to_slice_num(output->pin);
 
-    if((ok = ioports_precompute_pwm_values(config, pwm_data, clock_get_hz(clk_sys) / prescaler))) {
+    if((ok = timer_claim(slice) && ioports_precompute_pwm_values(config, pwm_data, clock_get_hz(clk_sys) / prescaler))) {
 
         pwm_config pwm_config = pwm_get_default_config();
         pwm_config_set_clkdiv_int(&pwm_config, prescaler);
@@ -62,7 +65,7 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
         uint channel = pwm_gpio_to_channel(output->pin);
         pwm_config_set_output_polarity(&pwm_config, (!channel & config->invert), (channel & config->invert));
 
-        pwm_init(pwm_gpio_to_slice_num(output->pin), &pwm_config, true);
+        pwm_init(slice, &pwm_config, true);
 
         set_pwm_cap(output, config->servo_mode);
     }

@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 option(ADD_HPGL "Add HPGL plugin" OFF)
  # Note: WiFi and Ethernet cannot be enabled at the same time!
 option(ADD_WIFI "Add WiFi networking" OFF)
-option(ADD_ETHERNET "Add Ethernet networking" ON)
+option(ADD_ETHERNET "Add Ethernet networking" OFF)
 option(ADD_BLUETOOTH "Add Bluetooth" OFF)
 # Set LWIP_DIR below to the root path of lwIP sources when the following is set ON!
 option(ADD_mDNS "Add mDNS service" OFF)
@@ -26,7 +26,7 @@ option(ADD_MQTT "Add MQTT client API" OFF)
 option(AddMyPlugin "Add my_plugin.c to build" OFF)
 
 # Select the correct board in VSCode, the following line will be updated accordingly
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico CACHE STRING "Board type")
 
 include(pico_sdk_import.cmake)
 
@@ -75,6 +75,7 @@ if(AddMyPlugin)
     sr16_out.c
     ioports.c
     ioports_analog.c
+    timers.c
     tmc_uart.c
     my_plugin.c
     boards/pico_cnc.c
@@ -100,6 +101,7 @@ else()
     sr16_out.c
     ioports.c
     ioports_analog.c
+    timers.c
     tmc_uart.c
     boards/pico_cnc.c
     boards/flexihal2350.c
@@ -253,6 +255,7 @@ target_link_libraries(grblHAL PRIVATE
  hardware_pwm
  hardware_clocks
  hardware_flash
+ hardware_watchdog
 )
 
 pico_add_extra_outputs(grblHAL)
