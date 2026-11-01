@@ -37,7 +37,7 @@
 #include "lwip/apps/mdns.h"
 
 #include "wifi.h"
-//#include "dnsserver.h"
+#include "dnsserver.h"
 #include "grbl/report.h"
 #include "grbl/task.h"
 #include "grbl/nvs_buffer.h"
@@ -55,7 +55,7 @@ typedef struct
 
 static int cyw43_if;
 static bool scan_in_progress = false;
-static char IPAddress[IP4ADDR_STRLEN_MAX], sta_if_name[NETIF_NAMESIZE] = "";
+static char IPAddress[IP4ADDR_STRLEN_MAX], ap_if_name[NETIF_NAMESIZE] = "", sta_if_name[NETIF_NAMESIZE] = "";
 static wifi_settings_t wifi;
 static network_settings_t network;
 static network_services_t services = {0}, allowed_services;
@@ -137,6 +137,11 @@ static void mqtt_connection_changed (bool connected)
          on_client_connected(connected);
 }
 
+#if WIFI_SOFTAP
+    static network_flags_t ap_status = {};
+    static void ap_status_event_publish (network_flags_t changed);
+#endif
+
 static uint32_t get_country_code (char *country_id)
 {
     char *country;
@@ -153,10 +158,7 @@ static uint32_t get_country_code (char *country_id)
 
 ap_list_t *wifi_get_aplist (void)
 {
-    if(ap_list_found.ap_records)
-        return &ap_list_found;
-    else
-        return NULL;
+    return ap_list_found.ap_records ? &ap_list_found : NULL;
 }
 
 void wifi_release_aplist (void)
@@ -180,7 +182,7 @@ static network_info_t *get_info (const char *interface)
 {
     static network_info_t info = {};
 
-    if(interface == sta_if_name) {
+    if(interface == sta_if_name || interface == ap_if_name) {
 
         memcpy(&info.status, &network, sizeof(network_settings_t));
 
@@ -196,8 +198,8 @@ static network_info_t *get_info (const char *interface)
             *info.status.mask = '\0';
         }
 
-        info.wifi_mode = WiFiMode_STA;
-        info.interface = (const char *)sta_if_name;
+        info.wifi_mode = interface == sta_if_name ? WiFiMode_STA : WiFiMode_AP;
+        info.interface = (const char *)interface;
         info.is_ethernet = false;
         info.link_up = false;
     //    info.mbps = 100;
@@ -273,6 +275,7 @@ static void lwIPHostTimerHandler (void *arg)
 
 static void start_services (void)
 {
+    cyw43_arch_lwip_begin();
 #if TELNET_ENABLE
     if(network.services.telnet && !services.telnet)
         services.telnet = telnetd_init(network.telnet_port);
@@ -339,6 +342,7 @@ static void start_services (void)
 #if USE_LWIP_POLLING && (TELNET_ENABLE || WEBSOCKET_ENABLE || FTP_ENABLE)
     sys_timeout(STREAM_POLL_INTERVAL, lwIPHostTimerHandler, NULL);
 #endif
+    cyw43_arch_lwip_end();
 }
 
 static void stop_services (void)
@@ -385,8 +389,8 @@ static int scan_result (void *env, const cyw43_ev_scan_result_t *result)
             } while(idx);
         }
 
-        ap_record_t *records = realloc((void *)ap_list.ap_records, (ap_list.ap_num + 1) * sizeof(ap_record_t));
-        if(records) {
+        ap_record_t *records;
+        if((records = realloc((void *)ap_list.ap_records, (ap_list.ap_num + 1) * sizeof(ap_record_t)))) {
             ap_list.ap_records = records;
             ap_list.ap_records[ap_list.ap_num].authmode = result->auth_mode;
             ap_list.ap_records[ap_list.ap_num].rssi = result->rssi;
@@ -424,76 +428,13 @@ void wifi_debug (char *context)
 
 #endif
 
-static void enet_poll (sys_state_t state)
+static void ap_scan (void *data)
 {
-    static bool led_on = false, poll = true;
-    static uint32_t last_ms0, next_ms1;
-    static int last_status = -100;
-   
-    int status;
-    uint32_t ms = hal.get_elapsed_ticks();
+    static bool led_on = false;
 
-    if(last_ms0 != ms) {
-
-        last_ms0 = ms;
-        cyw43_arch_poll();
-#if !USE_LWIP_POLLING
-        services_poll();
-#endif
-
-        if((status = cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) != last_status) {
-
-            sta_status.link_up = status == CYW43_LINK_UP;
-            last_status = status;
-
-            switch(status) {
-
-                case CYW43_LINK_FAIL:
-                    task_add_immediate(report_plain, "LINK FAIL");
-                    break;
-                    
-                case CYW43_LINK_BADAUTH:
-                    task_add_immediate(report_plain, "BAD AUTH");
-                    break;
-
-//                case CYW43_LINK_JOIN:
-//                    task_add_immediate(report_plain, "WIFI JOIN OK");
-//                    break;
-
-#ifdef WIFI_SOFTAP
-                case CYW43_LINK_UP:
-                    if(wifi.mode == WiFiMode_AP) {
-                        struct netif *netif = netif_default; //netif_get_by_index(0);
-                        if(netif) {
-                            ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
-                            start_services();
-                        }
-                    }
-                    break;
-#endif
-
-//                case CYW43_LINK_NOIP:
-//                    task_add_immediate(report_plain, "WIFI NOIP");
-//                    break;
+    if(scan_in_progress) {
  
-                case CYW43_LINK_NONET:
-                    task_add_immediate(report_plain, "WIFI NONET");
-                    break;
- 
-                default:
-#ifdef WIFI_DEBUG
-                    wifi_debug("POLL");
-#endif
-                    break;
-            }
-        }
-    }
-
-    if(scan_in_progress && (ms > next_ms1)) {
- 
-        led_on = !led_on;
-        next_ms1 = ms + 1000;
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, (led_on = !led_on));
 
         if(!(scan_in_progress = cyw43_wifi_scan_active(&cyw43_state))) {
             if(ap_list.ap_records) {
@@ -506,7 +447,67 @@ static void enet_poll (sys_state_t state)
         }
     }
 
-    on_execute_realtime(state);
+    if(scan_in_progress)
+        task_add_delayed(ap_scan, NULL, 1000);
+}
+
+static void enet_poll (void *data)
+{
+    static int last_status = -100;
+   
+    int status;
+
+    cyw43_arch_poll();
+#if !USE_LWIP_POLLING
+    services_poll();
+#endif
+
+    if((status = cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) != last_status) {
+
+        sta_status.link_up = status == CYW43_LINK_UP;
+        last_status = status;
+
+        switch(status) {
+
+            case CYW43_LINK_FAIL:
+                task_add_immediate(report_plain, "LINK FAIL");
+                break;
+                
+            case CYW43_LINK_BADAUTH:
+                task_add_immediate(report_plain, "BAD AUTH");
+                break;
+
+//                case CYW43_LINK_JOIN:
+//                    task_add_immediate(report_plain, "WIFI JOIN OK");
+//                    break;
+
+#ifdef WIFI_SOFTAP
+            case CYW43_LINK_UP:
+                if(wifi.mode == WiFiMode_AP) {
+                    struct netif *netif = netif_default; //netif_get_by_index(0);
+                    if(netif) {
+                        ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
+//                        start_services();
+                    }
+                }
+                break;
+#endif
+
+//                case CYW43_LINK_NOIP:
+//                    task_add_immediate(report_plain, "WIFI NOIP");
+//                    break;
+
+            case CYW43_LINK_NONET:
+                task_add_immediate(report_plain, "WIFI NONET");
+                break;
+
+            default:
+#ifdef WIFI_DEBUG
+                wifi_debug("POLL");
+#endif
+                break;
+        }
+    }
 }
 
 void wifi_ap_scan (void)
@@ -519,8 +520,9 @@ void wifi_ap_scan (void)
 
     if (!scan_in_progress) {
         cyw43_wifi_scan_options_t scan_options = {0};
-        scan_in_progress = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result) == 0;
-    } else if (!cyw43_wifi_scan_active(&cyw43_state))
+        if(scan_in_progress = cyw43_wifi_scan(&cyw43_state, &scan_options, NULL, scan_result) == 0)
+            task_add_delayed(ap_scan, NULL, 1000);
+    } else if(!cyw43_wifi_scan_active(&cyw43_state))
         scan_in_progress = false; 
 }
 
@@ -546,8 +548,8 @@ static void netif_sta_status_callback (struct netif *netif)
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
                 if(!sta_status.ip_aquired) {
-                    sta_status.ip_aquired = On;
-                    status_event_publish((network_flags_t){ .ip_aquired = On });
+                    sta_status.link_up = sta_status.link_up = sta_status.ip_aquired = On;
+                    status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
                 }
             }
             break;
@@ -555,8 +557,8 @@ static void netif_sta_status_callback (struct netif *netif)
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
             if(sta_status.ip_aquired) {
-                sta_status.ip_aquired = Off;
-                status_event_publish((network_flags_t){ .ip_aquired = On });
+                sta_status.link_up = sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
@@ -565,8 +567,8 @@ static void netif_sta_status_callback (struct netif *netif)
         case CYW43_LINK_BADAUTH:
            *IPAddress = '\0';
             if(sta_status.ip_aquired) {
-                sta_status.ip_aquired = Off;
-                status_event_publish((network_flags_t){ .ip_aquired = On });
+                sta_status.link_up = sta_status.ip_aquired = Off;
+                status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA CONNECT FAILED");
             break;
@@ -602,8 +604,8 @@ static void link_sta_status_callback (struct netif *netif)
                 start_services();
                 wifi_ap_scan();
                 if(!sta_status.ip_aquired) {
-                    sta_status.ip_aquired = On;
-                    status_event_publish((network_flags_t){ .ip_aquired = On });
+                    sta_status.link_up = sta_status.ip_aquired = On;
+                    status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
                 }
             }
             break;
@@ -611,8 +613,8 @@ static void link_sta_status_callback (struct netif *netif)
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
             if(sta_status.ip_aquired) {
-                sta_status.ip_aquired = Off;
-                status_event_publish((network_flags_t){ .ip_aquired = On });
+                sta_status.link_up = sta_status.ip_aquired = Off;
+                ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
@@ -621,8 +623,8 @@ static void link_sta_status_callback (struct netif *netif)
         case CYW43_LINK_BADAUTH:
            *IPAddress = '\0';
             if(sta_status.ip_aquired) {
-                sta_status.ip_aquired = Off;
-                status_event_publish((network_flags_t){ .ip_aquired = On });
+                sta_status.link_up = sta_status.ip_aquired = Off;
+                ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA CONNECT FAILED");
             break;
@@ -646,26 +648,45 @@ static void link_sta_status_callback (struct netif *netif)
 
 #ifdef WIFI_SOFTAP
 
+static bool dhcp = false;
+static void ap_status_event_out (void *data)
+{
+    networking.event(ap_if_name, (network_status_t){ .value = (uint32_t)data });
+}
+
+static void ap_status_event_publish (network_flags_t changed)
+{
+    task_add_immediate(ap_status_event_out, (void *)((network_status_t){ .changed = changed, .flags = ap_status }).value);
+}
+
 static void link_ap_status_callback (struct netif *netif)
 {
 #ifdef WIFI_DEBUG
     wifi_debug("AP_LINK");
 #endif
+    static bool dhcp_running = false;
 
     switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
-            if((linkUp = netif->ip_addr.addr != 0)) {
+            if((sta_status.link_up = netif->ip_addr.addr != 0)) {
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
- //               wifi_ap_scan();
+          //      services.dns = dns_server_start(netif_default);
+                if(!dhcp_running)
+                    dhcp_running = dhcp_start(netif_default) == ERR_OK;
+//                wifi_ap_scan();
             }
-            task_add_immediate(msg_ap_ready, NULL);
+            sta_status.ip_aquired = sta_status.link_up;
+            status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+            task_add_immediate(report_plain, "AP READY");
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
-            task_add_immediate(msg_sta_disconnected);
+            sta_status.link_up = sta_status.ip_aquired = Off;
+            status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+            task_add_immediate(report_plain, "STA DISCONNECTED");
             break;
     }
 }
@@ -740,8 +761,8 @@ bool wifi_start (void)
     else
         ret = cyw43_arch_init();
 
-    if (ret != 0) {
-        task_add_immediate(report_plain, "WIFI STARTUP FAILED");
+    if(ret != 0) {
+        task_run_on_startup(report_plain, "WIFI STARTUP FAILED");
         return false;
     }
 
@@ -755,6 +776,7 @@ bool wifi_start (void)
                                    *wifi.ap.password ? wifi.ap.password : NULL,
                                     *wifi.ap.password ? CYW43_AUTH_WPA2_AES_PSK : CYW43_AUTH_OPEN);
 
+//        struct netif *ap = &cyw43_state.netif[CYW43_ITF_AP];
 #if LWIP_NETIF_HOSTNAME
         netif_set_hostname(netif_default, network.hostname);
 #endif
@@ -763,14 +785,17 @@ bool wifi_start (void)
 
         ip4_addr_t gw, mask;
 
-//        get_addr(&ip, network.ip);
-//        get_addr(&mask, network.mask);
+        get_addr(&gw, network.ip);
+        get_addr(&mask, network.mask);
 
-        IP4_ADDR(&gw, 192, 168, 1, 4);
-        IP4_ADDR(&mask, 255, 255, 255, 0);
+        dhcp = dhcp_server_init(&dhcp_server, &gw, &mask);
+//    dns_server_t dns_server;
+//    dns_server_init(&dns_server, netif_default, &gw);
 
-        dhcp_server_init(&dhcp_server, &gw, &mask);
- //       dns_server_init(&dns_server, &gw);
+        netif_index_to_name(1, ap_if_name);
+
+        ap_status.interface_up = On;
+        ap_status_event_publish((network_flags_t){ .interface_up = On });
     }
 
 #endif
@@ -800,8 +825,7 @@ bool wifi_start (void)
     }
 
 #if PICO_CYW43_ARCH_POLL
-    on_execute_realtime = grbl.on_execute_realtime;
-    grbl.on_execute_realtime = enet_poll;
+    task_add_systick(enet_poll, NULL);
 #endif
 
     return ret == 0;
@@ -1242,7 +1266,7 @@ static void wifi_settings_restore (void)
 
 static void wifi_settings_load (void)
 {
-    ip4_addr_t addr;
+    ip4_addr_t ip;
 
     if(hal.nvs.memcpy_from_nvs((uint8_t *)&wifi, nvs_address, sizeof(wifi_settings_t), true) != NVS_TransferResult_OK)
         wifi_settings_restore();
@@ -1250,10 +1274,12 @@ static void wifi_settings_load (void)
 // Sanity checks
 
     // AP ip/gateway adresses are hardcoded!
-    if(ip4addr_aton("192.168.4.1", &addr) == 1) {
-        set_addr(wifi.ap.network.ip, &addr);
-        set_addr(wifi.ap.network.gateway, &addr);
-    }
+    ip.addr = PP_HTONL(CYW43_DEFAULT_IP_AP_ADDRESS);
+    set_addr(wifi.ap.network.ip, &ip);
+    set_addr(wifi.ap.network.gateway, &ip);
+
+    ip.addr = PP_HTONL(CYW43_DEFAULT_IP_MASK);
+    set_addr(wifi.ap.network.mask, &ip);
 
 #if WIFI_SOFTAP
     if(wifi.mode == WiFiMode_APSTA)
@@ -1267,26 +1293,26 @@ static void wifi_settings_load (void)
     wifi.ap.network.services.mask &= allowed_services.mask;
 }
 
-static setting_details_t setting_details = {
-    .groups = ethernet_groups,
-    .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
-    .settings = ethernet_settings,
-    .n_settings = sizeof(ethernet_settings) / sizeof(setting_detail_t),
-#ifndef NO_SETTINGS_DESCRIPTIONS
-    .descriptions = ethernet_settings_descr,
-    .n_descriptions = sizeof(ethernet_settings_descr) / sizeof(setting_descr_t),
-#endif
-    .save = wifi_settings_save,
-    .load = wifi_settings_load,
-    .restore = wifi_settings_restore
-};
-
 // end settings
 
 extern network_services_t networking_get_services_list (char *list);
 
 bool wifi_init (void)
 {
+    static setting_details_t setting_details = {
+        .groups = ethernet_groups,
+        .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
+        .settings = ethernet_settings,
+        .n_settings = sizeof(ethernet_settings) / sizeof(setting_detail_t),
+    #ifndef NO_SETTINGS_DESCRIPTIONS
+        .descriptions = ethernet_settings_descr,
+        .n_descriptions = sizeof(ethernet_settings_descr) / sizeof(setting_descr_t),
+    #endif
+        .save = wifi_settings_save,
+        .load = wifi_settings_load,
+        .restore = wifi_settings_restore
+    };
+
     if((nvs_address = nvs_alloc(sizeof(wifi_settings_t)))) {
 
         networking_init();

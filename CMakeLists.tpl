@@ -116,6 +116,7 @@ target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
 if(ADD_WIFI)
     target_compile_definitions(grblHAL PUBLIC WIFI_ENABLE=1)
+    target_compile_definitions(grblHAL PUBLIC LWIP_CHKSUM_ALGORITHM=3)
     target_compile_definitions(grblHAL PUBLIC NDEBUG)
     target_sources(grblHAL PRIVATE
      wifi.c

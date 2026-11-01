@@ -2866,7 +2866,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261011";
+    hal.driver_version = "261029";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
@@ -2985,11 +2985,7 @@ bool driver_init (void)
 #endif
     hal.driver_cap.software_debounce = On;
     hal.driver_cap.step_pulse_delay = On;
-    hal.driver_cap.control_pull_up = On;
-    hal.driver_cap.limits_pull_up = On;
-#ifdef PROBE_PIN
-    hal.driver_cap.probe_pull_up = On;
-#endif
+    hal.driver_cap.pullup_enabled = PULLUPS_ENABLE;
 
     timers_init();
 
