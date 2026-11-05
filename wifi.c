@@ -37,7 +37,7 @@
 #include "lwip/apps/mdns.h"
 
 #include "wifi.h"
-#include "dnsserver.h"
+//#include "dnsserver.h"
 #include "grbl/report.h"
 #include "grbl/task.h"
 #include "grbl/nvs_buffer.h"
