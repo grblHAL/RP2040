@@ -481,7 +481,7 @@ static void enet_poll (void *data)
 //                    task_add_immediate(report_plain, "WIFI JOIN OK");
 //                    break;
 
-#ifdef WIFI_SOFTAP
+#if WIFI_SOFTAP
             case CYW43_LINK_UP:
                 if(wifi.mode == WiFiMode_AP) {
                     struct netif *netif = netif_default; //netif_get_by_index(0);
@@ -614,7 +614,7 @@ static void link_sta_status_callback (struct netif *netif)
             *IPAddress = '\0';
             if(sta_status.ip_aquired) {
                 sta_status.link_up = sta_status.ip_aquired = Off;
-                ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+                status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA DISCONNECTED");
             break;
@@ -624,7 +624,7 @@ static void link_sta_status_callback (struct netif *netif)
            *IPAddress = '\0';
             if(sta_status.ip_aquired) {
                 sta_status.link_up = sta_status.ip_aquired = Off;
-                ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+                status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             }
             task_add_immediate(report_plain, "WIFI STA CONNECT FAILED");
             break;
@@ -646,7 +646,7 @@ static void link_sta_status_callback (struct netif *netif)
     }
 }
 
-#ifdef WIFI_SOFTAP
+#if WIFI_SOFTAP
 
 static bool dhcp = false;
 static void ap_status_event_out (void *data)
@@ -669,7 +669,7 @@ static void link_ap_status_callback (struct netif *netif)
     switch(cyw43_tcpip_link_status(&cyw43_state, cyw43_if)) {
 
         case CYW43_LINK_UP:
-            if((sta_status.link_up = netif->ip_addr.addr != 0)) {
+            if((ap_status.link_up = netif->ip_addr.addr != 0)) {
                 ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
                 start_services();
           //      services.dns = dns_server_start(netif_default);
@@ -677,15 +677,15 @@ static void link_ap_status_callback (struct netif *netif)
                     dhcp_running = dhcp_start(netif_default) == ERR_OK;
 //                wifi_ap_scan();
             }
-            sta_status.ip_aquired = sta_status.link_up;
-            status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+            ap_status.ip_aquired = ap_status.link_up;
+            ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             task_add_immediate(report_plain, "AP READY");
             break;
 
         case CYW43_LINK_DOWN:
             *IPAddress = '\0';
-            sta_status.link_up = sta_status.ip_aquired = Off;
-            status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
+            ap_status.link_up = ap_status.ip_aquired = Off;
+            ap_status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = On });
             task_add_immediate(report_plain, "STA DISCONNECTED");
             break;
     }
@@ -766,7 +766,7 @@ bool wifi_start (void)
         return false;
     }
 
-#ifdef WIFI_SOFTAP 
+#if WIFI_SOFTAP 
 
     if(wifi.mode == WiFiMode_AP && *wifi.ap.ssid) {
 
