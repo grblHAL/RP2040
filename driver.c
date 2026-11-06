@@ -1802,6 +1802,9 @@ bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 
 #if SPINDLE_ENCODER_ENABLE
 
+static void disable_irq (void);
+static void enable_irq (void);
+
 static spindle_data_t *spindleGetData (spindle_data_request_t request)
 {
     static uint32_t pl[4] = {};
@@ -2390,16 +2393,6 @@ void on_settings_changed (settings_t *settings, settings_changed_flags_t changed
             if(output->port == GPIO_OUTPUT)
               switch(output->id) {
 
-                case Output_SpindleOn:
-                    output->mode.inverted = settings->pwm_spindle.invert.on;
-                    gpio_set_outover(output->pin, output->mode.inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
-
-                case Output_SpindleDir:
-                    output->mode.inverted = settings->pwm_spindle.invert.ccw;
-                    gpio_set_outover(output->pin, output->mode.inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
-
                 case Output_CoolantMist:
                     output->mode.inverted = settings->coolant.invert.mist;
                     gpio_set_outover(output->pin, output->mode.inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
@@ -2866,7 +2859,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261029";
+    hal.driver_version = "261104";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
