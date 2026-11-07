@@ -105,14 +105,14 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
     spindle->context.pwm->flags.enable_out = Off;
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned)
-        DIGITAL_OUT(SPINDLE_DIRECTION_PIN, Off);
+        DIGITAL_OUT(SPINDLE_DIRECTION_PIN, spindle->context.pwm->settings->invert.on);
     else
-        DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+        DIGITAL_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #else
-    DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #endif
 #else
-    DIGITAL_OUT(SPINDLE_ENABLE_PIN, Off);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
 #endif
 }
 
@@ -121,11 +121,11 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned)
-        DIGITAL_OUT(SPINDLE_DIRECTION_PIN, On);
+        DIGITAL_OUT(SPINDLE_DIRECTION_PIN, !spindle->context.pwm->settings->invert.on);
     else
-        DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
+        DIGITAL_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #else
-    DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #endif
   #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
@@ -133,16 +133,19 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
   #endif
     spindle->context.pwm->flags.enable_out = On;
 #else
-    DIGITAL_OUT(SPINDLE_ENABLE_PIN, On);
+    DIGITAL_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
 #endif
 }
 
-inline static void spindle_dir (bool ccw)
+inline static void spindle_dir (spindle_ptrs_t *spindle, bool ccw)
 {
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-    DIGITAL_OUT(SPINDLE_DIRECTION_PIN, ccw);
+    if(!(spindle->context.pwm->flags.cloned || spindle->cap.clone)) {
+        DIGITAL_OUT(SPINDLE_DIRECTION_PIN, ccw ^ spindle->context.pwm->settings->invert.ccw);
+    }
 #else
     UNUSED(ccw);
+    UNUSED(spindle);
 #endif
 }
 
@@ -154,15 +157,15 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
     spindle->context.pwm->flags.enable_out = Off;
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned) {
-        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, settings.pwm_spindle.invert.ccw);
+        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, spindle->context.pwm->settings->invert.on);
     } else {
-        EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
+        EXPANDER_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
     }
   #else
-    EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #endif
 #else
-    EXPANDER_OUT(SPINDLE_ENABLE_PIN, settings.pwm_spindle.invert.on);
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
 #endif
 }
 
@@ -171,12 +174,12 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned) {
-        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, !settings.pwm_spindle.invert.ccw);
+        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, !spindle->context.pwm->settings->invert.on);
     } else {
-        EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
+        EXPANDER_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
     }
   #else
-    EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #endif
   #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
@@ -184,16 +187,19 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
   #endif
     spindle->context.pwm->flags.enable_out = On;
 #else
-    EXPANDER_OUT(SPINDLE_ENABLE_PIN, !settings.pwm_spindle.invert.on);
+    EXPANDER_OUT(SPINDLE_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
 #endif
 }
 
-inline static void spindle_dir (bool ccw)
+inline static void spindle_dir (spindle_ptrs_t *spindle, bool ccw)
 {
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-    EXPANDER_OUT(SPINDLE_DIRECTION_PIN, ccw ^ settings.pwm_spindle.invert.ccw);
+    if(!(spindle->context.pwm->flags.cloned || spindle->cap.clone)) {
+        EXPANDER_OUT(SPINDLE_DIRECTION_PIN, ccw ^ spindle->context.pwm->settings->invert.ccw);
+    }
 #else
     UNUSED(ccw);
+    UNUSED(spindle);
 #endif
 }
 
@@ -203,10 +209,10 @@ inline static void spindle_dir (bool ccw)
 // Start or stop spindle
 static void spindleSetState (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
-    if(!state.on)
+    if(!(spindle->context.pwm->flags.cloned ? state.ccw : state.on))
         spindle_off(spindle);
     else {
-        spindle_dir(state.ccw);
+        spindle_dir(spindle, state.ccw);
         spindle_on(spindle);
     }
 }
@@ -258,10 +264,7 @@ static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t st
         spindle_off(spindle);
         pwm_off(spindle);
     } else {
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-        if(!spindle->context.pwm->flags.cloned)
-            spindle_dir(state.ccw);
-#endif
+        spindle_dir(spindle, state.ccw);
         if(rpm == 0.0f && spindle->context.pwm->flags.rpm_controlled)
             spindle_off(spindle);
         else {
@@ -357,25 +360,25 @@ static void settingsChanged (settings_t *settings, settings_changed_flags_t chan
 // Returns spindle state in a spindle_state_t variable
 static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 {
-    spindle_state_t state = { settings.pwm_spindle.invert.mask };
-
-    UNUSED(spindle);
+    spindle_state_t state = { spindle->context.pwm->settings->invert.mask };
 
 #if (DRIVER_SPINDLE_ENABLE & (SPINDLE_ENA|SPINDLE_DIR)) == 0 // PWM only spindle
     state.on = spindle->context.pwm->flags.enable_out ^ state.on;
 #elif SPINDLE_PORT == GPIO_OUTPUT
     state.on = DIGITAL_IN(SPINDLE_ENABLE_PIN);
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-    state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_PIN);
+    if(spindle->cap.direction)
+        state.ccw = DIGITAL_IN(SPINDLE_DIRECTION_PIN);
   #endif
 #elif SPINDLE_PORT == EXPANDER_PORT
     state.on = EXPANDER_IN(SPINDLE_ENABLE_PIN);
   #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
-    state.ccw = EXPANDER_IN(SPINDLE_DIRECTION_PIN);
+    if(spindle->cap.direction)
+        state.ccw = EXPANDER_IN(SPINDLE_DIRECTION_PIN);
   #endif
 #endif
 
-    state.value ^= settings.pwm_spindle.invert.mask;
+    state.value ^= spindle->context.pwm->settings->invert.mask;
 
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     state.on |= spindle->param->state.on;
@@ -439,14 +442,14 @@ inline static void spindle1_off (spindle_ptrs_t *spindle)
     spindle->context.pwm->flags.enable_out = Off;
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned)
-        DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, Off);
+        DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, spindle->context.pwm->settings->invert.on);
     else
-        DIGITAL_OUT(SPINDLE1_ENABLE_PIN, Off);
+        DIGITAL_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #else
-    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, Off);
+    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #endif
 #else
-    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, Off);
+    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
 #endif
 }
 
@@ -455,11 +458,11 @@ inline static void spindle1_on (spindle_ptrs_t *spindle)
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_PWM
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned)
-        DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, On);
+        DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, !spindle->context.pwm->settings->invert.on);
     else
-        DIGITAL_OUT(SPINDLE1_ENABLE_PIN, On);
+        DIGITAL_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #else
-    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, On);
+    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #endif
   #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
@@ -467,16 +470,19 @@ inline static void spindle1_on (spindle_ptrs_t *spindle)
   #endif
     spindle->context.pwm->flags.enable_out = On;
 #else
-    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, On);
+    DIGITAL_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
 #endif
 }
 
-inline static void spindle1_dir (bool ccw)
+inline static void spindle1_dir (spindle_ptrs_t *spindle, bool ccw)
 {
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
-    DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, ccw);
+    if(!(spindle->context.pwm->flags.cloned || spindle->cap.clone)) {
+        DIGITAL_OUT(SPINDLE1_DIRECTION_PIN, ccw ^spindle->context.pwm->settings->invert.ccw);
+    }
 #else
     UNUSED(ccw);
+    UNUSED(spindle);
 #endif
 }
 
@@ -488,15 +494,15 @@ inline static void spindle1_off (spindle_ptrs_t *spindle)
     spindle->context.pwm->flags.enable_out = Off;
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned) {
-        EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, spindle_config->cfg.invert.ccw);
+        EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, spindle->context.pwm->settings->invert.on);
     } else {
-        EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle_config->cfg.invert.on);
+        EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
     }
   #else
-    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle_config->cfg.invert.on);
+    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
   #endif
 #else
-    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle_config->cfg.invert.on);
+    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, spindle->context.pwm->settings->invert.on);
 #endif
 }
 
@@ -505,12 +511,12 @@ inline static void spindle1_on (spindle_ptrs_t *spindle)
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_PWM
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
     if(spindle->context.pwm->flags.cloned) {
-        EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, !spindle_config->cfg.invert.ccw);
+        EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, !spindle->context.pwm->settings->invert.on);
     } else {
-        EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle_config->cfg.invert.on);
+        EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
     }
   #else
-    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle_config->cfg.invert.on);
+    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
   #endif
   #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
@@ -518,16 +524,19 @@ inline static void spindle1_on (spindle_ptrs_t *spindle)
   #endif
     spindle->context.pwm->flags.enable_out = On;
 #else
-    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle_config->cfg.invert.on);
+    EXPANDER_OUT(SPINDLE1_ENABLE_PIN, !spindle->context.pwm->settings->invert.on);
 #endif
 }
 
-inline static void spindle1_dir (bool ccw)
+inline static void spindle1_dir (spindle_ptrs_t *spindle, bool ccw)
 {
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
-    EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, ccw ^ spindle_config->cfg.invert.ccw);
+    if(!(spindle->context.pwm->flags.cloned || spindle->cap.clone)) {
+        EXPANDER_OUT(SPINDLE1_DIRECTION_PIN, ccw ^ spindle->context.pwm->settings->invert.ccw);
+    }
 #else
     UNUSED(ccw);
+    UNUSED(spindle);
 #endif
 }
 
@@ -537,10 +546,10 @@ inline static void spindle1_dir (bool ccw)
 // Start or stop spindle
 static void spindle1SetState (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
-    if(!state.on)
+    if(!(spindle->context.pwm->flags.cloned ? state.ccw : state.on))
         spindle_off(spindle);
     else {
-        spindle_dir(state.ccw);
+        spindle_dir(spindle, state.ccw);
         spindle_on(spindle);
     }
 }
@@ -590,10 +599,7 @@ static void spindle1SetStateVariable (spindle_ptrs_t *spindle, spindle_state_t s
         spindle1_off(spindle);
         pwm1_off(spindle);
     } else {
-#if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
-        if(!spindle->context.pwm->flags.cloned)
-            spindle1_dir(state.ccw);
-#endif
+        spindle1_dir(spindle, state.ccw);
         if(rpm == 0.0f && spindle->context.pwm->flags.rpm_controlled)
             spindle1_off(spindle);
         else {
@@ -681,7 +687,7 @@ static void spindle1_settings_changed (spindle1_pwm_settings_t *settings)
 // Returns spindle state in a spindle_state_t variable
 static spindle_state_t spindle1GetState (spindle_ptrs_t *spindle)
 {
-    spindle_state_t state = { spindle_config->cfg.invert.mask };
+    spindle_state_t state = { spindle->context.pwm->settings->invert.mask };
 
     UNUSED(spindle);
 
@@ -699,7 +705,7 @@ static spindle_state_t spindle1GetState (spindle_ptrs_t *spindle)
   #endif
 #endif
 
-    state.value ^= spindle_config->cfg.invert.mask;
+    state.value ^= spindle->context.pwm->settings->invert.mask;
 
 #if DRIVER_SPINDLE1_ENABLE & SPINDLE_PWM
     state.on |= spindle->param->state.on;
