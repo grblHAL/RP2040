@@ -344,7 +344,7 @@
           "bluetooth": 0,
           "sdcard": 1,
           "rgb_out": 1,
-          "wiznet": 1,
+          "wiznet": 5500,
           "eeprom": 1,
           "i2c": 1,
           "serial_ports": 1
