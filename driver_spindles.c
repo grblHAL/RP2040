@@ -324,12 +324,8 @@ bool spindleConfig (spindle_ptrs_t *spindle)
     //    uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
     //    pwm_config_set_output_polarity(&config, (!channel & settings.pwm_spindle.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
 
-        uint slice = pwm_gpio_to_slice_num(SPINDLE_PWM_PIN);
-
-        // Claim PWM slice
-        timer_claim(slice);
         // Load the configuration into our PWM slice, and set it running.
-        pwm_init(slice, &config, true);
+        pwm_init(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN), &config, true);
     } else {
         if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
@@ -659,12 +655,8 @@ bool spindle1Config (spindle_ptrs_t *spindle)
     //    uint channel = pwm_gpio_to_channel(SPINDLE_PWM_PIN);                                                                                // Get which is associated with the PWM pin
     //    pwm_config_set_output_polarity(&config, (!channel & spindle_config->cfg.invert.pwm), (channel & settings.pwm_spindle.invert.pwm)); // Set the polarity of the pin's channel
 
-        uint slice = pwm_gpio_to_slice_num(SPINDLE1_PWM_PIN);
-
-        // Claim PWM slice
-        timer_claim(slice);
         // Load the configuration into our PWM slice, and set it running.
-        pwm_init(slice, &config, true);
+        pwm_init(pwm_gpio_to_slice_num(SPINDLE1_PWM_PIN), &config, true);
     } else {
         if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
@@ -759,8 +751,12 @@ void driver_spindles_init (void)
         }
     };
 
-    on_settings_changed = grbl.on_settings_changed;
-    grbl.on_settings_changed = settingsChanged;
+    if(timer_claim(pwm_gpio_to_slice_num(SPINDLE_PWM_PIN))) {
+        spindle_id = spindle_register(&spindle, DRIVER_SPINDLE_NAME);
+        on_settings_changed = grbl.on_settings_changed;
+        grbl.on_settings_changed = settingsChanged;
+    } else
+        task_run_on_startup(report_warning, "PWM spindle failed to initialize!");
 
  #elif DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
 
@@ -783,9 +779,9 @@ void driver_spindles_init (void)
         }
     };
 
- #endif
-
     spindle_id = spindle_register(&spindle, DRIVER_SPINDLE_NAME);
+
+ #endif
 
 #endif // DRIVER_SPINDLE_ENABLE
 
@@ -822,7 +818,9 @@ void driver_spindles_init (void)
         }
     };
  
-    if((spindle_config = spindle1_settings_add(false)) && (spindle1_id = spindle_register(&spindle1, DRIVER_SPINDLE1_NAME)) != -1)
+    if(timer_claim(pwm_gpio_to_slice_num(SPINDLE1_PWM_PIN)) &&
+       (spindle_config = spindle1_settings_add(false)) &&
+        (spindle1_id = spindle_register(&spindle1, DRIVER_SPINDLE1_NAME)) != -1)
         spindle1_settings_register(spindle1.cap, spindle1_settings_changed);
     else
         task_run_on_startup(report_warning, "PWM2 spindle failed to initialize!");

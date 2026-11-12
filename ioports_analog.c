@@ -48,10 +48,12 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
 {
     bool ok;
     ioports_pwm_t *pwm_data = (ioports_pwm_t *)output->port;
-    uint32_t prescaler = config->freq_hz > 2000.0f ? 1 : (config->freq_hz > 200.0f ? 12 : 50);
-    uint slice = pwm_gpio_to_slice_num(output->pin);
+    uint32_t prescaler = 1, clock_hz = clock_get_hz(clk_sys);
 
-    if((ok = timer_claim(slice) && ioports_precompute_pwm_values(config, pwm_data, clock_get_hz(clk_sys) / prescaler))) {
+    while(!(ok = ioports_precompute_pwm_values(config, pwm_data, clock_hz / prescaler)) && prescaler < 255)
+        prescaler++;
+
+    if(ok) {
 
         pwm_config pwm_config = pwm_get_default_config();
         pwm_config_set_clkdiv_int(&pwm_config, prescaler);
@@ -65,7 +67,7 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
         uint channel = pwm_gpio_to_channel(output->pin);
         pwm_config_set_output_polarity(&pwm_config, (!channel & config->invert), (channel & config->invert));
 
-        pwm_init(slice, &pwm_config, true);
+        pwm_init(pwm_gpio_to_slice_num(output->pin), &pwm_config, true);
 
         set_pwm_cap(output, config->servo_mode);
     }
@@ -226,14 +228,19 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
                     n_pwm++;
             }
 
-            pwm_data = calloc(n_pwm, sizeof(ioports_pwm_t));
-            pwm_values = calloc(n_pwm, sizeof(float));
+            if(n_pwm && (pwm_data = calloc(n_pwm, sizeof(ioports_pwm_t))))
+                pwm_values = calloc(n_pwm, sizeof(float));
 
             n_pwm = 0;
             for(i = 0; i < analog.out.n_ports; i++) {
-                if(aux_out_analog[i].mode.pwm && !!pwm_data) {
+                if(aux_out_analog[i].mode.pwm && !!pwm_values) {
                     aux_out_analog[i].pwm_idx = n_pwm++;
-                    init_pwm(get_pin_info(Port_Output, i), &config, false);
+                    if(timer_claim(pwm_gpio_to_slice_num(aux_out_analog[i].pin)))
+                        init_pwm(get_pin_info(Port_Output, i), &config, false);
+                    else {
+                        uint8_t port = i;
+                        ioport_claim(Port_Analog, Port_Output, &port, "N/A");
+                    }
                 }
             }
         }

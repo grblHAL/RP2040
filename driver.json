@@ -332,28 +332,29 @@
           "RP_MCU": "2350",
           "RP_BOARD": "pico2"
       }
-    },   {
-        "name": "Sienci Labs SLB-Lite",
-        "symbol": "BOARD_SLB_LITE",
-        "MAP": "boards/slblite_map.h",
-        "caps": {
-          "axes": 5,
-          "spindle_pwm": 2,
-          "i2c_strobe": 0,
-          "wifi": 0,
-          "bluetooth": 0,
-          "sdcard": 1,
-          "rgb_out": 1,
-          "wiznet": 5500,
-          "eeprom": 1,
-          "i2c": 1,
-          "serial_ports": 1
-        },
-        "symbols": {
-            "RP_MCU": "2350",
-            "RP_BOARD": "pimoroni_pga2350",
-            "MOTOR_FAULT_ENABLE": 1
-        }
+    },
+    {
+      "name": "Sienci Labs SLB-Lite",
+      "symbol": "BOARD_SLB_LITE",
+      "MAP": "boards/slblite_map.h",
+      "caps": {
+        "axes": 5,
+        "spindle_pwm": 2,
+        "i2c_strobe": 0,
+        "wifi": 0,
+        "bluetooth": 0,
+        "sdcard": 1,
+        "rgb_out": 1,
+        "wiznet": 5500,
+        "eeprom": 1,
+        "i2c": 1,
+        "serial_ports": 1
+      },
+      "symbols": {
+          "RP_MCU": "2350",
+          "RP_BOARD": "pimoroni_pga2350",
+          "MOTOR_FAULT_ENABLE": 1
       }
+    }
   ]
 }
