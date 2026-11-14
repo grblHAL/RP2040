@@ -596,6 +596,12 @@ static output_signal_t outputpin[] = {
 #ifdef AUXOUTPUT8_PORT
     { .id = Output_Aux8,         .port = AUXOUTPUT8_PORT,  .pin = AUXOUTPUT8_PIN,        .group = PinGroup_AuxOutput},
 #endif
+#ifdef COOLANT_FLOOD_PIN
+    { .id = Output_CoolantFlood, .port = COOLANT_PORT,     .pin = COOLANT_FLOOD_PIN,     .group = PinGroup_Coolant },
+#endif
+#ifdef COOLANT_MIST_PIN
+    { .id = Output_CoolantMist,  .port = COOLANT_PORT,     .pin = COOLANT_MIST_PIN,      .group = PinGroup_Coolant },
+#endif
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
@@ -1927,6 +1933,10 @@ static void coolantSetState (coolant_state_t mode)
 {
 #if COOLANT_PORT == GPIO_OUTPUT
 
+    // NOTE: the Bolangsk board's coolant output stage already inverts
+    // (pad HIGH -> terminal sinks the load), so raw mode levels give the
+    // correct semantics. Do not invert here.
+
 #ifdef COOLANT_FLOOD_PIN
     DIGITAL_OUT(COOLANT_FLOOD_PIN, mode.flood);
 #endif
@@ -2381,32 +2391,9 @@ void on_settings_changed (settings_t *settings, settings_changed_flags_t changed
 
         aux_ctrl_irq_enable(settings, aux_irq_handler);
 
-        /*************************
-         *  Output signals init  *
-         *************************/
- 
-        output_signal_t *output;
-        i = sizeof(outputpin) / sizeof(output_signal_t);
-
-        do {
-            output = &outputpin[--i];
-            if(output->port == GPIO_OUTPUT)
-              switch(output->id) {
-
-                case Output_CoolantMist:
-                    output->mode.inverted = settings->coolant.invert.mist;
-                    gpio_set_outover(output->pin, output->mode.inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
-
-                case Output_CoolantFlood:
-                    output->mode.inverted = settings->coolant.invert.flood;
-                    gpio_set_outover(output->pin, output->mode.inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
-                    break;
-
-                default:
-                    break;
-            }
-        } while(i);
+        // NOTE: the Bolangsk output stage inverts in hardware (pad HIGH
+        // energizes the load), so no gpio out-overrides or software
+        // inversion are applied to the coolant outputs.
 
         irq_set_enabled(IO_IRQ_BANK0, true); // Enable GPIO IRQ
     }
@@ -2859,7 +2846,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261104";
+    hal.driver_version = "261106";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME

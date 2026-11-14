@@ -127,28 +127,60 @@
 #define M4_LIMIT_PIN            30 //LIMIT B pin
 #endif
 
-#define AUXOUTPUT0_PORT         GPIO_OUTPUT  //out0
-#define AUXOUTPUT0_PIN          37
-#define AUXOUTPUT1_PORT         GPIO_OUTPUT  //out1
-#define AUXOUTPUT1_PIN          38
-#define AUXOUTPUT2_PORT         GPIO_OUTPUT  //out2
-#define AUXOUTPUT2_PIN          39
-#define AUXOUTPUT3_PORT         GPIO_OUTPUT  //out3
+// AUX output pins. OUTPUT BLOCK - HARDWARE VERIFIED (2026-11-14, LED bench
+// test): an LED + 2.2k resistor from +24V was touched to each output terminal
+// while M-codes were issued over serial.
+//
+// IMPORTANT - the board's output stage INVERTS: a HIGH pad sinks the
+// terminal node to GND and energizes the load; a LOW pad leaves the
+// terminal floating. Verified by toggling OUT0 (GPIO 43) with M64 P0/M65 P0
+// and watching the LED: HIGH -> lights, LOW -> dark. Do NOT add software
+// inversion for these outputs (the driver's coolantSetState() writes raw
+// levels and $15 must stay 0).
+//
+// Directly verified terminal wirings (each terminal toggled):
+//   silk M3   -> GPIO 47  spindle enable     (AUXOUTPUT6), lights when M3
+//   silk M4   -> GPIO 46  spindle direction  (AUXOUTPUT8), toggles M3<->M4
+//   silk M7   -> GPIO 45  coolant mist       (AUXOUTPUT10), lights on M7
+//   silk M8   -> GPIO 44  coolant flood      (AUXOUTPUT9), lights on M8
+//   silk OUT0 -> GPIO 43  aux output 0       (AUXOUTPUT0), M64 P0/M65 P0
+//   silk OUT1 -> GPIO 42  aux output 1       (AUXOUTPUT1), M64 P1/M65 P1
+//   silk OUT2 -> GPIO 41  aux output 2       (AUXOUTPUT2), M64 P2/M65 P2
+//   silk OUT3 -> GPIO 40  aux output 3       (AUXOUTPUT3), M64 P3/M65 P3
+//   silk PWM  -> GPIO 22  spindle PWM        (AUXOUTPUT7), PWM/10V circuit
+//
+// The WebBuilder pin map agrees with all of these wirings and with the
+// silkscreen. The factory schematic output block is shifted -1 terminal
+// position relative to the real PCB routing - do not use it for this block.
+//
+// NOTE: GPIOs 39/38 left unbound (former AUXOUTPUT2/1). AUXOUTPUT0/1 were
+// previously assigned to 37/38, which also conflicted with the E-stop /
+// feed-hold control inputs on those pins.
+#define AUXOUTPUT0_PORT         GPIO_OUTPUT  // OUT0 terminal
+#define AUXOUTPUT0_PIN          43
+#define AUXOUTPUT1_PORT         GPIO_OUTPUT  // OUT1 terminal
+#define AUXOUTPUT1_PIN          42
+#define AUXOUTPUT2_PORT         GPIO_OUTPUT  // OUT2 terminal
+#define AUXOUTPUT2_PIN          41
+#define AUXOUTPUT3_PORT         GPIO_OUTPUT  // OUT3 terminal
 #define AUXOUTPUT3_PIN          40
-#define AUXOUTPUT4_PORT         GPIO_OUTPUT  //out4
-#define AUXOUTPUT4_PIN          41
-#define AUXOUTPUT5_PORT         GPIO_OUTPUT  //out5
-#define AUXOUTPUT5_PIN          42
-#define AUXOUTPUT6_PORT         GPIO_OUTPUT  // Spindle enable
-#define AUXOUTPUT6_PIN          46
-#define AUXOUTPUT7_PORT         GPIO_OUTPUT  // Spindle PWM
+#define AUXOUTPUT6_PORT         GPIO_OUTPUT  // Spindle enable (silk M3)
+#define AUXOUTPUT6_PIN          47
+#define AUXOUTPUT7_PORT         GPIO_OUTPUT  // Spindle PWM (silk PWM)
 #define AUXOUTPUT7_PIN          22
-#define AUXOUTPUT8_PORT         GPIO_OUTPUT  // Spindle direction
-#define AUXOUTPUT8_PIN          45
-#define AUXOUTPUT9_PORT         GPIO_OUTPUT  // Coolant flood
-#define AUXOUTPUT9_PIN          43
-#define AUXOUTPUT10_PORT        GPIO_OUTPUT  // Coolant mist
-#define AUXOUTPUT10_PIN         44
+#define AUXOUTPUT8_PORT         GPIO_OUTPUT  // Spindle direction (silk M4)
+#define AUXOUTPUT8_PIN          46
+#define AUXOUTPUT9_PORT         GPIO_OUTPUT  // Coolant flood (silk M8)
+#define AUXOUTPUT9_PIN          44
+#define AUXOUTPUT10_PORT        GPIO_OUTPUT  // Coolant mist (silk M7)
+#define AUXOUTPUT10_PIN         45
+
+// Coolant outputs are wired to the M8 (flood) and M7 (mist) terminals.
+// Verified M7 -> M7 terminal, M8 -> M8 terminal, M9 -> both off (LED bench
+// test 2026-11-14). The board's output stage inverts (pad HIGH energizes the
+// load), so grblHAL's raw non-inverted levels are correct as-is: keep
+// $15 (Setting_CoolantInvertMask) at 0.
+#define COOLANT_ENABLE          (COOLANT_FLOOD|COOLANT_MIST)
 
 #if DRIVER_SPINDLE_ENABLE
 #define SPINDLE_PORT            GPIO_OUTPUT
