@@ -22,6 +22,44 @@
 // Pin assignments corrected to match the factory pin definition file for this
 // board (schematic SCH_ENC_PI_2 "core" sheet, 2026-08-15) and the pin map
 // reported by the factory pre-installed firmware ($pins output).
+//
+// HARDWARE VERIFIED (2026-11-14, bench test with serial monitor):
+// every control/probe/limit chain was exercised end-to-end by grounding the
+// corresponding input terminal and checking the reported Pn: letter and/or
+// probe report in grblHAL.
+//
+// IMPORTANT - board silkscreen defect: on the bottom input terminal row the
+// printed labels ESTOP/HOLD/START/RESET/PROBE/IN1/IN2/IN3 are SHIFTED 3
+// terminal positions relative to the actual PCB routing. Verified positions
+// (counted from the RIGHT edge of the row):
+//
+//   pos 1-3  (silk ESTOP/HOLD/START) : not connected, no firmware reaction
+//   pos 4    (silk RESET)            : E-STOP input   (GPIO 35) - Pn:E + Alarm:10
+//   pos 5    (silk PROBE)            : FEED HOLD      (GPIO 34) - Pn:H
+//   pos 6    (silk IN1)              : CYCLE START    (GPIO 33) - Pn:S
+//   pos 7    (silk IN2)              : on-board reset button (GPIO 32), unbound
+//   pos 8    (silk IN3)              : PROBE          (GPIO 31) - Pn:P + live
+//                                      [PRB:] during a G38.2 cycle
+//
+// The label shift is limited to this control block: further along the row the
+// silkscreen is correct (verified: "B" terminal -> limit B input (Pn:B),
+// "LIMIT A" -> limit A (Pn:A), "AXIS Z" -> limit Z (Pn:Z), "Y" -> limit Y
+// (Pn:Y), "X" -> limit X (Pn:X)).
+//
+// Electrical notes: the control, probe and limit input terminals are fed from
+// +24V through on-board optocouplers; an input is ACTIVE when pulled to GND
+// (NPN/relay contact, sinking). Measured with a DMM (terminal vs GND, open):
+// ~23-24V. Trigger polarity settings used during verification: $14=70,
+// $6=1 (probe), $5=31 (limit invert... see grblHAL settings docs).
+//
+// The PULSE and SPINDLE (encoder) terminals are a DIFFERENT input type:
+// measured ~1.6V open (logic-side input stage, no 24V optocoupler). These
+// expect an encoder signal with open-collector/3.3-5V levels - do NOT wire
+// 24V devices to them.
+//
+// NOTE: the factory schematic net names for the control inputs are
+// JITING (E-stop), ZANTING (feed hold), QIDO (cycle start), TANCE (probe) and
+// describe the REAL routing, not the printed silkscreen labels.
 
 #if RP_MCU != 2350
 #error "Board has a RP2350 processor!"

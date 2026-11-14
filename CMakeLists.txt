@@ -125,6 +125,9 @@ target_compile_definitions(grblHAL PUBLIC RP_MCU=2350)
 endif()
 target_compile_definitions(grblHAL PUBLIC RP2040)
 target_compile_definitions(grblHAL PUBLIC NEW_FATFS)
+# Bolangsk local build: 5 axes (XYZAB). N_AXIS must be visible to ALL compilation units,
+# but my_machine.h is only included by driver.h - so pass it as a compiler definition.
+target_compile_definitions(grblHAL PUBLIC N_AXIS=5)
 #target_compile_definitions(grblHAL PUBLIC LITTLEFS_ENABLE=1)
 
 if(ADD_WIFI)
