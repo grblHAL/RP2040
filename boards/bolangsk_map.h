@@ -35,6 +35,12 @@
 //   silk IN1   -> GPIO 33   (spare input, AUXINPUT1)
 //   silk IN2   -> GPIO 32   (spare input, AUXINPUT2; also on-board reset button)
 //   silk IN3   -> GPIO 31   (spare input, AUXINPUT3)
+//   silk IN0   -> GPIO 39   (spare input, AUXINPUT13) - hardware verified
+//     (2026-11-15: IN0 shorted to GND pulled the test-bound input low;
+//     NOT wired in parallel with cycle start. The factory schematic labels
+//     GPIO 39 "aux_out_3_uC" - wrong, it is the IN0 input. COM for the
+//     IN0..IN3 optos is brought out on the MPG connector CN5 pin 4,
+//     net AUX_IN_0-3_COM.)
 //
 // Direct evidence (gathered on an earlier schematic-derived build whose
 // control block was shifted +3 positions): grounding the PROBE terminal fired
@@ -153,9 +159,8 @@
 // silkscreen. The factory schematic output block is shifted -1 terminal
 // position relative to the real PCB routing - do not use it for this block.
 //
-// NOTE: GPIOs 39/38 left unbound (former AUXOUTPUT2/1). AUXOUTPUT0/1 were
-// previously assigned to 37/38, which also conflicted with the E-stop /
-// feed-hold control inputs on those pins.
+// NOTE: GPIO 37 unbound (former AUXOUTPUT1; GPIO 38 is the E-stop input).
+// GPIO 39 is used as aux input 13 (IN0 terminal, hardware verified).
 #define AUXOUTPUT0_PORT         GPIO_OUTPUT  // OUT0 terminal
 #define AUXOUTPUT0_PIN          43
 #define AUXOUTPUT1_PORT         GPIO_OUTPUT  // OUT1 terminal
@@ -223,6 +228,7 @@
 #define AUXINPUT10_PIN          37 // Feed hold (silk: HOLD)
 #define AUXINPUT11_PIN          36 // Cycle start (silk: START)
 #define AUXINPUT12_PIN          34 // Probe (silk: PROBE)
+#define AUXINPUT13_PIN          39 // IN0 terminal (silk: IN0) - hardware verified 2026-11-15
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 // NOTE: the core does not have a separate E-stop input, the halt/reset input
