@@ -19,32 +19,39 @@
   along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Pin assignments corrected to match the factory pin definition file for this
-// board (schematic SCH_ENC_PI_2 "core" sheet, 2026-08-15) and the pin map
-// reported by the factory pre-installed firmware ($pins output).
+// Pin assignments for the Bolangsk 5-axis controller (RP2350B).
 //
-// HARDWARE VERIFIED (2026-11-14, bench test with serial monitor):
-// every control/probe/limit chain was exercised end-to-end by grounding the
-// corresponding input terminal and checking the reported Pn: letter and/or
-// probe report in grblHAL.
+// CONTROL INPUT MAP - HARDWARE VERIFIED (2026-11-14, live bench test): each
+// control terminal in the bottom input row was grounded through its on-board
+// optocoupler and the firmware reaction (Pn: letter / alarm) checked against
+// $pins. The PCB routes the row in DESCENDING GPIO order from the RIGHT edge,
+// one-to-one with the silkscreen labels:
 //
-// IMPORTANT - board silkscreen defect: on the bottom input terminal row the
-// printed labels ESTOP/HOLD/START/RESET/PROBE/IN1/IN2/IN3 are SHIFTED 3
-// terminal positions relative to the actual PCB routing. Verified positions
-// (counted from the RIGHT edge of the row):
+//   silk ESTOP -> GPIO 38   (E-stop / halt input) : Pn:E + Alarm:10
+//   silk HOLD  -> GPIO 37   (feed hold)           : Pn:H
+//   silk START -> GPIO 36   (cycle start)         : Pn:S
+//   silk RESET -> GPIO 35   (spare input, AUXINPUT0)
+//   silk PROBE -> GPIO 34   (probe)               : Pn:P + live [PRB:]
+//   silk IN1   -> GPIO 33   (spare input, AUXINPUT1)
+//   silk IN2   -> GPIO 32   (spare input, AUXINPUT2; also on-board reset button)
+//   silk IN3   -> GPIO 31   (spare input, AUXINPUT3)
 //
-//   pos 1-3  (silk ESTOP/HOLD/START) : not connected, no firmware reaction
-//   pos 4    (silk RESET)            : E-STOP input   (GPIO 35) - Pn:E + Alarm:10
-//   pos 5    (silk PROBE)            : FEED HOLD      (GPIO 34) - Pn:H
-//   pos 6    (silk IN1)              : CYCLE START    (GPIO 33) - Pn:S
-//   pos 7    (silk IN2)              : on-board reset button (GPIO 32), unbound
-//   pos 8    (silk IN3)              : PROBE          (GPIO 31) - Pn:P + live
-//                                      [PRB:] during a G38.2 cycle
+// Direct evidence (gathered on an earlier schematic-derived build whose
+// control block was shifted +3 positions): grounding the PROBE terminal fired
+// feed hold (GPIO 34 -> Pn:H), the RESET terminal fired E-stop (35 ->
+// Alarm:10), IN1 fired cycle start (33 -> Pn:S) and IN3 fired the probe
+// (31 -> Pn:P) - proving the terminals are physically wired to 34/35/33/31.
+// The factory WebBuilder pin map (E=38, H=37, S=36, P=34) matches this
+// routing; the control input block below follows it.
 //
-// The label shift is limited to this control block: further along the row the
-// silkscreen is correct (verified: "B" terminal -> limit B input (Pn:B),
-// "LIMIT A" -> limit A (Pn:A), "AXIS Z" -> limit Z (Pn:Z), "Y" -> limit Y
-// (Pn:Y), "X" -> limit X (Pn:X)).
+// CAUTION: the factory schematic (SCH_ENC_PI, MCU sheet) places
+// EStop_uC/Hold_uC/CycleStart_uC/Probe_uC on GPIOs 35/34/33/31 - a +3
+// position shift relative to the real PCB routing. Do not trust the
+// schematic connector pages for the control block; the silkscreen is right.
+//
+// Further along the row the silkscreen is correct (verified): "B" -> limit B
+// (Pn:B), "LIMIT A" -> limit A (Pn:A), "AXIS Z" -> limit Z (Pn:Z), "Y" ->
+// limit Y (Pn:Y), "X" -> limit X (Pn:X).
 //
 // Electrical notes: the control, probe and limit input terminals are fed from
 // +24V through on-board optocouplers; an input is ACTIVE when pulled to GND
@@ -57,9 +64,9 @@
 // expect an encoder signal with open-collector/3.3-5V levels - do NOT wire
 // 24V devices to them.
 //
-// NOTE: the factory schematic net names for the control inputs are
-// JITING (E-stop), ZANTING (feed hold), QIDO (cycle start), TANCE (probe) and
-// describe the REAL routing, not the printed silkscreen labels.
+// NOTE: GPIOs 11/10/9 (former AUXINPUT1-3 assignments) are left unbound -
+// their physical terminal locations have not been verified. AUXINPUT4-6
+// (GPIO 8/7/6) kept as-is; locations unverified.
 
 #if RP_MCU != 2350
 #error "Board has a RP2350 processor!"
@@ -166,13 +173,13 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT10_PIN
 #endif
 
-#define AUXINPUT0_PIN           36 //in0
-#define AUXINPUT1_PIN           11 //in1
-#define AUXINPUT2_PIN           10 //in2
-#define AUXINPUT3_PIN           9  //in3
-#define AUXINPUT4_PIN           8  //in4
-#define AUXINPUT5_PIN           7  //in5
-#define AUXINPUT6_PIN           6  //in6
+#define AUXINPUT0_PIN           35 //in0 - RESET terminal (spare control input)
+#define AUXINPUT1_PIN           33 //in1 - IN1 terminal
+#define AUXINPUT2_PIN           32 //in2 - IN2 terminal (also on-board reset button)
+#define AUXINPUT3_PIN           31 //in3 - IN3 terminal
+#define AUXINPUT4_PIN           8  //in4 - location unverified
+#define AUXINPUT5_PIN           7  //in5 - location unverified
+#define AUXINPUT6_PIN           6  //in6 - location unverified
 #if SPINDLE_ENCODER_ENABLE
 #define SPINDLE_PULSE_PIN       29  // Must be an odd pin
 #define SPINDLE_INDEX_PIN       28
@@ -180,15 +187,16 @@
 #define AUXINPUT7_PIN           29 //Spindle|pulse pin on the board
 #define AUXINPUT8_PIN           28 //Spindle|index pin on the board
 #endif
-#define AUXINPUT9_PIN           35 // E-Stop (board label: JITING)
-#define AUXINPUT10_PIN          34 // Feed hold (board label: ZANTING)
-#define AUXINPUT11_PIN          33 // Cycle start (board label: QIDO)
-#define AUXINPUT12_PIN          31 // Probe (board label: TANCE)
+#define AUXINPUT9_PIN           38 // E-Stop (silk: ESTOP, rightmost terminal)
+#define AUXINPUT10_PIN          37 // Feed hold (silk: HOLD)
+#define AUXINPUT11_PIN          36 // Cycle start (silk: START)
+#define AUXINPUT12_PIN          34 // Probe (silk: PROBE)
 
 // Define user-control controls (cycle start, reset, feed hold) input pins.
 // NOTE: the core does not have a separate E-stop input, the halt/reset input
-// is used for the E-stop button (GPIO 35). The dedicated reset button
-// (GPIO 32) can be wired in parallel with it or left unused.
+// is used for the E-stop button (GPIO 38). The RESET terminal (GPIO 35) and
+// IN2 (GPIO 32, also wired to the on-board reset button) are available as
+// spare aux inputs.
 #if CONTROL_ENABLE & CONTROL_HALT
 #define RESET_PIN               AUXINPUT9_PIN
 #endif
@@ -211,5 +219,6 @@
 #define SD_CS_PIN               5
 #endif // SDCARD_ENABLE
 
-// NOTE: no I2C peripherals are wired to dedicated pins on this board;
-// GPIO 8/9 are general purpose input terminals (IN4/IN3).
+// NOTE: no I2C peripherals are wired to dedicated pins on this board.
+// GPIOs 11/10/9 (former AUXINPUT1-3) are unbound; physical terminal
+// locations not verified.
