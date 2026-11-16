@@ -192,6 +192,8 @@
   #include "boards/slblite_map.h"
 #elif defined(BOARD_BOLANGSK)
   #include "boards/bolangsk_map.h"
+#elif defined(BOARD_BOLANGSK_V2)
+  #include "boards/bolangsk_v2_map.h"
 #else // default board
   #include "boards/generic_map.h"
 #endif
