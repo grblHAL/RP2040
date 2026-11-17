@@ -78,7 +78,7 @@
 #error "Board has a RP2350 processor!"
 #endif
 
-#define BOARD_NAME "Bolangsk"
+#define BOARD_NAME "Bolangsk v1"
 
 // Primary UART0: TX 0 / RX 1 - wired to the LCD connector on the board
 // (micro JST GH 1.25, pinout: GND, RX, TX, +5V).
