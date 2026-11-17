@@ -21,7 +21,7 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
-#define BOARD_BOLANGSK //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
+//#define BOARD_BOLANGSK //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
 //#define BOARD_BTT_SKR_PICO_10
 //#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_PICOBOB
@@ -44,14 +44,6 @@
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC          1 // Serial communication via native USB.
 #endif
-// Local build for Bolangsk: 5 axes (XYZAB) and SD card enabled.
-// NOTE: N_AXIS is also passed as -DN_AXIS=5 in CMakeLists.txt, because the grbl core
-// sources do not include my_machine.h (only driver.h does) and would otherwise build
-// with the default N_AXIS=3. Guarded here to avoid redefinition with the -D define.
-#ifndef N_AXIS
-#define N_AXIS                  5
-#endif
-#define SDCARD_ENABLE           2
 //#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module, enable in CMakeLists.txt if for Pico W Bluetooth.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
@@ -76,7 +68,6 @@
 //#define WEBUI_INFLASH           0 // Uncomment to store WebUI files on SD card instead of in flash (littlefs).
 //#define SDCARD_ENABLE           2 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define MPG_ENABLE              2 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
-#define MPG_ENABLE              2 // Local build: MPG/pendant on UART0 (LCD connector), mode switch by 0x8B command; see bolangsk_map.h
                                     // 1: Mode switching is by handshake pin.
                                     // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
 //#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
