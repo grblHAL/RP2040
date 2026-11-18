@@ -596,6 +596,12 @@ static output_signal_t outputpin[] = {
 #ifdef AUXOUTPUT8_PORT
     { .id = Output_Aux8,         .port = AUXOUTPUT8_PORT,  .pin = AUXOUTPUT8_PIN,        .group = PinGroup_AuxOutput},
 #endif
+#ifdef AUXOUTPUT9_PORT
+    { .id = Output_Aux9,         .port = AUXOUTPUT9_PORT,  .pin = AUXOUTPUT9_PIN,        .group = PinGroup_AuxOutput},
+#endif
+#ifdef AUXOUTPUT10_PORT
+    { .id = Output_Aux10,         .port = AUXOUTPUT10_PORT,  .pin = AUXOUTPUT10_PIN,        .group = PinGroup_AuxOutput},
+#endif
 #ifdef AUXOUTPUT0_PWM_PIN
     { .id = Output_Analog_Aux0, .port = GPIO_OUTPUT, .pin = AUXOUTPUT0_PWM_PIN, .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
 #endif
@@ -2859,7 +2865,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261104";
+    hal.driver_version = "261109";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
