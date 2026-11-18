@@ -122,7 +122,8 @@ hal_timer_t timerClaim (timer_cap_t cap, uint32_t timebase)
     for(idx = 0; idx < n_timers; idx++) {
         if(!timers[idx].claimed && timers[idx].cap.resolution == cap.resolution) {
 
-            uint32_t prescaler = (timers[idx].freq_hz * (timebase / 1000)) / 1000000 - 1;
+            // Clock cycles per tick. Unlike a STM32 PSC, the PWM clock divider divides by its value, not by value + 1.
+            uint32_t prescaler = (uint32_t)(((uint64_t)timers[idx].freq_hz * timebase) / 1000000000ULL);
 
             if(prescaler > 0 && prescaler <= 255) {
 
