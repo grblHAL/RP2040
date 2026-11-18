@@ -21,7 +21,10 @@
 
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used.
+//For BolangSK boards with wire terminals on three board sides (old version):
 //#define BOARD_BOLANGSK //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
+//For BolangSK boards with wire terminals on four board sides (spindle connector on USB port side, new version)
+//#define BOARD_BOLANGSK_V2 //change PICO_BOARD to pimoroni_pga2350 in CMakeLists.txt for this to compile
 //#define BOARD_BTT_SKR_PICO_10
 //#define BOARD_BTT_SKR_PICO_10_HOTWIRE // Swaps spindle PWM and coolant outputs to utilize the bed heater (HB) output to control the hotwire. 
 //#define BOARD_PICOBOB
