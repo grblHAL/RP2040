@@ -2928,7 +2928,7 @@ bool driver_init (void)
 #else
     hal.info = "RP2350";
 #endif
-    hal.driver_version = "261104";
+    hal.driver_version = "261109";
     hal.driver_options = "SDK_" PICO_SDK_VERSION_STRING;
     hal.driver_url = GRBL_URL "/RP2040";
 #ifdef BOARD_NAME
