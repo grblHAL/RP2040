@@ -350,12 +350,12 @@
         "wiznet": 5500,
         "eeprom": 1,
         "i2c": 1,
+        "i2c_ports": 1,
         "serial_ports": 1
       },
       "symbols": {
           "RP_MCU": "2350",
-          "RP_BOARD": "pimoroni_pga2350",
-          "MOTOR_FAULT_ENABLE": 1
+          "RP_BOARD": "pimoroni_pga2350"
       }
     }
   ]
