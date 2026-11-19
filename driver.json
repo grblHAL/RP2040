@@ -341,6 +341,7 @@
       "caps": {
         "axes": 5,
         "spindle_pwm": 2,
+        "digital_in": 4,
         "i2c_strobe": 0,
         "wifi": 0,
         "bluetooth": 0,
