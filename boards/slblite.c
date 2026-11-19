@@ -93,8 +93,8 @@ static void motor_fault_populate_pins (void)
     motor_fault_register_pin(Z_AXIS, false, Z_MOTOR_FAULT_PIN);
 
 #ifdef M3_MOTOR_FAULT_PIN
-  #ifdef A_AXIS
-    motor_fault_register_pin(A_AXIS, false, M3_MOTOR_FAULT_PIN);
+  #if N_AXIS > 3
+    motor_fault_register_pin(AXIS3_IDX, false, M3_MOTOR_FAULT_PIN);
   #elif X_GANGED
     motor_fault_register_pin(X_AXIS, true, M3_MOTOR_FAULT_PIN);
   #elif Y_GANGED
@@ -104,8 +104,8 @@ static void motor_fault_populate_pins (void)
   #endif
 #endif
 #ifdef M4_MOTOR_FAULT_PIN
-  #ifdef B_AXIS
-    motor_fault_register_pin(B_AXIS, false, M4_MOTOR_FAULT_PIN);
+  #if N_AXIS > 4
+    motor_fault_register_pin(AXIS4_IDX, false, M4_MOTOR_FAULT_PIN);
   #elif X_GANGED
     motor_fault_register_pin(X_AXIS, true, M4_MOTOR_FAULT_PIN);
   #elif Y_GANGED
@@ -265,7 +265,11 @@ static void onHomingRateSet (axes_signals_t axes, coord_data_t *feedrate, homing
     homing_axes = axes;
 
     gpio_put(HOME_INDICATOR_Z_PIN, axes.z ? 0 : 1);
-    gpio_put(HOME_INDICATOR_XYZA_PIN, (axes.x || axes.y || axes.a) ? 0 : 1);
+    gpio_put(HOME_INDICATOR_XYZA_PIN, (axes.x || axes.y
+#if N_AXIS > 3
+                                     || (axes.mask & bit(AXIS3_IDX))
+#endif
+                                    ) ? 0 : 1);
 
     if(saved_on_homing_rate_set)
         saved_on_homing_rate_set(axes, feedrate, mode);
